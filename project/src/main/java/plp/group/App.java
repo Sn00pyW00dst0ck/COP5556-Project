@@ -10,7 +10,8 @@ import plp.group.project.pascalLexer;
 import plp.group.project.pascalParser;
 
 /**
- * Hello world!
+ * Right now this invokes ANTLR4 tooling to view the AST in a GUI window, in
+ * future it will call our interpreter.
  *
  */
 public class App {
@@ -24,13 +25,13 @@ public class App {
                 """;
 
         try {
+            // Get the parse tree.
             var lexer = new pascalLexer(CharStreams.fromString(program)); // CharStreams.fromFileName(args[0])
             var tokens = new CommonTokenStream(lexer);
             var parser = new pascalParser(tokens);
-
             var tree = parser.program();
 
-            // Open a GUI window with the parse tree
+            // Open a GUI window with the parse tree.
             JFrame frame = Trees.inspect(tree, parser).get();
             frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
         } catch (Exception e) {
