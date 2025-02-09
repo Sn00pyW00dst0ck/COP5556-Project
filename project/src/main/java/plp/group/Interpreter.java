@@ -5,33 +5,33 @@ import org.antlr.v4.runtime.tree.ParseTree;
 import org.antlr.v4.runtime.tree.RuleNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
-import plp.group.project.pascalParser.*;
-import plp.group.project.pascalVisitor;
+import plp.group.project.delphiParser.*;
+import plp.group.project.delphiVisitor;
 
-public class Interpreter implements pascalVisitor<String> {
+public class Interpreter implements delphiVisitor<String> {
 
     @Override
-    public String visit(ParseTree arg0) {
+    public String visit(ParseTree tree) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visit'");
     }
 
     @Override
-    public String visitChildren(RuleNode arg0) {
+    public String visitChildren(RuleNode node) {
         // TODO Auto-generated method stub
         throw new UnsupportedOperationException("Unimplemented method 'visitChildren'");
     }
 
     @Override
-    public String visitErrorNode(ErrorNode arg0) {
+    public String visitTerminal(TerminalNode node) {
         // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitErrorNode'");
+        throw new UnsupportedOperationException("Unimplemented method 'visitTerminal'");
     }
 
     @Override
-    public String visitTerminal(TerminalNode arg0) {
+    public String visitErrorNode(ErrorNode node) {
         // TODO Auto-generated method stub
-        throw new UnsupportedOperationException("Unimplemented method 'visitTerminal'");
+        throw new UnsupportedOperationException("Unimplemented method 'visitErrorNode'");
     }
 
     @Override

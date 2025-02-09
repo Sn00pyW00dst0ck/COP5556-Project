@@ -4,8 +4,8 @@ import org.antlr.v4.gui.Trees;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-import plp.group.project.pascalLexer;
-import plp.group.project.pascalParser;
+import plp.group.project.delphiLexer;
+import plp.group.project.delphiParser;
 
 /**
  * Right now this invokes ANTLR4 tooling to view the AST in a GUI window, in
@@ -16,10 +16,10 @@ public class App {
     public static void main(String[] args) {
         try {
             // Get the parse tree for the file we enter in command line.
-            var lexer = new pascalLexer(
+            var lexer = new delphiLexer(
                     CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream(args[0])));
             var tokens = new CommonTokenStream(lexer);
-            var parser = new pascalParser(tokens);
+            var parser = new delphiParser(tokens);
             var tree = parser.program();
 
             // Open a GUI window with the parse tree.
