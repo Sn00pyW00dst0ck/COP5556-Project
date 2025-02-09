@@ -22,8 +22,12 @@ public class App {
             var parser = new delphiParser(tokens);
             var tree = parser.program();
 
-            // Open a GUI window with the parse tree.
+            // Open a GUI window with the parse tree & print it to command line.
+            System.out.println(tree.toStringTree(parser));
             Trees.inspect(tree, parser);
+
+            var interpreter = new Interpreter();
+            System.out.println(interpreter.visit(tree));
         } catch (Exception e) {
             System.out.println(e.toString());
         }
