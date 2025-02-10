@@ -4,6 +4,7 @@ import org.antlr.v4.gui.Trees;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
+import plp.group.Interpreter.Interpreter;
 import plp.group.project.delphiLexer;
 import plp.group.project.delphiParser;
 
