@@ -12,7 +12,7 @@ import plp.group.project.delphiParser;
 
 public class Interpreter extends delphiBaseVisitor<Integer> {
 
-    private Scope scope = new Scope(null);
+    private SymbolTable scope = new SymbolTable();
 
     // @Override
     // public Integer visitIdentifier(delphiParser.IdentifierContext ctx) {
