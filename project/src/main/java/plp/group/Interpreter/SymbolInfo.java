@@ -13,11 +13,12 @@ public class SymbolInfo {
         VARIABLE, FUNCTION
     };
 
-    public SymbolType type;
+    public SymbolType symbolType;
     public Object value = null; // Holds actual value for variables
     public Function<List<Object>, Object> function = null; // For functions
     public List<Class<?>> parameterTypes = null; // For functions
-    public Class<?> returnType = null; // For functions
+    public Class<?> returnType = null; // For functions and variables, the type of the value (return or variable
+                                       // value).
 
     /**
      * Create a SymbolInfo for a variable with a value.
@@ -25,8 +26,19 @@ public class SymbolInfo {
      * @param _value the value of the variable.
      */
     public SymbolInfo(Object _value) {
-        type = SymbolType.VARIABLE;
+        symbolType = SymbolType.VARIABLE;
         value = _value;
+    }
+
+    /**
+     * Create a SymbolInfo for a variable with a type but not a value.
+     * 
+     * @param _value the value of the variable.
+     */
+    public SymbolInfo(Object _value, Class<?> _type) {
+        symbolType = SymbolType.VARIABLE;
+        value = _value;
+        returnType = _type;
     }
 
     /**
@@ -37,6 +49,7 @@ public class SymbolInfo {
      * @param _returnType     the return type for the function
      */
     public SymbolInfo(Function<List<Object>, Object> _function, List<Class<?>> _parameterTypes, Class<?> _returnType) {
+        symbolType = SymbolType.FUNCTION;
         function = _function;
         parameterTypes = _parameterTypes;
         returnType = _returnType;
