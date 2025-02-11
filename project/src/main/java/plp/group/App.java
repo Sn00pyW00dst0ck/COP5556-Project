@@ -24,11 +24,13 @@ public class App {
             var tree = parser.program();
 
             // Open a GUI window with the parse tree & print it to command line.
-            System.out.println(tree.toStringTree(parser));
+            // System.out.println(tree.toStringTree(parser));
             Trees.inspect(tree, parser);
 
+            System.out.println("START INTERPRETING!");
             var interpreter = new Interpreter();
-            System.out.println(interpreter.visit(tree));
+            interpreter.visit(tree);
+            System.out.println("DONE INTERPRETING!");
         } catch (Exception e) {
             System.out.println(e.toString());
         }
