@@ -9,9 +9,6 @@
             "name": "Current File",
             "request": "launch",
             "mainClass": "${file}",
-            "args": [
-                "find_min.pas"
-            ]
         },
         {
             "type": "java",
@@ -19,9 +16,6 @@
             "request": "launch",
             "mainClass": "plp.group.App",
             "projectName": "project",
-            "args": [
-                "find_min.pas"
-            ]
         }
     ]
 }
