@@ -10,7 +10,7 @@
             "request": "launch",
             "mainClass": "${file}",
             "args": [
-                "hello_world.pas"
+                "find_min.pas"
             ]
         },
         {
@@ -20,7 +20,7 @@
             "mainClass": "plp.group.App",
             "projectName": "project",
             "args": [
-                "hello_world.pas"
+                "find_min.pas"
             ]
         }
     ]

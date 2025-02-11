@@ -3,6 +3,10 @@ package plp.group.Interpreter;
 import java.math.BigDecimal;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Scanner;
+
+import com.ibm.icu.impl.Pair;
+
 import plp.group.project.delphiBaseVisitor;
 import plp.group.project.delphiParser;
 
@@ -27,9 +31,32 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         scope.enterScope();
         // https://www.dcs.ed.ac.uk/home/SUNWspro/3.0/pascal/lang_ref/ref_builtin.doc.html
 
-        // IO Functions (TODO: Read and ReadLn)
+        // #region Built-In IO Functions
+
+        Scanner scanner = new Scanner(System.in);
+
+        scope.insert("read", new SymbolInfo(
+                "read",
+                (List<Object> arguments) -> {
+                    // FIGURE OUT THIS
+
+                    return null;
+                },
+                List.of(Object[].class),
+                Void.class));
+
+        scope.insert("readln", new SymbolInfo(
+                "readln",
+                (List<Object> arguments) -> {
+                    // FIGURE OUT THIS
+                    scanner.nextLine();
+                    return null;
+                },
+                List.of(Object[].class),
+                Void.class));
 
         scope.insert("write", new SymbolInfo(
+                "write",
                 (List<Object> arguments) -> {
                     for (Object arg : arguments) {
                         System.out.print(arg);
@@ -40,6 +67,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 Void.class));
 
         scope.insert("writeln", new SymbolInfo(
+                "writeln",
                 (List<Object> arguments) -> {
                     for (Object arg : arguments) {
                         System.out.print(arg);
@@ -49,6 +77,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 },
                 List.of(Object[].class),
                 Void.class));
+
+        // #endregion Built-In IO Functions
     }
 
     @Override
@@ -79,23 +109,56 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         var type = getJavaType(ctx.getChild(ctx.getChildCount() - 1).getText());
 
         // For each identifier, insert it to the current scope with the type set.
-        var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
-        for (String ident : identifiers) {
-            scope.insert(ident, new SymbolInfo(null, type));
+        var identifiers = (ArrayList<SymbolInfo>) visit(ctx.getChild(0));
+        for (SymbolInfo ident : identifiers) {
+            scope.insert(ident.name, new SymbolInfo(ident.name, null, type));
         }
 
         return null;
     }
 
+    /**
+     * Inserts the procedure into the current scope. Does NOT execute the procedure.
+     * 
+     * Returns null.
+     */
     @Override
     public Object visitProcedureDeclaration(delphiParser.ProcedureDeclarationContext ctx) {
-        var procedureName = (String) visit(ctx.getChild(1));
+        var procedureName = (SymbolInfo) visit(ctx.getChild(1));
 
         var paramsList = visit(ctx.getChild(2)); // TODO: implement visitFormalParameterList
 
-        var body = visit(ctx.getChild(3)); // TODO: implement visitBlock
+        var body = ctx.getChild(4);
 
-        return visitChildren(ctx);
+        SymbolTable capturedScope = scope;
+        scope.insert(procedureName.name, new SymbolInfo(
+                procedureName.name,
+                (List<Object> arguments) -> {
+                    // Create the new function scope (store current scope to restore later)
+                    SymbolTable currentScope = scope;
+                    scope = capturedScope;
+                    scope.enterScope();
+
+                    try {
+                        // Add the arguments
+                        for (int i = 0; i < arguments.size(); i++) {
+                            scope.insert(null, new SymbolInfo(null, arguments.get(i), null)); // TODO: add type info
+                        }
+
+                        // Visit the body
+                        visit(body);
+                    } finally { // TODO: Error handling here??
+                        // Restore scope no matter what
+                        scope.exitScope();
+                        scope = currentScope;
+                    }
+
+                    return null;
+                },
+                List.of(Object[].class), // TODO: update the list of arguments here to be correct...
+                Void.class));
+
+        return null;
     }
 
     @Override
@@ -105,27 +168,56 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     // #endregion Declarations
 
+    @Override
+    public Object visitFormalParameterList(delphiParser.FormalParameterListContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    @Override
+    public Object visitFormalParameterSection(delphiParser.FormalParameterSectionContext ctx) {
+        return visitChildren(ctx);
+    }
+
+    /**
+     * Returns a list of SymbolInfo. The last element is the type (as it appears in
+     * the
+     * Pascal program).
+     */
+    @Override
+    public Object visitParameterGroup(delphiParser.ParameterGroupContext ctx) {
+        var identifiers = (ArrayList<SymbolInfo>) visit(ctx.getChild(0));
+        var type = (SymbolInfo) visit(ctx.getChild(2));
+        return identifiers.add(type);
+    }
+
     // #region Identifiers
 
     /**
-     * Returns the text of all the identifiers in a list.
+     * Returns the result of visiting all the identifiers in a list.
      */
     @Override
     public Object visitIdentifierList(delphiParser.IdentifierListContext ctx) {
-        List<String> idents = new ArrayList<String>();
+        List<SymbolInfo> idents = new ArrayList<SymbolInfo>();
         for (var i = 0; i < ctx.getChildCount(); i += 2) { // Iterate by 2s to skip each COMMA
-            var ident = (String) visit(ctx.getChild(i));
+            var ident = (SymbolInfo) visit(ctx.getChild(i));
             idents.add(ident);
         }
         return idents;
     }
 
     /**
-     * Returns the text of the identifier as a string.
+     * Returns a SymbolInfo struct.
+     * 
+     * If in the scope, it will be filled out.
+     * If not, it will have null fields but the name is there.
      */
     @Override
     public Object visitIdentifier(delphiParser.IdentifierContext ctx) {
-        return ctx.getText();
+        var info = scope.lookup(ctx.getText());
+        if (info == null) {
+            info = new SymbolInfo(ctx.getText(), null);
+        }
+        return info;
     }
 
     // #endregion Identifiers
@@ -135,7 +227,9 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public Object visitProcedureStatement(delphiParser.ProcedureStatementContext ctx) {
         // Get the procedure name/details
-        SymbolInfo procedureDetails = (SymbolInfo) scope.lookup((String) visit(ctx.getChild(0)));
+        SymbolInfo procedureDetails = (SymbolInfo) scope.lookup(((SymbolInfo) visit(ctx.getChild(0))).name);
+
+        System.out.println(((SymbolInfo) visit(ctx.getChild(0))).name);
 
         // Visit parameters to get values to add to the parameters list
         var parameters = new ArrayList<Object>();
