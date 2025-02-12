@@ -42,6 +42,35 @@ options {
     caseInsensitive = true;
 }
 
+classDeclaration
+    : CLASS IDENTIFIER (EXTENDS IDENTIFIER)? LBRACE classBody RBRACE
+    ;
+
+classBody
+    : (variableDeclaration | methodDeclaration | constructorDeclaration | destructorDeclaration)*
+    ;
+
+constructorDeclaration
+    : CONSTRUCTOR LPAREN (formalParameterList)? RPAREN block
+    ;
+
+destructorDeclaration
+    : DESTRUCTOR LPAREN RPAREN block
+    ;
+
+methodDeclaration
+    : FUNCTION IDENTIFIER LPAREN (formalParameterList)? RPAREN COLON type_ block
+    | PROCEDURE IDENTIFIER LPAREN (formalParameterList)? RPAREN block
+    ;
+
+objectInstantiation
+    : IDENTIFIER ASSIGN NEW IDENTIFIER LPAREN (expressionList)? RPAREN
+    ;
+
+accessSpecifier
+    : (PUBLIC | PRIVATE)
+    ;
+
 program
     : programHeading (INTERFACE)? block DOT EOF
     ;
