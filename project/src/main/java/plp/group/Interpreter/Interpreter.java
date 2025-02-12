@@ -85,6 +85,21 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
+    public Object visitMethodDeclaration(delphiParser.MethodDeclarationContext ctx) {
+        String methodName = ctx.IDENTIFIER().getText();
+        SymbolTable classScope = scope; // Class scope should already be active
+        
+        classScope.insert(methodName, new SymbolInfo(methodName, (Function<List<Object>>) args -> {
+            scope.enterScope(); // Enter method scope
+            visit(ctx.block()); // Execute method body
+            scope.exitScope();
+            return null;
+        }, List.of(), Void.class));
+        
+        return null;
+    }
+
+    @Override
     public Object visitObjectInstantiation(delphiParser.ObjectInstantiationContext ctx) {
         String objectName = ctx.IDENTIFIER(0).getText();
         String className = ctx.IDENTIFIER(1).getText();
