@@ -63,7 +63,10 @@ public class SymbolTable {
     public SymbolInfo lookup(String name) {
         for (HashMap<String, SymbolInfo> scope : scopes) {
             if (scope.containsKey(name)) {
-                return scope.get(name);
+                SymbolInfo symbol = scope.get(name);
+                if (symbol.value instanceof Function) {
+                    return symbol; // If it's a function, return it directly
+                }
             }
         }
         return null;
