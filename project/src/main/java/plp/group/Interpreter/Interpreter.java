@@ -1,6 +1,8 @@
 package plp.group.Interpreter;
 
 import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.math.RoundingMode;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
@@ -259,11 +261,19 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         var rhs = (SymbolInfo) visit(ctx.getChild(2));
 
         // TODO: add logic for missing operations.
-        // TODO: increase type restrictions
+        /*
+         * TODO: Write a test case to test all the below operators to ensure that type
+         * safety is handled
+         */
         return switch (operator) {
-            case "=" -> throw new UnsupportedOperationException("NOT IMPLEMENTED 'EQUAL' YET");
-            case "<>" -> throw new UnsupportedOperationException("NOT IMPLEMENTED 'EQUAL' YET");
-            case "<" -> ((Integer) (lhs.value)) < ((Integer) (rhs.value));
+            case "=" -> lhs.value.equals(rhs.value);
+            case "<>" -> !lhs.value.equals(rhs.value);
+            case "<" -> {
+                // case for strings, by lexical/alphabetical order
+                // case for numbers / booleans, by value
+                yield 0;
+            }
+            // case "<" -> ((Integer) (lhs.value)) < ((Integer) (rhs.value));
             case "<=" -> ((Integer) (lhs.value)) <= ((Integer) (rhs.value));
             case ">" -> ((Integer) (lhs.value)) > ((Integer) (rhs.value));
             case ">=" -> ((Integer) (lhs.value)) >= ((Integer) (rhs.value));
@@ -295,11 +305,30 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         var operator = (String) visit(ctx.additiveoperator());
         var rhs = (SymbolInfo) visit(ctx.getChild(2));
 
-        // TODO: more strict about types that are elligible for each operation
-        // Strings for addition, etc
+        /*
+         * TODO: Write a test case to test all the below operators to ensure that type
+         * safety is handled
+         */
         var value = switch (operator) {
-            case "+" -> ((Integer) (lhs.value)) + ((Integer) (rhs.value));
-            case "-" -> ((Integer) (lhs.value)) - ((Integer) (rhs.value));
+            case "+" -> {
+                // If both strings, concatenate
+                if (lhs.value.getClass() == String.class && rhs.value.getClass() == String.class) {
+                    yield ((String) (lhs.value)) + ((String) (rhs.value));
+                }
+
+                // If both are BigIntegers, use that to multiply
+                // Otherwise, coerce both types into BigDecimals then mulitply
+                yield (lhs.value.getClass() == BigInteger.class && rhs.value.getClass() == BigInteger.class)
+                        ? ((BigInteger) (lhs.value)).add((BigInteger) (rhs.value))
+                        : coerceToType(lhs.value, BigDecimal.class).add(coerceToType(rhs.value, BigDecimal.class));
+            }
+            case "-" -> {
+                // If both are BigIntegers, use that to multiply
+                // Otherwise, coerce both types into BigDecimals then mulitply
+                yield (lhs.value.getClass() == BigInteger.class && rhs.value.getClass() == BigInteger.class)
+                        ? ((BigInteger) (lhs.value)).subtract((BigInteger) (rhs.value))
+                        : coerceToType(lhs.value, BigDecimal.class).subtract(coerceToType(rhs.value, BigDecimal.class));
+            }
             case "OR" -> ((Boolean) (lhs.value)) || ((Boolean) (rhs.value));
             default -> throw new RuntimeException("Unhandled or unknown operator: " + operator);
         };
@@ -325,13 +354,41 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         var operator = (String) visit(ctx.multiplicativeoperator());
         var rhs = (SymbolInfo) visit(ctx.getChild(2));
 
-        // TODO: more strict about types that are elligible for each operation
-        // (specifically treat for real numbers)
+        /*
+         * TODO: Write a test case program to test all the below operators to ensure
+         * that type safety is handled correctly in all cases we can think of.
+         */
         var value = switch (operator) {
-            case "*" -> ((Integer) (lhs.value)) * ((Integer) (rhs.value));
-            case "/" -> ((Integer) (lhs.value)) / ((Integer) (rhs.value));
-            case "MOD" -> ((Integer) (lhs.value)) % ((Integer) (rhs.value));
-            case "DIV" -> ((Integer) (lhs.value)) / ((Integer) (rhs.value));
+            case "*" -> {
+                // If both are BigIntegers, use that to multiply
+                // Otherwise, coerce both types into BigDecimals then mulitply
+                yield (lhs.value.getClass() == BigInteger.class && rhs.value.getClass() == BigInteger.class)
+                        ? ((BigInteger) (lhs.value)).multiply((BigInteger) (rhs.value))
+                        : coerceToType(lhs.value, BigDecimal.class).multiply(coerceToType(rhs.value, BigDecimal.class));
+            }
+            case "/" -> {
+                // If both are BigIntegers, use that to divide
+                // Otherwise, coerce both types into BigDecimals then divide
+                yield (lhs.value.getClass() == BigInteger.class && rhs.value.getClass() == BigInteger.class)
+                        ? ((BigInteger) (lhs.value)).divide((BigInteger) (rhs.value))
+                        : coerceToType(lhs.value, BigDecimal.class).divide(coerceToType(rhs.value, BigDecimal.class),
+                                8, RoundingMode.HALF_UP); // Need rounding mode to prevent errors with infinite decimals
+            }
+            case "MOD" -> {
+                // If both are BigIntegers, use that to mod
+                // Otherwise, coerce both types into BigDecimals then remainder
+                yield (lhs.value.getClass() == BigInteger.class && rhs.value.getClass() == BigInteger.class)
+                        ? ((BigInteger) (lhs.value)).mod((BigInteger) (rhs.value))
+                        : coerceToType(lhs.value, BigDecimal.class)
+                                .remainder(coerceToType(rhs.value, BigDecimal.class));
+            }
+            case "DIV" -> {
+                // If both are BigIntegers, use that to divide
+                // Otherwise, coerce both types into BigDecimals then divide
+                yield (lhs.value.getClass() == BigInteger.class && rhs.value.getClass() == BigInteger.class)
+                        ? ((BigInteger) (lhs.value)).divide((BigInteger) (rhs.value))
+                        : coerceToType(lhs.value, BigDecimal.class).divide(coerceToType(rhs.value, BigDecimal.class));
+            }
             case "AND" -> ((Boolean) (lhs.value)) && ((Boolean) (rhs.value));
             default -> throw new RuntimeException("Unhandled or unknown operator: " + operator);
         };
@@ -404,7 +461,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public Object visitUnsignedInteger(delphiParser.UnsignedIntegerContext ctx) {
-        return Integer.parseInt(ctx.NUM_INT().toString());
+        return new BigInteger(ctx.NUM_INT().toString());
     }
 
     @Override
@@ -426,6 +483,86 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     // #region Helper Functions
 
+    /**
+     * Attempts to convert the given value into the given targetType.
+     * 
+     * @param <T>        the type class that we coerce to
+     * @param value      the value to try to coerce
+     * @param targetType the target type to coerce to
+     * @return the coerced type
+     * @throws IllegalArgumentException if the value cannot be converted
+     */
+    @SuppressWarnings("unchecked")
+    private static <T> T coerceToType(Object value, Class<T> targetType) throws IllegalArgumentException {
+        if (value == null || targetType == null) {
+            throw new IllegalArgumentException(
+                    "Passed null to type coercion! value=" + value + " : targetType=" + targetType);
+        }
+
+        if (targetType.isInstance(value)) {
+            return (T) value;
+        }
+
+        // TODO: add more types here as needed.
+        // TODO: ensure that all type coercions below are valid.
+        return switch (targetType.getSimpleName()) {
+            case "String" -> (T) value.toString();
+            case "Boolean", "boolean" -> (T) Boolean.valueOf(parseBoolean(value));
+            case "BigInteger" -> (T) parseBigDecimal(value).toBigInteger();
+            case "BigDecimal" -> (T) parseBigDecimal(value);
+            default -> throw new IllegalArgumentException(
+                    "Unsupported coercion: " + value.getClass().getSimpleName() + " → " + targetType.getSimpleName());
+        };
+    }
+
+    /**
+     * Attempts to convert Object value to a BigDecimal.
+     * 
+     * @param value the value to convert
+     * @return the value as a BigDecimal
+     * @throws IllegalArgumentException if the value cannot be converted
+     */
+    private static BigDecimal parseBigDecimal(Object value) throws IllegalArgumentException {
+        return switch (value) {
+            case BigDecimal bd -> bd;
+            case BigInteger bi -> new BigDecimal(bi);
+            case Number num -> BigDecimal.valueOf(num.doubleValue());
+            case Boolean bool -> bool ? BigDecimal.ONE : BigDecimal.ZERO;
+            case String str -> {
+                try {
+                    yield new BigDecimal(str);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Cannot coerce String to a BigDecimal: " + str);
+                }
+            }
+            default -> throw new IllegalArgumentException(
+                    "Cannot convert " + value.getClass().getSimpleName() + " to BigDecimal");
+        };
+    }
+
+    /**
+     * Attempts to convert Object value to a Boolean.
+     * 
+     * @param value the value to convert
+     * @return the value as a Boolean
+     * @throws IllegalArgumentException if the value cannot be converted
+     */
+    private static Boolean parseBoolean(Object value) throws IllegalArgumentException {
+        return switch (value) {
+            case BigInteger bi -> bi == BigInteger.ONE;
+            case BigDecimal bd -> bd == BigDecimal.ONE;
+            case Number num -> num.doubleValue() != 0;
+            case Boolean bool -> bool;
+            case String str -> {
+                String s = str.trim().toLowerCase();
+                yield s.equals("true") || s.equals("1");
+            }
+            default -> throw new IllegalArgumentException(
+                    "Cannot convert " + value.getClass().getSimpleName() + " to Boolean");
+        };
+    }
+
+    // Below might not be needed??
     private Class<?> getJavaType(String type) {
         return switch (type.toLowerCase()) {
             // Numeric types
