@@ -7,10 +7,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import com.ibm.icu.impl.Pair;
-
 import plp.group.project.delphiBaseVisitor;
-import plp.group.project.delphiLexer;
 import plp.group.project.delphiParser;
 import plp.group.project.delphiParser.AdditiveoperatorContext;
 import plp.group.project.delphiParser.Bool_Context;
@@ -62,6 +59,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 List.of(Object[].class),
                 Void.class));
 
+        // TODO: update below functions to write to an output buffer
+        // so that we can then inspect output of unit tests.
         scope.insert("write", new SymbolInfo(
                 "write",
                 (List<Object> arguments) -> {
@@ -228,7 +227,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         }
 
         // Call the function and return the result.
-        return procedureDetails.function.apply(parameters);
+        procedureDetails.function.apply(parameters);
+        return null;
     }
 
     @Override
@@ -267,16 +267,47 @@ public class Interpreter extends delphiBaseVisitor<Object> {
          */
         return switch (operator) {
             case "=" -> lhs.value.equals(rhs.value);
-            case "<>" -> !lhs.value.equals(rhs.value);
+            case "<>" -> !(lhs.value.equals(rhs.value));
             case "<" -> {
                 // case for strings, by lexical/alphabetical order
-                // case for numbers / booleans, by value
-                yield 0;
+                if (lhs.value.getClass() == String.class && rhs.value.getClass() == String.class) {
+                    yield ((String) (lhs.value)).compareTo((String) (rhs.value)) < 0;
+                }
+
+                // booleans & numbers all coerce to BigDecimal
+                yield coerceToType(lhs.value, BigDecimal.class)
+                        .compareTo(coerceToType(rhs.value, BigDecimal.class)) < 0;
             }
-            // case "<" -> ((Integer) (lhs.value)) < ((Integer) (rhs.value));
-            case "<=" -> ((Integer) (lhs.value)) <= ((Integer) (rhs.value));
-            case ">" -> ((Integer) (lhs.value)) > ((Integer) (rhs.value));
-            case ">=" -> ((Integer) (lhs.value)) >= ((Integer) (rhs.value));
+            case "<=" -> {
+                // case for strings, by lexical/alphabetical order
+                if (lhs.value.getClass() == String.class && rhs.value.getClass() == String.class) {
+                    yield ((String) (lhs.value)).compareTo((String) (rhs.value)) <= 0;
+                }
+
+                // booleans & numbers all coerce to BigDecimal
+                yield coerceToType(lhs.value, BigDecimal.class)
+                        .compareTo(coerceToType(rhs.value, BigDecimal.class)) <= 0;
+            }
+            case ">" -> {
+                // case for strings, by lexical/alphabetical order
+                if (lhs.value.getClass() == String.class && rhs.value.getClass() == String.class) {
+                    yield ((String) (lhs.value)).compareTo((String) (rhs.value)) > 0;
+                }
+
+                // booleans & numbers all coerce to BigDecimal
+                yield coerceToType(lhs.value, BigDecimal.class)
+                        .compareTo(coerceToType(rhs.value, BigDecimal.class)) > 0;
+            }
+            case ">=" -> {
+                // case for strings, by lexical/alphabetical order
+                if (lhs.value.getClass() == String.class && rhs.value.getClass() == String.class) {
+                    yield ((String) (lhs.value)).compareTo((String) (rhs.value)) >= 0;
+                }
+
+                // booleans & numbers all coerce to BigDecimal
+                yield coerceToType(lhs.value, BigDecimal.class)
+                        .compareTo(coerceToType(rhs.value, BigDecimal.class)) >= 0;
+            }
             case "IN" -> throw new UnsupportedOperationException("NOT IMPLEMENTED 'IN' YET");
             default -> throw new RuntimeException("Unhandled or unknown operator: " + operator);
         };
@@ -316,15 +347,15 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     yield ((String) (lhs.value)) + ((String) (rhs.value));
                 }
 
-                // If both are BigIntegers, use that to multiply
-                // Otherwise, coerce both types into BigDecimals then mulitply
+                // If both are BigIntegers, use that to add
+                // Otherwise, coerce both types into BigDecimals then add
                 yield (lhs.value.getClass() == BigInteger.class && rhs.value.getClass() == BigInteger.class)
                         ? ((BigInteger) (lhs.value)).add((BigInteger) (rhs.value))
                         : coerceToType(lhs.value, BigDecimal.class).add(coerceToType(rhs.value, BigDecimal.class));
             }
             case "-" -> {
-                // If both are BigIntegers, use that to multiply
-                // Otherwise, coerce both types into BigDecimals then mulitply
+                // If both are BigIntegers, use that to subtract
+                // Otherwise, coerce both types into BigDecimals then subtract
                 yield (lhs.value.getClass() == BigInteger.class && rhs.value.getClass() == BigInteger.class)
                         ? ((BigInteger) (lhs.value)).subtract((BigInteger) (rhs.value))
                         : coerceToType(lhs.value, BigDecimal.class).subtract(coerceToType(rhs.value, BigDecimal.class));
