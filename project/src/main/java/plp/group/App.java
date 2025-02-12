@@ -1,5 +1,7 @@
 package plp.group;
 
+import java.util.Scanner;
+
 import org.antlr.v4.gui.Trees;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -15,24 +17,58 @@ import plp.group.project.delphiParser;
  */
 public class App {
     public static void main(String[] args) {
+        try (Scanner scanner = new Scanner(System.in)) {
+            while (true) {
+                System.out.println("Enter your command to perform.");
+                System.out.print("> ");
+                var input = scanner.nextLine().split(" ");
+
+                switch (input[0]) {
+                    case "exit":
+                        return;
+                    case "eval":
+                        interpretProgram(input[1]);
+                        break;
+                    case "tree":
+                        displayParseTree(input[1]);
+                        break;
+                    default:
+                        System.out.println("Bad command, try again. ");
+                        break;
+                }
+            }
+        }
+    }
+
+    private static void interpretProgram(String programFileName) {
         try {
             // Get the parse tree for the file we enter in command line.
             var lexer = new delphiLexer(
-                    CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream(args[0])));
+                    CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream(programFileName)));
             var tokens = new CommonTokenStream(lexer);
             var parser = new delphiParser(tokens);
             var tree = parser.program();
-
-            // Open a GUI window with the parse tree & print it to command line.
-            // System.out.println(tree.toStringTree(parser));
-            Trees.inspect(tree, parser);
-
-            System.out.println("START INTERPRETING!");
             var interpreter = new Interpreter();
             interpreter.visit(tree);
-            System.out.println("DONE INTERPRETING!");
         } catch (Exception e) {
             System.out.println(e.toString());
         }
     }
+
+    private static void displayParseTree(String programFileName) {
+        try {
+            // Get the parse tree for the file we enter in command line.
+            var lexer = new delphiLexer(
+                    CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream(programFileName)));
+            var tokens = new CommonTokenStream(lexer);
+            var parser = new delphiParser(tokens);
+            var tree = parser.program();
+
+            // Open a GUI window with the parse tree.
+            Trees.inspect(tree, parser);
+        } catch (Exception e) {
+            System.out.println(e.toString());
+        }
+    }
+
 }
