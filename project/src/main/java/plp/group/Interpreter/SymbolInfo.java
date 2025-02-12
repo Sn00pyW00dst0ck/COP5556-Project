@@ -13,20 +13,36 @@ public class SymbolInfo {
         VARIABLE, FUNCTION
     };
 
-    public SymbolType type;
+    public SymbolType symbolType;
+
+    public String name = null; // The name of the variable/function.
     public Object value = null; // Holds actual value for variables
     public Function<List<Object>, Object> function = null; // For functions
     public List<Class<?>> parameterTypes = null; // For functions
-    public Class<?> returnType = null; // For functions
+    public Class<?> returnType = null; // For functions and variables, the type of the value (return or variable
+                                       // value).
 
     /**
      * Create a SymbolInfo for a variable with a value.
      * 
      * @param _value the value of the variable.
      */
-    public SymbolInfo(Object _value) {
-        type = SymbolType.VARIABLE;
+    public SymbolInfo(String _name, Object _value) {
+        symbolType = SymbolType.VARIABLE;
+        name = _name;
         value = _value;
+    }
+
+    /**
+     * Create a SymbolInfo for a variable with a type but not a value.
+     * 
+     * @param _value the value of the variable.
+     */
+    public SymbolInfo(String _name, Object _value, Class<?> _type) {
+        symbolType = SymbolType.VARIABLE;
+        name = _name;
+        value = _value;
+        returnType = _type;
     }
 
     /**
@@ -36,7 +52,10 @@ public class SymbolInfo {
      * @param _parameterTypes the paramter types for the arguments
      * @param _returnType     the return type for the function
      */
-    public SymbolInfo(Function<List<Object>, Object> _function, List<Class<?>> _parameterTypes, Class<?> _returnType) {
+    public SymbolInfo(String _name, Function<List<Object>, Object> _function, List<Class<?>> _parameterTypes,
+            Class<?> _returnType) {
+        symbolType = SymbolType.FUNCTION;
+        name = _name;
         function = _function;
         parameterTypes = _parameterTypes;
         returnType = _returnType;
