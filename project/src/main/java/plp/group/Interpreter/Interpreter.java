@@ -59,8 +59,6 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 List.of(Object[].class),
                 Void.class));
 
-        // TODO: update below functions to write to an output buffer
-        // so that we can then inspect output of unit tests.
         scope.insert("write", new SymbolInfo(
                 "write",
                 (List<Object> arguments) -> {
