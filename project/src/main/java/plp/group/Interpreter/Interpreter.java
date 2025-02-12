@@ -11,6 +11,7 @@ import plp.group.project.delphiBaseVisitor;
 import plp.group.project.delphiLexer;
 import plp.group.project.delphiParser;
 import plp.group.project.delphiParser.AdditiveoperatorContext;
+import plp.group.project.delphiParser.Bool_Context;
 import plp.group.project.delphiParser.MultiplicativeoperatorContext;
 import plp.group.project.delphiParser.RelationaloperatorContext;
 
@@ -231,9 +232,9 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public Object visitAssignmentStatement(delphiParser.AssignmentStatementContext ctx) {
         var identifier = (SymbolInfo) visit(ctx.getChild(0));
-        var value = visit(ctx.getChild(2));
+        var value = (SymbolInfo) visit(ctx.getChild(2));
 
-        scope.update(identifier.name, new SymbolInfo(identifier.name, value));
+        scope.update(identifier.name, new SymbolInfo(identifier.name, value.value, value.returnType));
         return null;
     }
 
@@ -243,26 +244,30 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     /**
      * Visits the expression, returns whatever the value of the expression is.
+     * 
+     * The value is returned within a SymbolInfo (with no name).
      */
     @Override
     public Object visitExpression(delphiParser.ExpressionContext ctx) {
-        var lhs = visit(ctx.getChild(0));
+        var lhs = (SymbolInfo) visit(ctx.getChild(0));
 
         if (ctx.relationaloperator() == null) {
             return lhs;
         }
 
         var operator = (String) visit(ctx.relationaloperator());
-        var rhs = visit(ctx.getChild(2));
+        var rhs = (SymbolInfo) visit(ctx.getChild(2));
 
-        return switch (operator) { // TODO: add logic
-            case "==" -> 1;
-            case "!=" -> 2;
-            case "<" -> 3;
-            case "<=" -> 4;
-            case ">" -> 5;
-            case ">=" -> 6;
-            case "IN" -> 7;
+        // TODO: add logic for missing operations.
+        // TODO: increase type restrictions
+        return switch (operator) {
+            case "=" -> throw new UnsupportedOperationException("NOT IMPLEMENTED 'EQUAL' YET");
+            case "<>" -> throw new UnsupportedOperationException("NOT IMPLEMENTED 'EQUAL' YET");
+            case "<" -> ((Integer) (lhs.value)) < ((Integer) (rhs.value));
+            case "<=" -> ((Integer) (lhs.value)) <= ((Integer) (rhs.value));
+            case ">" -> ((Integer) (lhs.value)) > ((Integer) (rhs.value));
+            case ">=" -> ((Integer) (lhs.value)) >= ((Integer) (rhs.value));
+            case "IN" -> throw new UnsupportedOperationException("NOT IMPLEMENTED 'IN' YET");
             default -> throw new RuntimeException("Unhandled or unknown operator: " + operator);
         };
     }
@@ -281,21 +286,24 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      */
     @Override
     public Object visitSimpleExpression(delphiParser.SimpleExpressionContext ctx) {
-        var lhs = visit(ctx.getChild(0));
+        var lhs = (SymbolInfo) visit(ctx.getChild(0));
 
         if (ctx.additiveoperator() == null) {
             return lhs;
         }
 
         var operator = (String) visit(ctx.additiveoperator());
-        var rhs = visit(ctx.getChild(2));
+        var rhs = (SymbolInfo) visit(ctx.getChild(2));
 
-        return switch (operator) { // TODO: add logic
-            case "+" -> 1;
-            case "-" -> 2;
-            case "OR" -> 3;
+        // TODO: more strict about types that are elligible for each operation
+        // Strings for addition, etc
+        var value = switch (operator) {
+            case "+" -> ((Integer) (lhs.value)) + ((Integer) (rhs.value));
+            case "-" -> ((Integer) (lhs.value)) - ((Integer) (rhs.value));
+            case "OR" -> ((Boolean) (lhs.value)) || ((Boolean) (rhs.value));
             default -> throw new RuntimeException("Unhandled or unknown operator: " + operator);
         };
+        return new SymbolInfo(null, value, value.getClass());
     }
 
     /**
@@ -308,23 +316,26 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public Object visitTerm(delphiParser.TermContext ctx) {
-        var lhs = visit(ctx.getChild(0));
+        var lhs = (SymbolInfo) visit(ctx.getChild(0));
 
         if (ctx.multiplicativeoperator() == null) {
             return lhs;
         }
 
         var operator = (String) visit(ctx.multiplicativeoperator());
-        var rhs = visit(ctx.getChild(2));
+        var rhs = (SymbolInfo) visit(ctx.getChild(2));
 
-        return switch (operator) { // TODO: add logic
-            case "*" -> 1;
-            case "/" -> 2;
-            case "MOD" -> 3;
-            case "DIV" -> 4;
-            case "AND" -> 5;
+        // TODO: more strict about types that are elligible for each operation
+        // (specifically treat for real numbers)
+        var value = switch (operator) {
+            case "*" -> ((Integer) (lhs.value)) * ((Integer) (rhs.value));
+            case "/" -> ((Integer) (lhs.value)) / ((Integer) (rhs.value));
+            case "MOD" -> ((Integer) (lhs.value)) % ((Integer) (rhs.value));
+            case "DIV" -> ((Integer) (lhs.value)) / ((Integer) (rhs.value));
+            case "AND" -> ((Boolean) (lhs.value)) && ((Boolean) (rhs.value));
             default -> throw new RuntimeException("Unhandled or unknown operator: " + operator);
         };
+        return new SymbolInfo(null, value, value.getClass());
     }
 
     /**
@@ -338,13 +349,36 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public Object visitSignedFactor(delphiParser.SignedFactorContext ctx) {
         // TODO: figure out how to grab sign and apply to factor
+        // if (ctx.PLUS() != null || ctx.MINUS() != null) {
+        //
+        // }
         var factor = visit(ctx.factor());
         return factor;
     }
 
+    /**
+     * Returns a SymbolInfo with the information regarding this thing.
+     * If it is not in the scope it will have no name associated with it.
+     */
     @Override
     public Object visitFactor(delphiParser.FactorContext ctx) {
-        return visitChildren(ctx); // TODO: actually do all the below...
+        int childIndex = (ctx.LPAREN() != null || ctx.NOT() != null) ? 1 : 0;
+        var result = visit(ctx.getChild(childIndex));
+
+        if (ctx.NOT() != null) {
+            result = !((Boolean) result);
+        }
+
+        // Convert any literals to SymbolInfo
+        // (for uniform interfaces in things above 'factor')
+        if (!(result instanceof SymbolInfo)) {
+            result = new SymbolInfo(null, result, result.getClass());
+        }
+
+        return result;
+
+        // return visitChildren(ctx);
+        // TODO: actually do all the below in their own visit functions...
         /*
          * factor
          * : variable
@@ -360,7 +394,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     // #endregion Expressions
 
-    // Related to constants
+    // #region Literals
 
     @Override
     public Object visitString(delphiParser.StringContext ctx) {
@@ -382,6 +416,13 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public Object visitConstantChr(delphiParser.ConstantChrContext ctx) {
         return ctx.CHR().getText().charAt(0);
     }
+
+    @Override
+    public Object visitBool_(Bool_Context ctx) {
+        return Boolean.valueOf(ctx.getText().toLowerCase());
+    }
+
+    // #endregion Literals
 
     // #region Helper Functions
 
