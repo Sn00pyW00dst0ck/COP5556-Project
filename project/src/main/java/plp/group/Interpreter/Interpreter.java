@@ -63,7 +63,11 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 "write",
                 (List<Object> arguments) -> {
                     for (Object arg : arguments) {
-                        System.out.print(arg);
+                        if (arg instanceof Boolean) {
+                            System.out.print(String.valueOf(arg).toUpperCase());
+                        } else {
+                            System.out.print(arg);
+                        }
                     }
                     return null;
                 },
@@ -74,7 +78,11 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 "writeln",
                 (List<Object> arguments) -> {
                     for (Object arg : arguments) {
-                        System.out.print(arg);
+                        if (arg instanceof Boolean) {
+                            System.out.print(String.valueOf(arg).toUpperCase());
+                        } else {
+                            System.out.print(arg);
+                        }
                     }
                     System.out.println("");
                     return null;
@@ -451,14 +459,14 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         int childIndex = (ctx.LPAREN() != null || ctx.NOT() != null) ? 1 : 0;
         var result = visit(ctx.getChild(childIndex));
 
-        if (ctx.NOT() != null) {
-            result = !((Boolean) result);
-        }
-
         // Convert any literals to SymbolInfo
         // (for uniform interfaces in things above 'factor')
         if (!(result instanceof SymbolInfo)) {
             result = new SymbolInfo(null, result, result.getClass());
+        }
+
+        if (ctx.NOT() != null) {
+            ((SymbolInfo) result).value = !((Boolean) ((SymbolInfo) result).value);
         }
 
         return result;
