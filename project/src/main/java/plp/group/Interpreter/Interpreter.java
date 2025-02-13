@@ -500,7 +500,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public Object visitConstantChr(delphiParser.ConstantChrContext ctx) {
-        return ctx.CHR().getText().charAt(0);
+        var value = (BigInteger) visit(ctx.getChild(2));
+        return String.valueOf(value.intValue());
     }
 
     @Override
