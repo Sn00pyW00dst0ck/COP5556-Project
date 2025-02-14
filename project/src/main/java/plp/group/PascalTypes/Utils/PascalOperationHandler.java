@@ -12,11 +12,11 @@ import plp.group.PascalTypes.Scalars.Standard.PascalInt64;
 import plp.group.PascalTypes.Scalars.Standard.PascalInteger;
 import plp.group.PascalTypes.Scalars.Standard.PascalLongint;
 import plp.group.PascalTypes.Scalars.Standard.PascalLongword;
-import plp.group.PascalTypes.Scalars.Standard.PascalReal;
 import plp.group.PascalTypes.Scalars.Standard.PascalShortint;
 import plp.group.PascalTypes.Scalars.Standard.PascalSmallint;
 import plp.group.PascalTypes.Scalars.Standard.PascalString;
 import plp.group.PascalTypes.Scalars.Standard.PascalWord;
+import plp.group.PascalTypes.Scalars.Standard.Reals.PascalReal;
 
 public class PascalOperationHandler {
 
@@ -93,7 +93,7 @@ public class PascalOperationHandler {
     }
 
     private static PascalType add(PascalType lhs, PascalType rhs) {
-        // Strings & chars concat
+        // Strings & chars concatenate
         if ((lhs instanceof PascalString || lhs instanceof PascalChar)
                 && (rhs instanceof PascalString || rhs instanceof PascalChar)) {
             var result = lhs.toString() + rhs.toString();
@@ -104,7 +104,8 @@ public class PascalOperationHandler {
         if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
             var l = coerceType(BigDecimal.class, lhs);
             var r = coerceType(BigDecimal.class, rhs);
-            return new PascalReal(l.add(r));
+
+            return PascalReal.createBestFit(l.add(r));
         }
         if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
             var l = coerceType(BigInteger.class, lhs);
@@ -122,7 +123,8 @@ public class PascalOperationHandler {
         if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
             var l = coerceType(BigDecimal.class, lhs);
             var r = coerceType(BigDecimal.class, rhs);
-            return new PascalReal(l.subtract(r));
+
+            return PascalReal.createBestFit(l.subtract(r));
         }
         if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
             var l = coerceType(BigInteger.class, lhs);
@@ -148,7 +150,9 @@ public class PascalOperationHandler {
         if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
             var l = coerceType(BigDecimal.class, lhs);
             var r = coerceType(BigDecimal.class, rhs);
-            return new PascalReal(l.multiply(r));
+
+            // TODO: instead of PascalReal, do the smallest real type that applies.
+            return PascalReal.createBestFit(l.multiply(r));
         }
         if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
             var l = coerceType(BigInteger.class, lhs);
@@ -167,7 +171,9 @@ public class PascalOperationHandler {
         if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
             var l = coerceType(BigDecimal.class, lhs);
             var r = coerceType(BigDecimal.class, rhs);
-            return new PascalReal(l.divide(r));
+
+            // TODO: instead of PascalReal, do the smallest real type that applies.
+            return PascalReal.createBestFit(l.divide(r));
         }
         if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
             var l = coerceType(BigInteger.class, lhs);
@@ -192,7 +198,7 @@ public class PascalOperationHandler {
         }
 
         throw new UnsupportedOperationException(
-                "Unsupported mod: " + lhs.toString() + " % " + rhs.toString());
+                "Unsupported MOD: " + lhs.toString() + " % " + rhs.toString());
     }
 
     private static PascalType and(PascalType lhs, PascalType rhs) {
@@ -227,7 +233,7 @@ public class PascalOperationHandler {
             }
         } else if (operand instanceof PascalReal) {
             BigDecimal result = ((PascalReal) operand).getValue().negate();
-            return new PascalReal(result);
+            return PascalReal.createBestFit(result);
         }
         throw new UnsupportedOperationException("NEGATE operation only supports Numeric types");
     }

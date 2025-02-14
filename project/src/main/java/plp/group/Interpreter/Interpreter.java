@@ -14,10 +14,10 @@ import plp.group.PascalTypes.Scalars.Standard.PascalBoolean;
 import plp.group.PascalTypes.Scalars.Standard.PascalChar;
 import plp.group.PascalTypes.Scalars.Standard.PascalInteger;
 import plp.group.PascalTypes.Scalars.Standard.PascalLongint;
-import plp.group.PascalTypes.Scalars.Standard.PascalReal;
 import plp.group.PascalTypes.Scalars.Standard.PascalShortint;
 import plp.group.PascalTypes.Scalars.Standard.PascalSmallint;
 import plp.group.PascalTypes.Scalars.Standard.PascalString;
+import plp.group.PascalTypes.Scalars.Standard.Reals.PascalReal;
 import plp.group.PascalTypes.Utils.PascalOperationHandler;
 import plp.group.PascalTypes.Utils.PascalTypeRegistry;
 import plp.group.project.delphiBaseVisitor;
@@ -305,7 +305,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public PascalReal visitUnsignedReal(delphiParser.UnsignedRealContext ctx) {
-        return new PascalReal(new BigDecimal(ctx.NUM_REAL().toString()));
+        return PascalReal.createBestFit(new BigDecimal(ctx.NUM_REAL().toString()));
     }
 
     @Override

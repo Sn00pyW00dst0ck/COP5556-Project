@@ -11,11 +11,11 @@ import plp.group.PascalTypes.Scalars.Standard.PascalInt64;
 import plp.group.PascalTypes.Scalars.Standard.PascalInteger;
 import plp.group.PascalTypes.Scalars.Standard.PascalLongint;
 import plp.group.PascalTypes.Scalars.Standard.PascalLongword;
-import plp.group.PascalTypes.Scalars.Standard.PascalReal;
 import plp.group.PascalTypes.Scalars.Standard.PascalShortint;
 import plp.group.PascalTypes.Scalars.Standard.PascalSmallint;
 import plp.group.PascalTypes.Scalars.Standard.PascalString;
 import plp.group.PascalTypes.Scalars.Standard.PascalWord;
+import plp.group.PascalTypes.Scalars.Standard.Reals.PascalReal;
 
 public class PascalTypeRegistry {
     private final Map<String, Class<? extends PascalType>> typeAliases = new HashMap<>();
