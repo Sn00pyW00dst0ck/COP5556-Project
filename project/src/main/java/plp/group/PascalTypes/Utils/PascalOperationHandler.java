@@ -72,10 +72,14 @@ public class PascalOperationHandler {
     }
 
     private static PascalType compare(PascalType lhs, PascalType rhs, String operator) {
-        // TODO: some way to determine the common type of the two sides
-
-        int comparison = 0;
-        // TODO: init the comparison type properly...
+        /*
+         * TODO: below is a BIG hack. Needs tons of testing.
+         * Coerce both lhs and rhs to string and compare those.
+         * Should hopefully work in all cases.
+         */
+        var l = coerceType(String.class, lhs);
+        var r = coerceType(String.class, rhs);
+        int comparison = l.compareTo(r);
 
         return switch (operator) {
             case "=" -> new PascalBoolean(comparison == 0);
@@ -302,5 +306,4 @@ public class PascalOperationHandler {
                     "Cannot convert " + value.getClass().getSimpleName() + " to Boolean");
         };
     }
-
 }

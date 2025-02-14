@@ -87,13 +87,31 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return null;
     }
 
+    // #region Declarations
+
+    @Override
+    public Void visitVariableDeclaration(delphiParser.VariableDeclarationContext ctx) {
+        Class<? extends PascalType> type = knownTypes.getType(ctx.getChild(ctx.getChildCount() - 1).getText());
+
+        // For each identifier, insert it to the current scope with the type set.
+        var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
+        for (String identifier : identifiers) {
+            // TODO: figure out how to create the new SymbolInfo for an arbitrary PascalType
+            // scope.insert(identifier, new SymbolInfo(identifier, type));
+        }
+
+        return null;
+    }
+
+    // #endregion Declarations
+
     // #region Identifiers
 
     /**
      * Returns the SymbolInfo for the variable.
      */
     @Override
-    public Object visitVariable(delphiParser.VariableContext ctx) {
+    public SymbolInfo visitVariable(delphiParser.VariableContext ctx) {
         var name = (String) visit(ctx.getChild(0));
         return scope.lookup(name);
     }
@@ -102,7 +120,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      * Returns the result of visiting all the identifiers in a list.
      */
     @Override
-    public Object visitIdentifierList(delphiParser.IdentifierListContext ctx) {
+    public List<String> visitIdentifierList(delphiParser.IdentifierListContext ctx) {
         List<String> identifiers = new ArrayList<String>();
         for (var i = 0; i < ctx.getChildCount(); i += 2) { // Iterate by 2s to skip each COMMA
             identifiers.add((String) visit(ctx.getChild(i)));
@@ -114,14 +132,25 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      * Returns a string of the identifier name.
      */
     @Override
-    public Object visitIdentifier(delphiParser.IdentifierContext ctx) {
+    public String visitIdentifier(delphiParser.IdentifierContext ctx) {
         return ctx.getText();
     }
 
     // #endregion Identifiers
 
+    // #region Statements
+
     @Override
-    public Object visitProcedureStatement(delphiParser.ProcedureStatementContext ctx) {
+    public Void visitAssignmentStatement(delphiParser.AssignmentStatementContext ctx) {
+        var identifier = (SymbolInfo) visit(ctx.getChild(0));
+        var value = (PascalType) visit(ctx.getChild(2));
+
+        scope.update(identifier.name, new SymbolInfo(identifier.name, value));
+        return null;
+    }
+
+    @Override
+    public Void visitProcedureStatement(delphiParser.ProcedureStatementContext ctx) {
         var procedureDetails = (SymbolInfo) scope.lookup(((String) visit(ctx.getChild(0))));
 
         var parameters = new ArrayList<Object>(); // Do we want to pass all parameters as PascalType??
@@ -137,6 +166,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         ((PascalProcedureType) (procedureDetails.value)).invoke(parameters.toArray(new Object[0]));
         return null;
     }
+
+    // #endregion Statements
 
     // #region Expressions
 
@@ -210,11 +241,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public PascalType visitSignedFactor(delphiParser.SignedFactorContext ctx) {
-        // TODO: figure out how to grab sign and apply to factor
-        // if (ctx.PLUS() != null || ctx.MINUS() != null) {
-        //
-        // }
         var factor = (PascalType) visit(ctx.factor());
+        // NOTE: the ctx.PLUS() does nothing...
         if (ctx.MINUS() != null) {
             factor = PascalOperationHandler.performUnaryOperation(factor, "-");
         }
@@ -241,7 +269,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         return (PascalType) result;
 
-        // TODO: actually do all the below in their own visit functions...
+        // TODO: actually do all the below in their own visit functions (_set and
+        // functionDesignator)...
         /*
          * factor
          * : variable
