@@ -6,8 +6,17 @@ import java.math.BigInteger;
 
 import plp.group.PascalTypes.PascalType;
 import plp.group.PascalTypes.Scalars.Standard.PascalBoolean;
+import plp.group.PascalTypes.Scalars.Standard.PascalByte;
+import plp.group.PascalTypes.Scalars.Standard.PascalChar;
+import plp.group.PascalTypes.Scalars.Standard.PascalInt64;
 import plp.group.PascalTypes.Scalars.Standard.PascalInteger;
+import plp.group.PascalTypes.Scalars.Standard.PascalLongint;
+import plp.group.PascalTypes.Scalars.Standard.PascalLongword;
 import plp.group.PascalTypes.Scalars.Standard.PascalReal;
+import plp.group.PascalTypes.Scalars.Standard.PascalShortint;
+import plp.group.PascalTypes.Scalars.Standard.PascalSmallint;
+import plp.group.PascalTypes.Scalars.Standard.PascalString;
+import plp.group.PascalTypes.Scalars.Standard.PascalWord;
 
 public class PascalOperationHandler {
 
@@ -34,7 +43,7 @@ public class PascalOperationHandler {
             // Multiplicitive operators
             case "*" -> multiply(lhs, rhs);
             case "DIV", "/" -> divide(lhs, rhs);
-            case "%" -> mod(lhs, rhs);
+            case "MOD" -> mod(lhs, rhs);
             case "AND" -> and(lhs, rhs);
 
             // Default throw unsupported
@@ -80,11 +89,46 @@ public class PascalOperationHandler {
     }
 
     private static PascalType add(PascalType lhs, PascalType rhs) {
-        return null;
+        // Strings & chars concat
+        if ((lhs instanceof PascalString || lhs instanceof PascalChar)
+                && (rhs instanceof PascalString || rhs instanceof PascalChar)) {
+            var result = lhs.toString() + rhs.toString();
+            return new PascalString(result);
+        }
+
+        // Numbers add, coerce the types and then do the addition
+        if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
+            var l = coerceType(BigDecimal.class, lhs);
+            var r = coerceType(BigDecimal.class, rhs);
+            return new PascalReal(l.add(r));
+        }
+        if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
+            var l = coerceType(BigInteger.class, lhs);
+            var r = coerceType(BigInteger.class, rhs);
+
+            // TODO: instead of PascalInteger, do the smallest integer type that applies.
+            return new PascalInteger(l.add(r));
+        }
+
+        throw new UnsupportedOperationException("Unsupported addition: " + lhs.toString() + " + " + rhs.toString());
     }
 
     private static PascalType subtract(PascalType lhs, PascalType rhs) {
-        return null;
+        // Numbers subtract, coerce the types and then do the operation
+        if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
+            var l = coerceType(BigDecimal.class, lhs);
+            var r = coerceType(BigDecimal.class, rhs);
+            return new PascalReal(l.subtract(r));
+        }
+        if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
+            var l = coerceType(BigInteger.class, lhs);
+            var r = coerceType(BigInteger.class, rhs);
+
+            // TODO: instead of PascalInteger, do the smallest integer type that applies.
+            return new PascalInteger(l.subtract(r));
+        }
+
+        throw new UnsupportedOperationException("Unsupported subtraction: " + lhs.toString() + " - " + rhs.toString());
     }
 
     private static PascalType or(PascalType lhs, PascalType rhs) {
@@ -96,16 +140,55 @@ public class PascalOperationHandler {
     }
 
     private static PascalType multiply(PascalType lhs, PascalType rhs) {
-        return null;
+        // Numbers multiply, coerce the types and then do the operation
+        if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
+            var l = coerceType(BigDecimal.class, lhs);
+            var r = coerceType(BigDecimal.class, rhs);
+            return new PascalReal(l.multiply(r));
+        }
+        if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
+            var l = coerceType(BigInteger.class, lhs);
+            var r = coerceType(BigInteger.class, rhs);
+
+            // TODO: instead of PascalInteger, do the smallest integer type that applies.
+            return new PascalInteger(l.multiply(r));
+        }
+
+        throw new UnsupportedOperationException(
+                "Unsupported multiplication: " + lhs.toString() + " * " + rhs.toString());
     }
 
     private static PascalType divide(PascalType lhs, PascalType rhs) {
+        // Numbers divide, coerce the types and then do the operation
+        if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
+            var l = coerceType(BigDecimal.class, lhs);
+            var r = coerceType(BigDecimal.class, rhs);
+            return new PascalReal(l.divide(r));
+        }
+        if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
+            var l = coerceType(BigInteger.class, lhs);
+            var r = coerceType(BigInteger.class, rhs);
 
-        return null;
+            // TODO: instead of PascalInteger, do the smallest integer type that applies.
+            return new PascalInteger(l.divide(r));
+        }
+
+        throw new UnsupportedOperationException(
+                "Unsupported division: " + lhs.toString() + " / " + rhs.toString());
     }
 
     private static PascalType mod(PascalType lhs, PascalType rhs) {
-        return null;
+        // Numbers do mod (not reals tho), coerce the types and then do the operation
+        if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
+            var l = coerceType(BigInteger.class, lhs);
+            var r = coerceType(BigInteger.class, rhs);
+
+            // TODO: instead of PascalInteger, do the smallest integer type that applies.
+            return new PascalInteger(l.mod(r));
+        }
+
+        throw new UnsupportedOperationException(
+                "Unsupported mod: " + lhs.toString() + " % " + rhs.toString());
     }
 
     private static PascalType and(PascalType lhs, PascalType rhs) {
@@ -146,15 +229,78 @@ public class PascalOperationHandler {
     }
 
     /**
-     * A helper method that determines the result type given two operands
+     * If possible, turns the input into the target type.
+     * Throws error if not possible.
      * 
-     * @param left
-     * @param right
-     * @param operation
+     * @param targetType
+     * @param input
      * @return
      */
-    private static Class<? extends PascalType> determineResultType(PascalType left, PascalType right,
-            String operation) {
-        return null;
+    @SuppressWarnings("unchecked")
+    private static <T> T coerceType(Class<T> targetType, PascalType input) {
+        // Already right type, do nothing
+        if (targetType.isInstance(input)) {
+            return (T) input;
+        }
+
+        return switch (targetType.getSimpleName()) {
+            case "String" -> (T) input.toString();
+            case "Boolean", "boolean" -> (T) Boolean.valueOf(parseBoolean(input.getValue()));
+            case "BigInteger" -> (T) parseBigDecimal(input.getValue()).toBigInteger();
+            case "BigDecimal" -> (T) parseBigDecimal(input.getValue());
+
+            default ->
+                throw new UnsupportedOperationException(
+                        "Unsupported coercion: " + input.getClass().getSimpleName() + " → "
+                                + targetType.getSimpleName());
+        };
     }
+
+    /**
+     * Attempts to convert Object value to a BigDecimal.
+     * 
+     * @param value the value to convert
+     * @return the value as a BigDecimal
+     * @throws IllegalArgumentException if the value cannot be converted
+     */
+    private static BigDecimal parseBigDecimal(Object value) throws IllegalArgumentException {
+        return switch (value) {
+            case BigDecimal bd -> bd;
+            case BigInteger bi -> new BigDecimal(bi);
+            case Number num -> BigDecimal.valueOf(num.doubleValue());
+            case Boolean bool -> bool ? BigDecimal.ONE : BigDecimal.ZERO;
+            case String str -> {
+                try {
+                    yield new BigDecimal(str);
+                } catch (NumberFormatException e) {
+                    throw new IllegalArgumentException("Cannot coerce String to a BigDecimal: " + str);
+                }
+            }
+            default -> throw new IllegalArgumentException(
+                    "Cannot convert " + value.getClass().getSimpleName() + " to BigDecimal");
+        };
+    }
+
+    /**
+     * Attempts to convert Object value to a Boolean.
+     * 
+     * @param value the value to convert
+     * @return the value as a Boolean
+     * @throws IllegalArgumentException if the value cannot be converted
+     */
+    private static Boolean parseBoolean(Object value) throws IllegalArgumentException {
+        return switch (value) {
+            case BigInteger bi -> bi == BigInteger.ONE;
+            case BigDecimal bd -> bd == BigDecimal.ONE;
+            case Number num -> num.doubleValue() != 0;
+            case Boolean bool -> bool;
+            case String str -> {
+                String s = str.trim().toLowerCase();
+                yield s.equals("true") || s.equals("1");
+            }
+            default -> throw new IllegalArgumentException(
+                    "Cannot convert " + value.getClass().getSimpleName() + " to Boolean");
+        };
+    }
+
 }
