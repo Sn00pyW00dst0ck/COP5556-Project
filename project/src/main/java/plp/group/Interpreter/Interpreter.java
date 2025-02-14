@@ -215,6 +215,9 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         //
         // }
         var factor = (PascalType) visit(ctx.factor());
+        if (ctx.MINUS() != null) {
+            factor = PascalOperationHandler.performUnaryOperation(factor, "-");
+        }
         return factor;
     }
 

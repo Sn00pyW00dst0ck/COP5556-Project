@@ -14,4 +14,6 @@ begin
   
   writeln (4 / 2);
   writeln (6.0 / 1.5);
+
+  writeln ( -5 );
 end.

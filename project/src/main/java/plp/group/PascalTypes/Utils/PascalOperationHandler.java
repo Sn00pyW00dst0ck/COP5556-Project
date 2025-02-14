@@ -1,5 +1,9 @@
 package plp.group.PascalTypes.Utils;
 
+import java.lang.reflect.InvocationTargetException;
+import java.math.BigDecimal;
+import java.math.BigInteger;
+
 import plp.group.PascalTypes.PascalType;
 import plp.group.PascalTypes.Scalars.Standard.PascalBoolean;
 import plp.group.PascalTypes.Scalars.Standard.PascalInteger;
@@ -96,6 +100,7 @@ public class PascalOperationHandler {
     }
 
     private static PascalType divide(PascalType lhs, PascalType rhs) {
+
         return null;
     }
 
@@ -120,6 +125,36 @@ public class PascalOperationHandler {
     }
 
     private static PascalType negate(PascalType operand) {
+        if (operand instanceof PascalInteger) {
+            BigInteger result = ((PascalInteger) operand).getValue().negate();
+            /*
+             * Using reflection to dynamically build the proper output type based on the
+             * input subclass type. Requires each subclass possible to have an identical
+             * constructor signature, which we do in this case.
+             */
+            try {
+                return operand.getClass().getDeclaredConstructor(BigInteger.class).newInstance(result);
+            } catch (Exception e) {
+                e.printStackTrace();
+                return null;
+            }
+        } else if (operand instanceof PascalReal) {
+            BigDecimal result = ((PascalReal) operand).getValue().negate();
+            return new PascalReal(result);
+        }
+        throw new UnsupportedOperationException("NEGATE operation only supports Numeric types");
+    }
+
+    /**
+     * A helper method that determines the result type given two operands
+     * 
+     * @param left
+     * @param right
+     * @param operation
+     * @return
+     */
+    private static Class<? extends PascalType> determineResultType(PascalType left, PascalType right,
+            String operation) {
         return null;
     }
 }
