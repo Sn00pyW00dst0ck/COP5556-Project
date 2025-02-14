@@ -6,16 +6,16 @@ import java.math.BigInteger;
 
 import plp.group.PascalTypes.PascalType;
 import plp.group.PascalTypes.Scalars.Standard.PascalBoolean;
-import plp.group.PascalTypes.Scalars.Standard.PascalByte;
 import plp.group.PascalTypes.Scalars.Standard.PascalChar;
-import plp.group.PascalTypes.Scalars.Standard.PascalInt64;
-import plp.group.PascalTypes.Scalars.Standard.PascalInteger;
-import plp.group.PascalTypes.Scalars.Standard.PascalLongint;
-import plp.group.PascalTypes.Scalars.Standard.PascalLongword;
-import plp.group.PascalTypes.Scalars.Standard.PascalShortint;
-import plp.group.PascalTypes.Scalars.Standard.PascalSmallint;
 import plp.group.PascalTypes.Scalars.Standard.PascalString;
-import plp.group.PascalTypes.Scalars.Standard.PascalWord;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalByte;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalInt64;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalInteger;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalLongint;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalLongword;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalShortint;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalSmallint;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalWord;
 import plp.group.PascalTypes.Scalars.Standard.Reals.PascalReal;
 
 public class PascalOperationHandler {
@@ -104,15 +104,12 @@ public class PascalOperationHandler {
         if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
             var l = coerceType(BigDecimal.class, lhs);
             var r = coerceType(BigDecimal.class, rhs);
-
             return PascalReal.createBestFit(l.add(r));
         }
         if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
             var l = coerceType(BigInteger.class, lhs);
             var r = coerceType(BigInteger.class, rhs);
-
-            // TODO: instead of PascalInteger, do the smallest integer type that applies.
-            return new PascalInteger(l.add(r));
+            return PascalInteger.createBestFit(l.add(r));
         }
 
         throw new UnsupportedOperationException("Unsupported addition: " + lhs.toString() + " + " + rhs.toString());
@@ -123,15 +120,12 @@ public class PascalOperationHandler {
         if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
             var l = coerceType(BigDecimal.class, lhs);
             var r = coerceType(BigDecimal.class, rhs);
-
             return PascalReal.createBestFit(l.subtract(r));
         }
         if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
             var l = coerceType(BigInteger.class, lhs);
             var r = coerceType(BigInteger.class, rhs);
-
-            // TODO: instead of PascalInteger, do the smallest integer type that applies.
-            return new PascalInteger(l.subtract(r));
+            return PascalInteger.createBestFit(l.subtract(r));
         }
 
         throw new UnsupportedOperationException("Unsupported subtraction: " + lhs.toString() + " - " + rhs.toString());
@@ -150,16 +144,12 @@ public class PascalOperationHandler {
         if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
             var l = coerceType(BigDecimal.class, lhs);
             var r = coerceType(BigDecimal.class, rhs);
-
-            // TODO: instead of PascalReal, do the smallest real type that applies.
             return PascalReal.createBestFit(l.multiply(r));
         }
         if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
             var l = coerceType(BigInteger.class, lhs);
             var r = coerceType(BigInteger.class, rhs);
-
-            // TODO: instead of PascalInteger, do the smallest integer type that applies.
-            return new PascalInteger(l.multiply(r));
+            return PascalInteger.createBestFit(l.multiply(r));
         }
 
         throw new UnsupportedOperationException(
@@ -171,16 +161,13 @@ public class PascalOperationHandler {
         if (lhs instanceof PascalReal || rhs instanceof PascalReal) {
             var l = coerceType(BigDecimal.class, lhs);
             var r = coerceType(BigDecimal.class, rhs);
-
-            // TODO: instead of PascalReal, do the smallest real type that applies.
             return PascalReal.createBestFit(l.divide(r));
         }
         if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
             var l = coerceType(BigInteger.class, lhs);
             var r = coerceType(BigInteger.class, rhs);
 
-            // TODO: instead of PascalInteger, do the smallest integer type that applies.
-            return new PascalInteger(l.divide(r));
+            return PascalInteger.createBestFit(l.divide(r));
         }
 
         throw new UnsupportedOperationException(
@@ -192,9 +179,7 @@ public class PascalOperationHandler {
         if (lhs instanceof PascalInteger || rhs instanceof PascalInteger) {
             var l = coerceType(BigInteger.class, lhs);
             var r = coerceType(BigInteger.class, rhs);
-
-            // TODO: instead of PascalInteger, do the smallest integer type that applies.
-            return new PascalInteger(l.mod(r));
+            return PascalInteger.createBestFit(l.mod(r));
         }
 
         throw new UnsupportedOperationException(
@@ -220,17 +205,7 @@ public class PascalOperationHandler {
     private static PascalType negate(PascalType operand) {
         if (operand instanceof PascalInteger) {
             BigInteger result = ((PascalInteger) operand).getValue().negate();
-            /*
-             * Using reflection to dynamically build the proper output type based on the
-             * input subclass type. Requires each subclass possible to have an identical
-             * constructor signature, which we do in this case.
-             */
-            try {
-                return operand.getClass().getDeclaredConstructor(BigInteger.class).newInstance(result);
-            } catch (Exception e) {
-                e.printStackTrace();
-                return null;
-            }
+            return PascalInteger.createBestFit(result);
         } else if (operand instanceof PascalReal) {
             BigDecimal result = ((PascalReal) operand).getValue().negate();
             return PascalReal.createBestFit(result);

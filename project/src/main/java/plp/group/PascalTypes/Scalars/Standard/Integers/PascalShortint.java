@@ -1,4 +1,4 @@
-package plp.group.PascalTypes.Scalars.Standard;
+package plp.group.PascalTypes.Scalars.Standard.Integers;
 
 import java.math.BigInteger;
 
@@ -17,5 +17,15 @@ public class PascalShortint extends PascalInteger {
             throw new ArithmeticException("Overflow for ShortInt: " + value);
         }
         return value;
+    }
+
+    @Override
+    public BigInteger getMinValue() {
+        return new BigInteger("-128");
+    }
+
+    @Override
+    public BigInteger getMaxValue() {
+        return new BigInteger("127");
     }
 }

@@ -1,14 +1,14 @@
-package plp.group.PascalTypes.Scalars.Standard;
+package plp.group.PascalTypes.Scalars.Standard.Integers;
 
 import java.math.BigInteger;
 
-public class PascalLongint extends PascalInteger {
+public class PascalInt64 extends PascalInteger {
 
-    public PascalLongint() {
+    public PascalInt64() {
         super();
     }
 
-    public PascalLongint(BigInteger value) {
+    public PascalInt64(BigInteger value) {
         super(checkOverflow(value, new BigInteger("-2147483648"), new BigInteger("2147483647")));
     }
 
@@ -17,5 +17,15 @@ public class PascalLongint extends PascalInteger {
             throw new ArithmeticException("Overflow for ShortInt: " + value);
         }
         return value;
+    }
+
+    @Override
+    public BigInteger getMinValue() {
+        return new BigInteger("-2147483648");
+    }
+
+    @Override
+    public BigInteger getMaxValue() {
+        return new BigInteger("2147483647");
     }
 }

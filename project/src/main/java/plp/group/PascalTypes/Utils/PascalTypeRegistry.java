@@ -5,16 +5,16 @@ import java.util.Map;
 
 import plp.group.PascalTypes.PascalType;
 import plp.group.PascalTypes.Scalars.Standard.PascalBoolean;
-import plp.group.PascalTypes.Scalars.Standard.PascalByte;
 import plp.group.PascalTypes.Scalars.Standard.PascalChar;
-import plp.group.PascalTypes.Scalars.Standard.PascalInt64;
-import plp.group.PascalTypes.Scalars.Standard.PascalInteger;
-import plp.group.PascalTypes.Scalars.Standard.PascalLongint;
-import plp.group.PascalTypes.Scalars.Standard.PascalLongword;
-import plp.group.PascalTypes.Scalars.Standard.PascalShortint;
-import plp.group.PascalTypes.Scalars.Standard.PascalSmallint;
 import plp.group.PascalTypes.Scalars.Standard.PascalString;
-import plp.group.PascalTypes.Scalars.Standard.PascalWord;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalByte;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalInt64;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalInteger;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalLongint;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalLongword;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalShortint;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalSmallint;
+import plp.group.PascalTypes.Scalars.Standard.Integers.PascalWord;
 import plp.group.PascalTypes.Scalars.Standard.Reals.PascalReal;
 
 public class PascalTypeRegistry {

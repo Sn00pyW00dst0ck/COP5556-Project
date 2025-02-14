@@ -59,6 +59,8 @@ public class InterpreterTest {
 	public static Stream<Arguments> testInterpreter() {
 		return Stream.of(
 				Arguments.of("Hello World", "hello_world.pas", "Hello, world.\n"),
+				// TODO: ensure that type is carried in output (IE these are reals so should
+				// have decimals)...
 				Arguments.of("Simple Math", "simple_math.pas", """
 						2 + 3 = 5
 						2 - 3 = -1
