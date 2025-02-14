@@ -1,12 +1,14 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Scalars.Standard;
 
 import java.math.BigInteger;
+
+import plp.group.PascalTypes.PascalType;
 
 public class PascalInteger extends PascalType {
     private final BigInteger value;
 
     public PascalInteger(BigInteger value) {
-        this.value = value; // You can apply overflow rules here
+        this.value = value;
     }
 
     @Override

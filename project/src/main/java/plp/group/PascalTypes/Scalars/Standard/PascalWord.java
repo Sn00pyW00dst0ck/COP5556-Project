@@ -1,4 +1,4 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Scalars.Standard;
 
 import java.math.BigInteger;
 

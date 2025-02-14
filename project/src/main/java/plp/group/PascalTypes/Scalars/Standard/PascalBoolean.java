@@ -1,4 +1,6 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Scalars.Standard;
+
+import plp.group.PascalTypes.PascalType;
 
 public class PascalBoolean extends PascalType {
     private final boolean value;

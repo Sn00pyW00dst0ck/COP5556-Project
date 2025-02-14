@@ -1,6 +1,8 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Callables;
 
 import java.util.List;
+
+import plp.group.PascalTypes.PascalType;
 
 public class PascalProcedureType extends PascalType {
     private final List<PascalType> parameterTypes;

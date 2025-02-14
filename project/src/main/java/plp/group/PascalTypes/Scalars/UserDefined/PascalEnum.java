@@ -1,6 +1,8 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Scalars.UserDefined;
 
 import java.util.Map;
+
+import plp.group.PascalTypes.PascalType;
 
 public class PascalEnum extends PascalType implements Comparable<PascalEnum> {
     // enumValues is a map of the name to an integer 'value'.

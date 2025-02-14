@@ -1,10 +1,10 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Scalars.Standard;
 
 import java.math.BigInteger;
 
-public class PascalLongint extends PascalInteger {
-    public PascalLongint(BigInteger value) {
-        super(checkOverflow(value, new BigInteger("-2147483648"), new BigInteger("2147483647")));
+public class PascalShortint extends PascalInteger {
+    public PascalShortint(BigInteger value) {
+        super(checkOverflow(value, new BigInteger("-128"), new BigInteger("127")));
     }
 
     private static BigInteger checkOverflow(BigInteger value, BigInteger min, BigInteger max) {

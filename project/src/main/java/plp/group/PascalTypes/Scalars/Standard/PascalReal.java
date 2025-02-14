@@ -1,6 +1,8 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Scalars.Standard;
 
 import java.math.BigDecimal;
+
+import plp.group.PascalTypes.PascalType;
 
 // TODO: might need to extend this to handle different precisions
 public class PascalReal extends PascalType {

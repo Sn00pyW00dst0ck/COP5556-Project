@@ -1,4 +1,6 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Scalars.UserDefined;
+
+import plp.group.PascalTypes.PascalType;
 
 /**
  * Anything with a Comparable interface can be used to define a subrange.

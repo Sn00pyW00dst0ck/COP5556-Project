@@ -1,13 +1,16 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Callables;
 
 import java.util.List;
+
+import plp.group.PascalTypes.PascalType;
 
 public class PascalFunctionType extends PascalType {
     private final List<PascalType> parameterTypes;
     private final PascalType returnType;
     private final FunctionImplementation value;
 
-    public PascalFunctionType(List<PascalType> parameterTypes, PascalType returnType, FunctionImplementation value) {
+    public PascalFunctionType(List<PascalType> parameterTypes, PascalType returnType,
+            FunctionImplementation value) {
         this.parameterTypes = parameterTypes;
         this.returnType = returnType;
         this.value = value;

@@ -1,10 +1,10 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Scalars.Standard;
 
 import java.math.BigInteger;
 
-public class PascalSmallint extends PascalInteger {
-    public PascalSmallint(BigInteger value) {
-        super(checkOverflow(value, new BigInteger("-32768"), new BigInteger("32767")));
+public class PascalByte extends PascalInteger {
+    public PascalByte(BigInteger value) {
+        super(checkOverflow(value, new BigInteger("0"), new BigInteger("255")));
     }
 
     private static BigInteger checkOverflow(BigInteger value, BigInteger min, BigInteger max) {

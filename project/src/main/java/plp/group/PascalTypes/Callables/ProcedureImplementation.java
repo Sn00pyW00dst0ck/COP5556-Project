@@ -1,4 +1,4 @@
-package plp.group.PascalTypes;
+package plp.group.PascalTypes.Callables;
 
 @FunctionalInterface
 public interface ProcedureImplementation {
