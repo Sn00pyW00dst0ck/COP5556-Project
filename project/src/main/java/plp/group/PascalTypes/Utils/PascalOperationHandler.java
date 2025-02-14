@@ -34,6 +34,7 @@ public class PascalOperationHandler {
         return switch (operator) {
             // Relational operators
             case "=", "<>", "<", "<=", ">", ">=" -> compare(lhs, rhs, operator);
+            case "IN" -> in(lhs, rhs);
 
             // Additive operators
             case "+" -> add(lhs, rhs);
@@ -90,6 +91,16 @@ public class PascalOperationHandler {
             case ">=" -> new PascalBoolean(comparison >= 0);
             default -> throw new UnsupportedOperationException("Unsupported comparison operator: " + operator);
         };
+    }
+
+    private static PascalType in(PascalType lhs, PascalType rhs) {
+        // Determine type of lhs
+
+        // Check if set is of that type (or a comparable/coercable type)
+
+        // Perform the operation
+
+        return null;
     }
 
     private static PascalType add(PascalType lhs, PascalType rhs) {
