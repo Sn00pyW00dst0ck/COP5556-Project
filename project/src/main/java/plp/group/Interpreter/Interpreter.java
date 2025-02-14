@@ -1,5 +1,6 @@
 package plp.group.Interpreter;
 
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.math.RoundingMode;
@@ -96,8 +97,11 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         // For each identifier, insert it to the current scope with the type set.
         var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
         for (String identifier : identifiers) {
-            // TODO: figure out how to create the new SymbolInfo for an arbitrary PascalType
-            // scope.insert(identifier, new SymbolInfo(identifier, type));
+            try {
+                scope.insert(identifier, new SymbolInfo(identifier, type.getDeclaredConstructor().newInstance()));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
         }
 
         return null;

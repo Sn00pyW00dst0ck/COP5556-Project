@@ -3,6 +3,11 @@ package plp.group.PascalTypes.Scalars.Standard;
 import java.math.BigInteger;
 
 public class PascalLongword extends PascalInteger {
+
+    public PascalLongword() {
+        super();
+    }
+
     public PascalLongword(BigInteger value) {
         super(checkOverflow(value, new BigInteger("0"), new BigInteger("4294967295")));
     }

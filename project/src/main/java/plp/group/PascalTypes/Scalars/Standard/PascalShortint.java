@@ -3,6 +3,11 @@ package plp.group.PascalTypes.Scalars.Standard;
 import java.math.BigInteger;
 
 public class PascalShortint extends PascalInteger {
+
+    public PascalShortint() {
+        super();
+    }
+
     public PascalShortint(BigInteger value) {
         super(checkOverflow(value, new BigInteger("-128"), new BigInteger("127")));
     }

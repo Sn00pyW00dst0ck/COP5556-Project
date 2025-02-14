@@ -6,10 +6,15 @@ import plp.group.PascalTypes.PascalType;
 
 // TODO: might need to extend this to handle different precisions
 public class PascalReal extends PascalType {
-    private final BigDecimal value;
+    private BigDecimal value;
+
+    public PascalReal() {
+        this.isInitialized = false;
+    }
 
     public PascalReal(BigDecimal value) {
         this.value = value;
+        this.isInitialized = true;
     }
 
     @Override

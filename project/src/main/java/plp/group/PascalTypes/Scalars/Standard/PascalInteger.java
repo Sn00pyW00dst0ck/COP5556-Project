@@ -5,10 +5,15 @@ import java.math.BigInteger;
 import plp.group.PascalTypes.PascalType;
 
 public class PascalInteger extends PascalType {
-    private final BigInteger value;
+    private BigInteger value;
+
+    public PascalInteger() {
+        this.isInitialized = false;
+    }
 
     public PascalInteger(BigInteger value) {
         this.value = value;
+        this.isInitialized = true;
     }
 
     @Override

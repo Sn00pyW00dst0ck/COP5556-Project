@@ -11,7 +11,12 @@ public class PascalEnum extends PascalType implements Comparable<PascalEnum> {
     // GREEN -> 1
     // BLUE -> 2
     private final Map<String, Integer> enumValues;
-    private final String value;
+    private String value;
+
+    public PascalEnum(Map<String, Integer> enumValues) {
+        this.enumValues = enumValues;
+        this.isInitialized = false;
+    };
 
     public PascalEnum(Map<String, Integer> enumValues, String value) {
         this.enumValues = enumValues;
@@ -19,6 +24,7 @@ public class PascalEnum extends PascalType implements Comparable<PascalEnum> {
             throw new IllegalArgumentException("Invalid enumeration value: " + value);
         }
         this.value = value;
+        this.isInitialized = true;
     }
 
     @Override

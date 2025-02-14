@@ -3,6 +3,11 @@ package plp.group.PascalTypes.Scalars.Standard;
 import java.math.BigInteger;
 
 public class PascalInt64 extends PascalInteger {
+
+    public PascalInt64() {
+        super();
+    }
+
     public PascalInt64(BigInteger value) {
         super(checkOverflow(value, new BigInteger("-2147483648"), new BigInteger("2147483647")));
     }

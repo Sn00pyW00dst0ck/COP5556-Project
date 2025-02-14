@@ -3,10 +3,15 @@ package plp.group.PascalTypes.Scalars.Standard;
 import plp.group.PascalTypes.PascalType;
 
 public class PascalString extends PascalType {
-    private final String value;
+    private String value;
+
+    public PascalString() {
+        this.isInitialized = false;
+    }
 
     public PascalString(String value) {
         this.value = value;
+        this.isInitialized = true;
     }
 
     @Override

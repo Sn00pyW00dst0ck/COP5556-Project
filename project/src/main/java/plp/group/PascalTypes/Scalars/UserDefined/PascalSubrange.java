@@ -10,10 +10,17 @@ public class PascalSubrange<T extends Comparable<T>> extends PascalType {
     private final T min;
     private final T max;
 
+    public PascalSubrange(T min, T max) {
+        this.min = min;
+        this.max = max;
+        this.isInitialized = false;
+    }
+
     public PascalSubrange(T initialValue, T min, T max) {
         this.min = min;
         this.max = max;
         this.setValue(initialValue);
+        this.isInitialized = true;
     }
 
     @Override
@@ -31,5 +38,6 @@ public class PascalSubrange<T extends Comparable<T>> extends PascalType {
             throw new IllegalArgumentException("Value out of range: " + value);
         }
         this.value = value;
+        this.isInitialized = true;
     }
 }

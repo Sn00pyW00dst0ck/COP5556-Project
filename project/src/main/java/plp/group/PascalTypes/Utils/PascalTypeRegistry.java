@@ -21,22 +21,22 @@ public class PascalTypeRegistry {
     private final Map<String, Class<? extends PascalType>> typeAliases = new HashMap<>();
 
     {
-        registerType("Integer", PascalInteger.class);
+        registerType("integer", PascalInteger.class);
         // TODO: Cardinal???
-        registerType("Shortint", PascalShortint.class);
-        registerType("Smallint", PascalSmallint.class);
-        registerType("Longint", PascalLongint.class);
-        registerType("Int64", PascalInt64.class);
-        registerType("Byte", PascalByte.class);
-        registerType("Word", PascalWord.class);
-        registerType("Longword", PascalLongword.class);
+        registerType("shortint", PascalShortint.class);
+        registerType("smallint", PascalSmallint.class);
+        registerType("longint", PascalLongint.class);
+        registerType("int64", PascalInt64.class);
+        registerType("byte", PascalByte.class);
+        registerType("word", PascalWord.class);
+        registerType("longword", PascalLongword.class);
 
-        registerType("Real", PascalReal.class);
+        registerType("real", PascalReal.class);
 
-        registerType("Boolean", PascalBoolean.class);
+        registerType("boolean", PascalBoolean.class);
 
-        registerType("String", PascalString.class);
-        registerType("Char", PascalChar.class);
+        registerType("string", PascalString.class);
+        registerType("char", PascalChar.class);
 
         // TODO: more types??
     }
@@ -46,6 +46,6 @@ public class PascalTypeRegistry {
     }
 
     public Class<? extends PascalType> getType(String name) {
-        return typeAliases.get(name);
+        return typeAliases.get(name.toLowerCase());
     }
 }

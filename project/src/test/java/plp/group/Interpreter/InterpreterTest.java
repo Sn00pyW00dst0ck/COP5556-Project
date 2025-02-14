@@ -52,7 +52,9 @@ public class InterpreterTest {
 		assertEquals(expectedWrittenOutput, outContent.toString());
 	}
 
-	// Test cases created using: https://www.onlinegdb.com/online_pascal_compiler
+	// Test cases created using:
+	// https://www.onlinegdb.com/online_pascal_compiler
+	// https://www.tutorialspoint.com/compile_pascal_online.php
 
 	public static Stream<Arguments> testInterpreter() {
 		return Stream.of(

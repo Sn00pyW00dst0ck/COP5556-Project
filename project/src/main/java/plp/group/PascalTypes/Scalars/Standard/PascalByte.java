@@ -3,6 +3,11 @@ package plp.group.PascalTypes.Scalars.Standard;
 import java.math.BigInteger;
 
 public class PascalByte extends PascalInteger {
+
+    public PascalByte() {
+        super();
+    }
+
     public PascalByte(BigInteger value) {
         super(checkOverflow(value, new BigInteger("0"), new BigInteger("255")));
     }
