@@ -6,6 +6,10 @@ public class ShortintType extends GeneralInteger {
     private final BigInteger lowerBound = new BigInteger("-127");
     private final BigInteger upperBound = new BigInteger("128");
 
+    public ShortintType() {
+        super();
+    }
+
     public ShortintType(BigInteger value) {
         super(value);
         checkOverflow(value);

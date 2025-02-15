@@ -4,6 +4,11 @@ import plp.group.Interpreter.Types.GeneralType;
 
 public class CharType extends GeneralType implements Comparable<CharType> {
 
+    public CharType() {
+        super(Character.class);
+        defineOperations();
+    }
+
     public CharType(Character value) {
         super(value);
         defineOperations();

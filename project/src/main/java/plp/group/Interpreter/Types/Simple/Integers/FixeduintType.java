@@ -2,11 +2,15 @@ package plp.group.Interpreter.Types.Simple.Integers;
 
 import java.math.BigInteger;
 
-public class Cardinal extends GeneralInteger {
+public class FixeduintType extends GeneralInteger {
     private final BigInteger lowerBound = new BigInteger("0");
     private final BigInteger upperBound = new BigInteger("4294967295");
 
-    public Cardinal(BigInteger value) {
+    public FixeduintType() {
+        super();
+    }
+
+    public FixeduintType(BigInteger value) {
         super(value);
         checkOverflow(value);
     }

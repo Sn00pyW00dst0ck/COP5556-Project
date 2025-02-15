@@ -4,6 +4,11 @@ import plp.group.Interpreter.Types.GeneralType;
 
 public class BooleanType extends GeneralType implements Comparable<BooleanType> {
 
+    public BooleanType() {
+        super(Boolean.class);
+        defineOperations();
+    }
+
     public BooleanType(Boolean value) {
         super(value);
         defineOperations();

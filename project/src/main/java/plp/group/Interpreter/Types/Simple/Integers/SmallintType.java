@@ -6,6 +6,10 @@ public class SmallintType extends GeneralInteger {
     private final BigInteger lowerBound = new BigInteger("-32768");
     private final BigInteger upperBound = new BigInteger("32767");
 
+    public SmallintType() {
+        super();
+    }
+
     public SmallintType(BigInteger value) {
         super(value);
         checkOverflow(value);

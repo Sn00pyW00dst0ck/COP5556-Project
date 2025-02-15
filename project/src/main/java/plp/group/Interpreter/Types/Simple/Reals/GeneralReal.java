@@ -9,6 +9,11 @@ import plp.group.Interpreter.Types.Simple.Integers.GeneralInteger;
 
 public class GeneralReal extends GeneralType {
 
+    public GeneralReal() {
+        super(BigDecimal.class);
+        defineOperations();
+    }
+
     public GeneralReal(BigDecimal value) {
         super(value);
         defineOperations();

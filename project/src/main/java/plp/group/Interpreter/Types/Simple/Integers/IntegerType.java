@@ -6,6 +6,10 @@ public class IntegerType extends GeneralInteger {
     private final BigInteger lowerBound = new BigInteger("-2147483648");
     private final BigInteger upperBound = new BigInteger("2147483647");
 
+    public IntegerType() {
+        super();
+    }
+
     public IntegerType(BigInteger value) {
         super(value);
         checkOverflow(value);

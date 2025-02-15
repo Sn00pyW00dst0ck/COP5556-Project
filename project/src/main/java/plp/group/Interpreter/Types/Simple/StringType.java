@@ -4,6 +4,11 @@ import plp.group.Interpreter.Types.GeneralType;
 
 public class StringType extends GeneralType implements Comparable<StringType> {
 
+    public StringType() {
+        super(String.class);
+        defineOperations();
+    }
+
     public StringType(String value) {
         super(value);
         defineOperations();

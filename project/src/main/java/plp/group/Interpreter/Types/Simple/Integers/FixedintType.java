@@ -2,11 +2,15 @@ package plp.group.Interpreter.Types.Simple.Integers;
 
 import java.math.BigInteger;
 
-public class Fixeduint extends GeneralInteger {
-    private final BigInteger lowerBound = new BigInteger("0");
-    private final BigInteger upperBound = new BigInteger("4294967295");
+public class FixedintType extends GeneralInteger {
+    private final BigInteger lowerBound = new BigInteger("-2147483648");
+    private final BigInteger upperBound = new BigInteger("2147483647");
 
-    public Fixeduint(BigInteger value) {
+    public FixedintType() {
+        super();
+    }
+
+    public FixedintType(BigInteger value) {
         super(value);
         checkOverflow(value);
     }

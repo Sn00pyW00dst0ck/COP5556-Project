@@ -1,39 +1,18 @@
 package plp.group.Interpreter.Types;
 
 import java.math.BigInteger;
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
-import java.util.Currency;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Map;
 
-import com.sun.jdi.ByteType;
-import com.sun.jdi.DoubleType;
-
-import plp.group.Interpreter.Types.Procedural.FunctionImplementation;
-import plp.group.Interpreter.Types.Procedural.FunctionType;
-import plp.group.Interpreter.Types.Procedural.ProcedureImplementation;
-import plp.group.Interpreter.Types.Procedural.ProcedureType;
-import plp.group.Interpreter.Types.Simple.BooleanType;
-import plp.group.Interpreter.Types.Simple.CharType;
-import plp.group.Interpreter.Types.Simple.EnumType;
-import plp.group.Interpreter.Types.Simple.StringType;
-import plp.group.Interpreter.Types.Simple.SubrangeType;
-import plp.group.Interpreter.Types.Simple.Integers.Cardinal;
-import plp.group.Interpreter.Types.Simple.Integers.Fixedint;
-import plp.group.Interpreter.Types.Simple.Integers.Fixeduint;
-import plp.group.Interpreter.Types.Simple.Integers.Int64Type;
-import plp.group.Interpreter.Types.Simple.Integers.ShortintType;
-import plp.group.Interpreter.Types.Simple.Integers.SmallintType;
-import plp.group.Interpreter.Types.Simple.Integers.Uint64Type;
-import plp.group.Interpreter.Types.Simple.Integers.WordType;
-import plp.group.Interpreter.Types.Simple.Reals.CompType;
-import plp.group.Interpreter.Types.Simple.Reals.CurrencyType;
-import plp.group.Interpreter.Types.Simple.Reals.Real48Type;
-import plp.group.Interpreter.Types.Simple.Reals.RealType;
-import plp.group.Interpreter.Types.Simple.Reals.SingleType;
-import plp.group.Interpreter.Types.Structured.SetType;
+import plp.group.Interpreter.Types.Procedural.*;
+import plp.group.Interpreter.Types.Simple.*;
+import plp.group.Interpreter.Types.Simple.Integers.*;
+import plp.group.Interpreter.Types.Simple.Reals.*;
+import plp.group.Interpreter.Types.Structured.*;
 
 /**
  * Provides an easy to use interface for constructing any value.
@@ -43,6 +22,39 @@ public class GeneralTypeFactory {
     // #region Arbitrary Type Creation
 
     private static HashMap<String, Class<? extends GeneralType>> knownTypes = new HashMap<>();
+    static {
+        knownTypes.put("procedure", ProcedureType.class);
+        knownTypes.put("function", FunctionType.class);
+
+        knownTypes.put("shortint", ShortintType.class);
+        knownTypes.put("byte", ByteType.class);
+        knownTypes.put("smallint", SmallintType.class);
+        knownTypes.put("word", WordType.class);
+        knownTypes.put("fixedint", FixedintType.class);
+        knownTypes.put("integer", IntegerType.class);
+        knownTypes.put("fixeduint", FixeduintType.class);
+        knownTypes.put("cardinal", CardinalType.class);
+        knownTypes.put("int64", Int64Type.class);
+        knownTypes.put("uint64", Uint64Type.class);
+
+        knownTypes.put("real", RealType.class);
+        knownTypes.put("real48", Real48Type.class);
+        knownTypes.put("double", DoubleType.class);
+        knownTypes.put("single", SingleType.class);
+        knownTypes.put("Comp", CompType.class);
+        knownTypes.put("Currency", CurrencyType.class);
+
+        knownTypes.put("bool", BooleanType.class);
+        knownTypes.put("char", CharType.class);
+        knownTypes.put("string", StringType.class);
+        knownTypes.put("enum", EnumType.class);
+        knownTypes.put("subrange", SubrangeType.class);
+
+        knownTypes.put("set", SetType.class);
+        knownTypes.put("array", ArrayType.class);
+        knownTypes.put("file", FileType.class);
+        knownTypes.put("record", RecordType.class);
+    }
 
     public static void registerType(String name, Class<? extends GeneralType> type) {
         knownTypes.put(name, type);
@@ -52,8 +64,30 @@ public class GeneralTypeFactory {
         return knownTypes.get(name);
     }
 
-    public static GeneralType constructType(String name, Object... args) {
-        return null;
+    /**
+     * An easy way to make a type given a string name and args for the constructor.
+     * Throws error if failed to make new type for any reason.
+     * 
+     * @param name
+     * @param args
+     * @return
+     * @throws InstantiationException
+     * @throws IllegalAccessException
+     * @throws IllegalArgumentException
+     * @throws InvocationTargetException
+     * @throws NoSuchMethodException
+     * @throws SecurityException
+     */
+    public static GeneralType constructType(String name, Object... args)
+            throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
+            NoSuchMethodException, SecurityException {
+
+        Class<?>[] argTypes = new Class<?>[args.length];
+        for (int i = 0; i < args.length; i++) {
+            argTypes[i] = args[i].getClass(); // Extract runtime class of each argument
+        }
+
+        return knownTypes.get(name.toLowerCase()).getDeclaredConstructor(argTypes).newInstance(args);
     }
 
     // #endregion Arbitrary Type Creation
@@ -67,10 +101,10 @@ public class GeneralTypeFactory {
                 ByteType.class,
                 SmallintType.class,
                 WordType.class,
-                Fixedint.class,
+                FixedintType.class,
                 Integer.class,
-                Fixeduint.class,
-                Cardinal.class,
+                FixeduintType.class,
+                CardinalType.class,
                 Int64Type.class,
                 Uint64Type.class)) {
             // Try constructing the type, if fail move to next. If success return it.

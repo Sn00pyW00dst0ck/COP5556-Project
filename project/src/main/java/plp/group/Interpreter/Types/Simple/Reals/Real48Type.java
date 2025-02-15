@@ -6,6 +6,10 @@ public class Real48Type extends GeneralReal {
     private final BigDecimal lowerBound = new BigDecimal("2.94e-39");
     private final BigDecimal upperBound = new BigDecimal("1.70e+38");
 
+    public Real48Type() {
+        super();
+    }
+
     public Real48Type(BigDecimal value) {
         super(value);
         checkOverflow(value);

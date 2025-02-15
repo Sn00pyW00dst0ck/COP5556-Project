@@ -6,6 +6,10 @@ public class Uint64Type extends GeneralInteger {
     private final BigInteger lowerBound = new BigInteger("0");
     private final BigInteger upperBound = new BigInteger("18446744073709551615");
 
+    public Uint64Type() {
+        super();
+    }
+
     public Uint64Type(BigInteger value) {
         super(value);
         checkOverflow(value);

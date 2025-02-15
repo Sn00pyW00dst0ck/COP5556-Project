@@ -6,6 +6,10 @@ public class Int64Type extends GeneralInteger {
     private final BigInteger lowerBound = new BigInteger("-9223372036854775808");
     private final BigInteger upperBound = new BigInteger("9223372036854775807");
 
+    public Int64Type() {
+        super();
+    }
+
     public Int64Type(BigInteger value) {
         super(value);
         checkOverflow(value);

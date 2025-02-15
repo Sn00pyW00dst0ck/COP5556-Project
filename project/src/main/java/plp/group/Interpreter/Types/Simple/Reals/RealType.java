@@ -9,6 +9,10 @@ public class RealType extends GeneralReal {
     private final BigDecimal lowerBound = new BigDecimal("2.23e-308");
     private final BigDecimal upperBound = new BigDecimal("1.79e+308");
 
+    public RealType() {
+        super();
+    }
+
     public RealType(BigDecimal value) {
         super(value);
         checkOverflow(value);

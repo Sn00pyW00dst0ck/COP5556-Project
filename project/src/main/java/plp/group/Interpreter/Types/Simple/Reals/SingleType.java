@@ -9,6 +9,10 @@ public class SingleType extends GeneralReal {
     private final BigDecimal lowerBound = new BigDecimal("1.18e-38");
     private final BigDecimal upperBound = new BigDecimal("3.40e+38");
 
+    public SingleType() {
+        super();
+    }
+
     public SingleType(BigDecimal value) {
         super(value);
         checkOverflow(value);

@@ -6,6 +6,10 @@ public class CompType extends GeneralReal {
     private final BigDecimal lowerBound = new BigDecimal("-9223372036854775808");
     private final BigDecimal upperBound = new BigDecimal("9223372036854775807");
 
+    public CompType() {
+        super();
+    }
+
     public CompType(BigDecimal value) {
         super(value);
         checkOverflow(value);

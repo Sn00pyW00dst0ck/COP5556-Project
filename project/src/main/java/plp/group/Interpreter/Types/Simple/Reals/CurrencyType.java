@@ -6,6 +6,10 @@ public class CurrencyType extends GeneralReal {
     private final BigDecimal lowerBound = new BigDecimal("-922337203685477.5808");
     private final BigDecimal upperBound = new BigDecimal("922337203685477.5807");
 
+    public CurrencyType() {
+        super();
+    }
+
     public CurrencyType(BigDecimal value) {
         super(value);
         checkOverflow(value);

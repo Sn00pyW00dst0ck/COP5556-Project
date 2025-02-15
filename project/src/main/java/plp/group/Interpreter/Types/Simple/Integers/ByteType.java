@@ -6,6 +6,10 @@ public class ByteType extends GeneralInteger {
     private final BigInteger lowerBound = new BigInteger("0");
     private final BigInteger upperBound = new BigInteger("255");
 
+    public ByteType() {
+        super();
+    }
+
     public ByteType(BigInteger value) {
         super(value);
         checkOverflow(value);

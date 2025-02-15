@@ -8,6 +8,12 @@ import plp.group.Interpreter.Types.GeneralTypeFactory;
 import plp.group.Interpreter.Types.Simple.Reals.GeneralReal;
 
 public abstract class GeneralInteger extends GeneralType implements Comparable<GeneralInteger> {
+
+    public GeneralInteger() {
+        super(BigInteger.class);
+        defineOperations();
+    }
+
     public GeneralInteger(BigInteger value) {
         super(value);
         defineOperations();

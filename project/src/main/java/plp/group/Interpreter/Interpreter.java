@@ -79,7 +79,13 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public Void visitVariableDeclaration(delphiParser.VariableDeclarationContext ctx) {
-        var instance = GeneralTypeFactory.constructType(ctx.getChild(ctx.getChildCount() - 1).getText());
+        GeneralType instance;
+        try {
+            instance = GeneralTypeFactory.constructType(ctx.getChild(ctx.getChildCount() - 1).getText().toLowerCase());
+        } catch (Exception e) {
+            e.printStackTrace();
+            return null;
+        }
 
         @SuppressWarnings("unchecked")
         var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
