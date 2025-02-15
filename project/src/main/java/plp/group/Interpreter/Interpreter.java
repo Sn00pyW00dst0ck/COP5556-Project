@@ -8,26 +8,17 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Scanner;
 
-import plp.group.PascalTypes.PascalType;
-import plp.group.PascalTypes.Callables.PascalProcedureType;
-import plp.group.PascalTypes.Scalars.Standard.PascalBoolean;
-import plp.group.PascalTypes.Scalars.Standard.PascalChar;
-import plp.group.PascalTypes.Scalars.Standard.PascalString;
-import plp.group.PascalTypes.Scalars.Standard.Integers.PascalInteger;
-import plp.group.PascalTypes.Scalars.Standard.Integers.PascalLongint;
-import plp.group.PascalTypes.Scalars.Standard.Integers.PascalLongword;
-import plp.group.PascalTypes.Scalars.Standard.Integers.PascalShortint;
-import plp.group.PascalTypes.Scalars.Standard.Integers.PascalSmallint;
-import plp.group.PascalTypes.Scalars.Standard.Reals.PascalDouble;
-import plp.group.PascalTypes.Scalars.Standard.Reals.PascalReal;
-import plp.group.PascalTypes.Utils.PascalOperationHandler;
-import plp.group.PascalTypes.Utils.PascalTypeRegistry;
+import plp.group.Interpreter.Types.GeneralType;
+import plp.group.Interpreter.Types.GeneralTypeFactory;
+import plp.group.Interpreter.Types.Procedural.ProcedureImplementation;
+import plp.group.Interpreter.Types.Procedural.ProcedureType;
 import plp.group.project.delphiBaseVisitor;
 import plp.group.project.delphiParser;
 import plp.group.project.delphiParser.AdditiveoperatorContext;
 import plp.group.project.delphiParser.Bool_Context;
 import plp.group.project.delphiParser.MultiplicativeoperatorContext;
 import plp.group.project.delphiParser.RelationaloperatorContext;
+import plp.group.project.delphiParser.Set_Context;
 
 /**
  * Interpret valid delphi code according to our grammar.
@@ -45,7 +36,7 @@ import plp.group.project.delphiParser.RelationaloperatorContext;
 public class Interpreter extends delphiBaseVisitor<Object> {
 
     private SymbolTable scope = new SymbolTable();
-    private PascalTypeRegistry knownTypes = new PascalTypeRegistry();
+    // private GeneralTypeRegistry knownTypes = new GeneralTypeRegistry();
 
     public Interpreter() {
         scope.enterScope();
@@ -57,26 +48,20 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         scope.insert("write", new SymbolInfo(
                 "write",
-                new PascalProcedureType(
-                        List.of(),
-                        arguments -> {
-                            for (var arg : arguments) {
-                                System.out.print(arg);
-                            }
-                            return null;
-                        })));
+                GeneralTypeFactory.createProcedure((arguments -> {
+                    for (var arg : arguments) {
+                        System.out.print(arg);
+                    }
+                }))));
 
         scope.insert("writeln", new SymbolInfo(
-                "write",
-                new PascalProcedureType(
-                        List.of(),
-                        arguments -> {
-                            for (var arg : arguments) {
-                                System.out.print(arg);
-                            }
-                            System.out.println();
-                            return null;
-                        })));
+                "writeln",
+                GeneralTypeFactory.createProcedure((arguments -> {
+                    for (var arg : arguments) {
+                        System.out.print(arg);
+                    }
+                    System.out.println();
+                }))));
 
         // #endregion Built-In IO Functions
     }
@@ -92,28 +77,34 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     // #region Declarations
 
-    @Override
-    public Void visitVariableDeclaration(delphiParser.VariableDeclarationContext ctx) {
-        Class<? extends PascalType> type = knownTypes.getType(ctx.getChild(ctx.getChildCount() - 1).getText());
-
-        try {
-            PascalType instance = switch (type.getSimpleName()) {
-                case "PascalReal" -> new PascalDouble();
-                case "PascalInteger" -> new PascalLongword();
-                default -> type.getDeclaredConstructor().newInstance();
-            };
-
-            // For each identifier, insert it to the current scope with the type set.
-            var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
-            for (String identifier : identifiers) {
-                scope.insert(identifier, new SymbolInfo(identifier, instance));
-            }
-        } catch (Exception e) {
-            e.printStackTrace();
-        }
-
-        return null;
-    }
+    /*
+     * 
+     * @Override
+     * public Void visitVariableDeclaration(delphiParser.VariableDeclarationContext
+     * ctx) {
+     * Class<? extends GeneralType> type =
+     * knownTypes.getType(ctx.getChild(ctx.getChildCount() - 1).getText());
+     * 
+     * try {
+     * GeneralType instance = switch (type.getSimpleName()) {
+     * case "PascalReal" -> new PascalDouble();
+     * case "PascalInteger" -> new PascalLongword();
+     * default -> type.getDeclaredConstructor().newInstance();
+     * };
+     * 
+     * // For each identifier, insert it to the current scope with the type set.
+     * var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
+     * for (String identifier : identifiers) {
+     * scope.insert(identifier, new SymbolInfo(identifier, instance));
+     * }
+     * } catch (Exception e) {
+     * e.printStackTrace();
+     * }
+     * 
+     * return null;
+     * }
+     * 
+     */
 
     // #endregion Declarations
 
@@ -155,7 +146,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public Void visitAssignmentStatement(delphiParser.AssignmentStatementContext ctx) {
         var identifier = (SymbolInfo) visit(ctx.getChild(0));
-        var value = (PascalType) visit(ctx.getChild(2));
+        var value = (GeneralType) visit(ctx.getChild(2));
 
         scope.update(identifier.name, new SymbolInfo(identifier.name, value));
         return null;
@@ -165,17 +156,17 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public Void visitProcedureStatement(delphiParser.ProcedureStatementContext ctx) {
         var procedureDetails = (SymbolInfo) scope.lookup(((String) visit(ctx.getChild(0))));
 
-        var parameters = new ArrayList<Object>(); // Do we want to pass all parameters as PascalType??
+        var parameters = new ArrayList<Object>(); // Do we want to pass all parameters as GeneralType??
         for (var i = 2; i < ctx.getChildCount() - 1; i++) {
             var parameter = visit(ctx.getChild(i));
             if (parameter instanceof SymbolInfo) {
                 parameter = ((SymbolInfo) parameter).value; // If SymbolInfo, grab the value from it.
             }
-            parameters.add(((PascalType) parameter));
+            parameters.add(((GeneralType) parameter));
         }
 
         // Below craziness passes the parameters one at a time...
-        ((PascalProcedureType) (procedureDetails.value)).invoke(parameters.toArray(new Object[0]));
+        ((ProcedureImplementation) procedureDetails.value.getValue()).execute(parameters.toArray(new Object[0]));
         return null;
     }
 
@@ -186,19 +177,19 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     /**
      * Visits the expression, returns whatever the value of the expression is.
      * 
-     * The value is returned within a PascalType.
+     * The value is returned within a GeneralType.
      */
     @Override
-    public PascalType visitExpression(delphiParser.ExpressionContext ctx) {
-        var lhs = (PascalType) visit(ctx.getChild(0));
+    public GeneralType visitExpression(delphiParser.ExpressionContext ctx) {
+        var lhs = (GeneralType) visit(ctx.getChild(0));
 
         if (ctx.relationaloperator() == null) {
             return lhs;
         }
 
         var operator = (String) visit(ctx.relationaloperator());
-        var rhs = (PascalType) visit(ctx.getChild(2));
-        return PascalOperationHandler.performBinaryOperation(lhs, rhs, operator);
+        var rhs = (GeneralType) visit(ctx.getChild(2));
+        return lhs.applyOperation(operator, rhs);
     }
 
     /**
@@ -210,16 +201,16 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
-    public PascalType visitSimpleExpression(delphiParser.SimpleExpressionContext ctx) {
-        var lhs = (PascalType) visit(ctx.getChild(0));
+    public GeneralType visitSimpleExpression(delphiParser.SimpleExpressionContext ctx) {
+        var lhs = (GeneralType) visit(ctx.getChild(0));
 
         if (ctx.additiveoperator() == null) {
             return lhs;
         }
 
         var operator = (String) visit(ctx.additiveoperator());
-        var rhs = (PascalType) visit(ctx.getChild(2));
-        return PascalOperationHandler.performBinaryOperation(lhs, rhs, operator);
+        var rhs = (GeneralType) visit(ctx.getChild(2));
+        return lhs.applyOperation(operator, rhs);
     }
 
     /**
@@ -231,16 +222,16 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
-    public PascalType visitTerm(delphiParser.TermContext ctx) {
-        var lhs = (PascalType) visit(ctx.getChild(0));
+    public GeneralType visitTerm(delphiParser.TermContext ctx) {
+        var lhs = (GeneralType) visit(ctx.getChild(0));
 
         if (ctx.multiplicativeoperator() == null) {
             return lhs;
         }
 
         var operator = (String) visit(ctx.multiplicativeoperator());
-        var rhs = (PascalType) visit(ctx.getChild(2));
-        return PascalOperationHandler.performBinaryOperation(lhs, rhs, operator);
+        var rhs = (GeneralType) visit(ctx.getChild(2));
+        return lhs.applyOperation(operator, rhs);
     }
 
     /**
@@ -252,34 +243,34 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
-    public PascalType visitSignedFactor(delphiParser.SignedFactorContext ctx) {
-        var factor = (PascalType) visit(ctx.factor());
+    public GeneralType visitSignedFactor(delphiParser.SignedFactorContext ctx) {
+        var factor = (GeneralType) visit(ctx.factor());
         // NOTE: the ctx.PLUS() does nothing...
         if (ctx.MINUS() != null) {
-            factor = PascalOperationHandler.performUnaryOperation(factor, "-");
+            // factor.applyOperation("-", null);
         }
         return factor;
     }
 
     /**
-     * Returns a PascalType with the information regarding this thing.
+     * Returns a GeneralType with the information regarding this thing.
      */
     @Override
-    public PascalType visitFactor(delphiParser.FactorContext ctx) {
+    public GeneralType visitFactor(delphiParser.FactorContext ctx) {
         int childIndex = (ctx.LPAREN() != null || ctx.NOT() != null) ? 1 : 0;
         var result = visit(ctx.getChild(childIndex));
 
-        // If its a symbol info, grab the PascalType from it.
+        // If its a symbol info, grab the GeneralType from it.
         if (result instanceof SymbolInfo) {
             result = ((SymbolInfo) result).value;
         }
 
         // If a NOT is present, perform that operation.
         if (ctx.NOT() != null) {
-            result = PascalOperationHandler.performUnaryOperation((PascalType) result, "NOT");
+            result = ((GeneralType) result).applyOperation("NOT", null);
         }
 
-        return (PascalType) result;
+        return (GeneralType) result;
 
         // TODO: actually do all the below in their own visit functions (_set and
         // functionDesignator)...
@@ -301,30 +292,34 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     // #region Literals
 
     @Override
-    public PascalString visitString(delphiParser.StringContext ctx) {
+    public GeneralType visitString(delphiParser.StringContext ctx) {
         var literal = ctx.STRING_LITERAL().getText();
-        return new PascalString(literal.substring(1, literal.length() - 1));
+        return GeneralTypeFactory.createString(literal.substring(1, literal.length() - 1));
     }
 
     @Override
-    public PascalInteger visitUnsignedInteger(delphiParser.UnsignedIntegerContext ctx) {
-        return PascalInteger.createBestFit(new BigInteger(ctx.NUM_INT().toString()));
+    public GeneralType visitUnsignedInteger(delphiParser.UnsignedIntegerContext ctx) {
+        return null;
+        // return PascalInteger.createBestFit(new BigInteger(ctx.NUM_INT().toString()));
     }
 
     @Override
-    public PascalReal visitUnsignedReal(delphiParser.UnsignedRealContext ctx) {
-        return PascalReal.createBestFit(new BigDecimal(ctx.NUM_REAL().toString()));
+    public GeneralType visitUnsignedReal(delphiParser.UnsignedRealContext ctx) {
+        return null;
+        // return PascalReal.createBestFit(new BigDecimal(ctx.NUM_REAL().toString()));
     }
 
     @Override
-    public PascalChar visitConstantChr(delphiParser.ConstantChrContext ctx) {
-        var charCode = (PascalInteger) visit(ctx.getChild(2));
-        return new PascalChar(charCode.getValue());
+    public GeneralType visitConstantChr(delphiParser.ConstantChrContext ctx) {
+        var charCode = visit(ctx.getChild(2));
+        return null;
+        // return GeneralTypeFactory.createChar(Character.toChars());
+        // return new PascalChar(charCode.getValue());
     }
 
     @Override
-    public PascalBoolean visitBool_(Bool_Context ctx) {
-        return new PascalBoolean(Boolean.valueOf(ctx.getText().toLowerCase()));
+    public GeneralType visitBool_(delphiParser.Bool_Context ctx) {
+        return GeneralTypeFactory.createBoolean(Boolean.valueOf(ctx.getText().toLowerCase()));
     }
 
     // #endregion Literals
