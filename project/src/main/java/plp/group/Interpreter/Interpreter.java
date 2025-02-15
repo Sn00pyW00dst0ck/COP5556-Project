@@ -79,25 +79,13 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public Void visitVariableDeclaration(delphiParser.VariableDeclarationContext ctx) {
-        // Class<? extends GeneralType> type =
-        // knownTypes.getType(ctx.getChild(ctx.getChildCount() - 1).getText());
-        //
-        // try {
-        // GeneralType instance = switch (type.getSimpleName()) {
-        // case "PascalReal" -> new PascalDouble();
-        // case "PascalInteger" -> new PascalLongword();
-        // default -> type.getDeclaredConstructor().newInstance();
-        // };
-        //
-        // // For each identifier, insert it to the current scope with the type set.
-        // var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
-        // for (String identifier : identifiers) {
-        // scope.insert(identifier, new SymbolInfo(identifier, instance));
-        // }
-        // } catch (Exception e) {
-        // e.printStackTrace();
-        // }
+        var instance = GeneralTypeFactory.constructType(ctx.getChild(ctx.getChildCount() - 1).getText());
 
+        @SuppressWarnings("unchecked")
+        var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
+        for (String identifier : identifiers) {
+            scope.insert(identifier, new SymbolInfo(identifier, instance));
+        }
         return null;
     }
 

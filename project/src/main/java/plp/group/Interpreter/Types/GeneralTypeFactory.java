@@ -3,8 +3,10 @@ package plp.group.Interpreter.Types;
 import java.math.BigInteger;
 import java.math.BigDecimal;
 import java.util.Currency;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 
 import com.sun.jdi.ByteType;
 import com.sun.jdi.DoubleType;
@@ -15,7 +17,9 @@ import plp.group.Interpreter.Types.Procedural.ProcedureImplementation;
 import plp.group.Interpreter.Types.Procedural.ProcedureType;
 import plp.group.Interpreter.Types.Simple.BooleanType;
 import plp.group.Interpreter.Types.Simple.CharType;
+import plp.group.Interpreter.Types.Simple.EnumType;
 import plp.group.Interpreter.Types.Simple.StringType;
+import plp.group.Interpreter.Types.Simple.SubrangeType;
 import plp.group.Interpreter.Types.Simple.Integers.Cardinal;
 import plp.group.Interpreter.Types.Simple.Integers.Fixedint;
 import plp.group.Interpreter.Types.Simple.Integers.Fixeduint;
@@ -31,7 +35,30 @@ import plp.group.Interpreter.Types.Simple.Reals.RealType;
 import plp.group.Interpreter.Types.Simple.Reals.SingleType;
 import plp.group.Interpreter.Types.Structured.SetType;
 
+/**
+ * Provides an easy to use interface for constructing any value.
+ */
 public class GeneralTypeFactory {
+
+    // #region Arbitrary Type Creation
+
+    private static HashMap<String, Class<? extends GeneralType>> knownTypes = new HashMap<>();
+
+    public static void registerType(String name, Class<? extends GeneralType> type) {
+        knownTypes.put(name, type);
+    }
+
+    public static Class<? extends GeneralType> getType(String name) {
+        return knownTypes.get(name);
+    }
+
+    public static GeneralType constructType(String name, Object... args) {
+        return null;
+    }
+
+    // #endregion Arbitrary Type Creation
+
+    // #region Simple
 
     public static GeneralType createInteger(BigInteger value) {
         // Create the smallest size valid integer type...
@@ -89,7 +116,17 @@ public class GeneralTypeFactory {
         return new StringType(value);
     }
 
-    //
+    public static GeneralType createEnum(Map<String, Integer> enumValues, String value) {
+        return new EnumType(enumValues, value);
+    }
+
+    public static <T extends Comparable<T>> GeneralType createSubrange(T lowerBound, T upperBound, T value) {
+        return new SubrangeType<T>(lowerBound, upperBound, value);
+    }
+
+    // #endregion Simple
+
+    // #region Structured
 
     public static <T> GeneralType createEmptySet(Class<T> value) {
         return new SetType<T>(value);
@@ -99,6 +136,10 @@ public class GeneralTypeFactory {
         return new SetType<T>(value);
     }
 
+    // #endregion Structured
+
+    // #region Procedural
+
     public static GeneralType createProcedure(ProcedureImplementation value) {
         return new ProcedureType(value);
     }
@@ -106,5 +147,7 @@ public class GeneralTypeFactory {
     public static GeneralType createFunction(FunctionImplementation value) {
         return new FunctionType(value);
     }
+
+    // #endregion Procedural
 
 }
