@@ -1,6 +1,8 @@
 package plp.group.Interpreter.Types.Procedural;
 
+import plp.group.Interpreter.Types.GeneralType;
+
 @FunctionalInterface
 public interface FunctionImplementation {
-    Object execute(Object... args);
+    GeneralType execute(Object... args);
 }

@@ -1,24 +1,21 @@
 package plp.group.Interpreter;
 
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
-import java.math.RoundingMode;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
 
 import plp.group.Interpreter.Types.GeneralType;
 import plp.group.Interpreter.Types.GeneralTypeFactory;
+import plp.group.Interpreter.Types.Procedural.FunctionImplementation;
 import plp.group.Interpreter.Types.Procedural.ProcedureImplementation;
-import plp.group.Interpreter.Types.Procedural.ProcedureType;
 import plp.group.project.delphiBaseVisitor;
 import plp.group.project.delphiParser;
 import plp.group.project.delphiParser.AdditiveoperatorContext;
-import plp.group.project.delphiParser.Bool_Context;
 import plp.group.project.delphiParser.MultiplicativeoperatorContext;
 import plp.group.project.delphiParser.RelationaloperatorContext;
-import plp.group.project.delphiParser.Set_Context;
 
 /**
  * Interpret valid delphi code according to our grammar.
@@ -305,6 +302,51 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public GeneralType visitBool_(delphiParser.Bool_Context ctx) {
         return GeneralTypeFactory.createBoolean(Boolean.valueOf(ctx.getText().toLowerCase()));
+    }
+
+    @Override
+    public GeneralType visitFunctionDesignator(delphiParser.FunctionDesignatorContext ctx) {
+        var function = (FunctionImplementation) (scope.lookup((String) visit(ctx.getChild(0))).value).getValue();
+
+        var parameters = new ArrayList<Object>(); // Do we want to pass all parameters as GeneralType??
+        for (var i = 2; i < ctx.getChildCount() - 1; i++) {
+            var parameter = visit(ctx.getChild(i));
+            if (parameter instanceof SymbolInfo) {
+                parameter = ((SymbolInfo) parameter).value; // If SymbolInfo, grab the value from it.
+            }
+            parameters.add(((GeneralType) parameter));
+        }
+
+        return function.execute(parameters);
+    }
+
+    @Override
+    public GeneralType visitSet_(delphiParser.Set_Context ctx) {
+        @SuppressWarnings("unchecked")
+        var elements = (List<GeneralType>) visit(ctx.getChild(1));
+        return GeneralTypeFactory.createSet(new HashSet<GeneralType>(elements));
+    }
+
+    @Override
+    public List<GeneralType> visitElementList(delphiParser.ElementListContext ctx) {
+        var result = new ArrayList<GeneralType>();
+        for (var i = 0; i < ctx.getChildCount() - 1; i++) {
+            result.add(((GeneralType) visit(ctx.getChild(i))));
+        }
+        return result;
+    }
+
+    @Override
+    public GeneralType visitElement(delphiParser.ElementContext ctx) {
+        var lhs = (GeneralType) visit(ctx.getChild(0));
+
+        if (ctx.DOTDOT() == null) {
+            return lhs;
+        }
+
+        // TODO: Figure out how to do the DOTDOT operation
+        var rhs = (GeneralType) visit(ctx.getChild(2));
+        return null;
     }
 
     // #endregion Literals
