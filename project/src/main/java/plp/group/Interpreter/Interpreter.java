@@ -77,34 +77,29 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     // #region Declarations
 
-    /*
-     * 
-     * @Override
-     * public Void visitVariableDeclaration(delphiParser.VariableDeclarationContext
-     * ctx) {
-     * Class<? extends GeneralType> type =
-     * knownTypes.getType(ctx.getChild(ctx.getChildCount() - 1).getText());
-     * 
-     * try {
-     * GeneralType instance = switch (type.getSimpleName()) {
-     * case "PascalReal" -> new PascalDouble();
-     * case "PascalInteger" -> new PascalLongword();
-     * default -> type.getDeclaredConstructor().newInstance();
-     * };
-     * 
-     * // For each identifier, insert it to the current scope with the type set.
-     * var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
-     * for (String identifier : identifiers) {
-     * scope.insert(identifier, new SymbolInfo(identifier, instance));
-     * }
-     * } catch (Exception e) {
-     * e.printStackTrace();
-     * }
-     * 
-     * return null;
-     * }
-     * 
-     */
+    @Override
+    public Void visitVariableDeclaration(delphiParser.VariableDeclarationContext ctx) {
+        // Class<? extends GeneralType> type =
+        // knownTypes.getType(ctx.getChild(ctx.getChildCount() - 1).getText());
+        //
+        // try {
+        // GeneralType instance = switch (type.getSimpleName()) {
+        // case "PascalReal" -> new PascalDouble();
+        // case "PascalInteger" -> new PascalLongword();
+        // default -> type.getDeclaredConstructor().newInstance();
+        // };
+        //
+        // // For each identifier, insert it to the current scope with the type set.
+        // var identifiers = (ArrayList<String>) visit(ctx.getChild(0));
+        // for (String identifier : identifiers) {
+        // scope.insert(identifier, new SymbolInfo(identifier, instance));
+        // }
+        // } catch (Exception e) {
+        // e.printStackTrace();
+        // }
+
+        return null;
+    }
 
     // #endregion Declarations
 
@@ -247,7 +242,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         var factor = (GeneralType) visit(ctx.factor());
         // NOTE: the ctx.PLUS() does nothing...
         if (ctx.MINUS() != null) {
-            // factor.applyOperation("-", null);
+            factor = factor.applyOperation("NEGATE", null);
         }
         return factor;
     }
@@ -299,22 +294,18 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public GeneralType visitUnsignedInteger(delphiParser.UnsignedIntegerContext ctx) {
-        return null;
-        // return PascalInteger.createBestFit(new BigInteger(ctx.NUM_INT().toString()));
+        return GeneralTypeFactory.createInteger(new BigInteger(ctx.NUM_INT().toString()));
     }
 
     @Override
     public GeneralType visitUnsignedReal(delphiParser.UnsignedRealContext ctx) {
-        return null;
-        // return PascalReal.createBestFit(new BigDecimal(ctx.NUM_REAL().toString()));
+        return GeneralTypeFactory.createReal(new BigDecimal(ctx.NUM_REAL().toString()));
     }
 
     @Override
     public GeneralType visitConstantChr(delphiParser.ConstantChrContext ctx) {
-        var charCode = visit(ctx.getChild(2));
-        return null;
-        // return GeneralTypeFactory.createChar(Character.toChars());
-        // return new PascalChar(charCode.getValue());
+        var charCode = (BigInteger) ((GeneralType) visit(ctx.getChild(2))).getValue();
+        return GeneralTypeFactory.createChar(Character.valueOf((char) charCode.intValue()));
     }
 
     @Override
