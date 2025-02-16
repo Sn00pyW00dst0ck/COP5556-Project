@@ -125,6 +125,14 @@ public class InterpreterTest {
 				Arguments.of("If Statement", "if_statement.pas", """
 						a is not less than 20
 						value of a is : 100
+						"""),
+				Arguments.of("Procedure Definition", "procedure_definition.pas", """
+						Winthin the program
+						value of a = 100 b =  200 and c = 300
+						Winthin the procedure display
+						value of a = 10 b =  20 and c = 30
+						Winthin the procedure parameter_display
+						value of a = 15 b =  45 and c = 60
 						"""));
 	}
 }

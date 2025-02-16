@@ -81,6 +81,14 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return null;
     }
 
+    @Override
+    public Void visitBlock(delphiParser.BlockContext ctx) {
+        scope.enterScope();
+        visitChildren(ctx);
+        scope.exitScope();
+        return null;
+    }
+
     // #region Declarations
 
     @Override
@@ -107,6 +115,59 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             scope.insert(identifier, new SymbolInfo(identifier, instance));
         }
         return null;
+    }
+
+    @Override
+    public Void visitProcedureDeclaration(delphiParser.ProcedureDeclarationContext ctx) {
+        var identifier = (String) visit(ctx.getChild(1));
+
+        @SuppressWarnings("unchecked")
+        var parameters = (List<SymbolInfo>) visit(ctx.getChild(2));
+
+        var body = GeneralTypeFactory.createProcedure(arguments -> {
+            scope.enterScope();
+            // If we have expected parameters then add them here...
+            if (parameters != null) {
+                for (var i = 0; i < parameters.size(); i++) {
+                    scope.insert(parameters.get(i).name,
+                            new SymbolInfo(parameters.get(i).name, (GeneralType) arguments[i]));
+                }
+            }
+            visit(ctx.getChild(ctx.getChildCount() - 1));
+            scope.exitScope();
+        });
+
+        scope.insert(identifier, new SymbolInfo(identifier, body));
+        return null;
+    }
+
+    @SuppressWarnings("unchecked")
+    @Override
+    public List<SymbolInfo> visitFormalParameterList(delphiParser.FormalParameterListContext ctx) {
+        var parameters = new ArrayList<SymbolInfo>();
+        for (var i = 1; i < ctx.getChildCount(); i += 2) {
+            parameters.addAll((List<SymbolInfo>) visit(ctx.getChild(i)));
+        }
+        return parameters;
+    }
+
+    // How to handle formal parameter section??
+
+    @Override
+    public List<SymbolInfo> visitParameterGroup(delphiParser.ParameterGroupContext ctx) {
+        @SuppressWarnings("unchecked")
+        var identifiers = (List<String>) visit(ctx.getChild(0));
+        var typeIdentifier = (String) visit(ctx.getChild(ctx.getChildCount() - 1));
+
+        var parameters = new ArrayList<SymbolInfo>();
+        for (var identifier : identifiers) {
+            try {
+                parameters.add(new SymbolInfo(identifier, GeneralTypeFactory.constructType(typeIdentifier)));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+        }
+        return parameters;
     }
 
     // #endregion Declarations
@@ -204,8 +265,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
-    public Void visitTypeIdentifier(delphiParser.TypeIdentifierContext ctx) {
-        return null;
+    public String visitTypeIdentifier(delphiParser.TypeIdentifierContext ctx) {
+        return (String) ctx.getText();
     }
 
     @Override
