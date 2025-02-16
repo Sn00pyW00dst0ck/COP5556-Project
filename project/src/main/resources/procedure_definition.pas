@@ -1,0 +1,38 @@
+program Procedure_Definition;
+var
+    a, b, c: integer;
+
+procedure display;
+var
+    a, b, c: integer;
+begin
+    a := 10;
+    b := 20;
+    c := a + b;
+
+    writeln('Winthin the procedure display');
+    writeln('value of a = ', a , ' b =  ',  b, ' and c = ', c);
+end;
+
+procedure parameter_display(x, y: integer);
+var
+    a, b, c: integer;
+begin
+    a := x;
+    b := y;
+    c := a + b;
+
+    writeln('Winthin the procedure parameter_display');
+    writeln('value of a = ', a , ' b =  ',  b, ' and c = ', c);
+end;
+
+begin
+    a:= 100;
+    b:= 200;
+    c:= a + b;
+
+    writeln('Winthin the program');
+    writeln('value of a = ', a , ' b =  ',  b, ' and c = ', c);
+    display();
+    parameter_display(15, 45);
+end.
