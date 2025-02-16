@@ -121,6 +121,10 @@ public class InterpreterTest {
 						5
 						b
 						Mon
+						"""),
+				Arguments.of("If Statement", "if_statement.pas", """
+						a is not less than 20
+						value of a is : 100
 						"""));
 	}
 }
