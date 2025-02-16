@@ -3,6 +3,7 @@ package plp.group.Interpreter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Scanner;
@@ -75,6 +76,14 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     // #region Declarations
 
     @Override
+    public Void visitTypeDefinition(delphiParser.TypeDefinitionContext ctx) {
+        var typeIdentifier = (String) visit(ctx.getChild(0));
+        var typeDefinition = (GeneralType) visit(ctx.getChild(2));
+        GeneralTypeFactory.registerType(typeIdentifier.toLowerCase(), typeDefinition);
+        return null;
+    }
+
+    @Override
     public Void visitVariableDeclaration(delphiParser.VariableDeclarationContext ctx) {
         GeneralType instance;
         try {
@@ -126,6 +135,49 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     // #endregion Identifiers
+
+    // #region Types
+
+    @Override
+    public GeneralType visitScalarType(delphiParser.ScalarTypeContext ctx) {
+        @SuppressWarnings("unchecked")
+        var identifiers = (List<String>) visit(ctx.getChild(1));
+
+        // No overriding of the underlying values...
+        var temp = new HashMap<String, Integer>();
+        for (var i = 0; i < identifiers.size(); i++) {
+            temp.put(identifiers.get(i), i);
+        }
+
+        // We can now add all the enum names into scope...
+        for (var i = 0; i < identifiers.size(); i++) {
+            scope.insert(identifiers.get(i),
+                    new SymbolInfo(identifiers.get(i), GeneralTypeFactory.createEnum(temp, identifiers.get(i))));
+        }
+
+        return GeneralTypeFactory.createEnum(temp);
+    }
+
+    @Override
+    public GeneralType visitSubrangeType(delphiParser.SubrangeTypeContext ctx) {
+        // TODO: update below to not error
+        // return GeneralTypeFactory.createSubrange((GeneralType)
+        // visit(ctx.getChild(0)),
+        // (GeneralType) visit(ctx.getChild(2)));
+        return null;
+    }
+
+    @Override
+    public Void visitTypeIdentifier(delphiParser.TypeIdentifierContext ctx) {
+        return null;
+    }
+
+    @Override
+    public Void visitStringtype(delphiParser.StringtypeContext ctx) {
+        return null;
+    }
+
+    // #endregion Types
 
     // #region Statements
 
@@ -344,9 +396,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             return lhs;
         }
 
-        // TODO: Figure out how to do the DOTDOT operation
-        var rhs = (GeneralType) visit(ctx.getChild(2));
-        return null;
+        return lhs.applyOperation("..", (GeneralType) visit(ctx.getChild(2)));
     }
 
     // #endregion Literals

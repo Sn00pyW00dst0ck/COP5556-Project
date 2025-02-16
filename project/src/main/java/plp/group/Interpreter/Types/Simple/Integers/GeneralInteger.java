@@ -34,6 +34,8 @@ public abstract class GeneralInteger extends GeneralType implements Comparable<G
         defineOperation("DIV", this::intDivision);
         defineOperation("MOD", this::modulus);
         defineOperation("NEGATE", this::negate);
+
+        defineOperation("..", this::range);
     }
 
     private GeneralType equalTo(GeneralType lhs, GeneralType rhs) {
@@ -193,6 +195,13 @@ public abstract class GeneralInteger extends GeneralType implements Comparable<G
             return GeneralTypeFactory.createInteger(((BigInteger) lhs.getValue()).multiply(new BigInteger("-1")));
         }
         throw new UnsupportedOperationException("Cannot negate non-integer type.");
+    }
+
+    private GeneralType range(GeneralType lhs, GeneralType rhs) {
+        if (lhs instanceof GeneralInteger && rhs instanceof GeneralInteger) {
+            return GeneralTypeFactory.createSubrange((GeneralInteger) lhs, (GeneralInteger) rhs);
+        }
+        throw new UnsupportedOperationException("Cannot .. non-integer type.");
     }
 
     @Override

@@ -1,6 +1,7 @@
 package plp.group.Interpreter.Types.Simple;
 
 import plp.group.Interpreter.Types.GeneralType;
+import plp.group.Interpreter.Types.GeneralTypeFactory;
 
 public class BooleanType extends GeneralType implements Comparable<BooleanType> {
 
@@ -25,6 +26,7 @@ public class BooleanType extends GeneralType implements Comparable<BooleanType> 
         defineOperation("<=", this::lessThanOrEqualTo);
         defineOperation(">", this::greaterThan);
         defineOperation(">=", this::greaterThanOrEqualTo);
+        defineOperation("..", this::range);
     }
 
     private GeneralType AND(GeneralType lhs, GeneralType rhs) {
@@ -98,6 +100,13 @@ public class BooleanType extends GeneralType implements Comparable<BooleanType> 
             return new BooleanType(result >= 0);
         }
         throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a BooleanType.");
+    }
+
+    private GeneralType range(GeneralType lhs, GeneralType rhs) {
+        if (lhs instanceof BooleanType && rhs instanceof BooleanType) {
+            return GeneralTypeFactory.createSubrange((BooleanType) lhs, (BooleanType) rhs);
+        }
+        throw new UnsupportedOperationException("Cannot .. " + rhs.getType() + " to a BooleanType.");
     }
 
     @Override

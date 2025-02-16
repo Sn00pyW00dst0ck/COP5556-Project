@@ -112,6 +112,9 @@ public class InterpreterTest {
 						 4.000000000E+00
 						0
 						-5
+						"""),
+				Arguments.of("Enumerations", "enumerations.pas", """
+						GREEN
 						"""));
 	}
 }

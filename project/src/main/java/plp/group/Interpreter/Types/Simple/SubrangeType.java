@@ -6,6 +6,16 @@ public class SubrangeType<T extends Comparable<T>> extends GeneralType {
     private final T lowerBound;
     private final T upperBound;
 
+    public SubrangeType(T lowerBound, T upperBound) {
+        super(lowerBound.getClass());
+        if (lowerBound.compareTo(upperBound) > 0) {
+            throw new IllegalArgumentException("Lower bound cannot be greater than the upper bound.");
+        }
+        this.lowerBound = lowerBound;
+        this.upperBound = upperBound;
+        defineOperations();
+    }
+
     public SubrangeType(T lowerBound, T upperBound, T value) {
         super(value);
         if (lowerBound.compareTo(upperBound) > 0) {
