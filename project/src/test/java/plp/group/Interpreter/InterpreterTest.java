@@ -153,6 +153,10 @@ public class InterpreterTest {
 						Loop over ENUMS
 						ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN JACK QUEEN KING ACE\s
 						KING QUEEN JACK\s
-								"""));
+						"""),
+				Arguments.of("Case Statement", "case_statement.pas", """
+						The color is Green
+						17 mod 2 = 1
+						"""));
 	}
 }
