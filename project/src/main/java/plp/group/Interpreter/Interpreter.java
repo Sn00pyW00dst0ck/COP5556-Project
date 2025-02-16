@@ -13,6 +13,8 @@ import java.util.Scanner;
 import java.util.stream.Collectors;
 import java.util.stream.Stream;
 
+import org.antlr.runtime.tree.ParseTree;
+
 import plp.group.Interpreter.Types.GeneralType;
 import plp.group.Interpreter.Types.GeneralTypeFactory;
 import plp.group.Interpreter.Types.Procedural.FunctionImplementation;
@@ -212,7 +214,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         var parameters = new ArrayList<SymbolInfo>();
         for (var identifier : identifiers) {
             try {
-                parameters.add(new SymbolInfo(identifier, GeneralTypeFactory.constructType(typeIdentifier)));
+                parameters.add(
+                        new SymbolInfo(identifier, GeneralTypeFactory.constructType(typeIdentifier.toLowerCase())));
             } catch (Exception e) {
                 e.printStackTrace();
             }
@@ -348,6 +351,43 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         }
 
         return null;
+    }
+
+    @Override
+    public Void visitCaseStatement(delphiParser.CaseStatementContext ctx) {
+        // CASE expression OF caseListElement (SEMI caseListElement)* (SEMI ELSE
+        // statements)? END
+        var condition = (GeneralType) visit(ctx.getChild(1));
+
+        var i = 3;
+        Object[] caseListElement;
+        do {
+            caseListElement = (Object[]) visit(ctx.getChild(i));
+            // If the condition is one of the possibilities, then visit body and exit
+            @SuppressWarnings("unchecked")
+            var possibilities = (List<GeneralType>) caseListElement[0];
+            if (possibilities.contains(condition)) {
+                visit(ctx.getChild(i).getChild(2)); // This is the body of the caselist
+                return null;
+            }
+            // Otherwise keep going
+            i += 2;
+        } while (caseListElement != null);
+
+        // If an else block exists, we visit that body now.
+        if (ctx.ELSE() != null) {
+            visit(ctx.getChild(ctx.getChildCount() - 2));
+        }
+        return null;
+    }
+
+    @Override
+    public Object[] visitCaseListElement(delphiParser.CaseListElementContext ctx) {
+        // constList COLON statement
+        var constList = (List<GeneralType>) visit(ctx.getChild(0));
+        var body = ctx.getChild(2); // Don't visit the body now, we visit only if the case condition is true
+        // TODO: find better return type because this is UGLY!!!
+        return new Object[] { constList, body };
     }
 
     @Override
@@ -534,7 +574,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         var operator = (String) visit(ctx.multiplicativeoperator());
         var rhs = (GeneralType) visit(ctx.getChild(2));
-        return lhs.applyOperation(operator, rhs);
+        return lhs.applyOperation(operator.toUpperCase(), rhs);
     }
 
     /**
@@ -592,6 +632,30 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     // #endregion Expressions
 
     // #region Literals
+
+    @Override
+    public List<GeneralType> visitConstList(delphiParser.ConstListContext ctx) {
+        var result = new ArrayList<GeneralType>();
+        for (var i = 0; i < ctx.getChildCount(); i += 2) {
+            result.add((GeneralType) visit(ctx.getChild(i)));
+        }
+        return result;
+    }
+
+    @Override
+    public GeneralType visitConstant(delphiParser.ConstantContext ctx) {
+        var value = visit(ctx.getChild((ctx.sign() != null ? 1 : 0)));
+        // value might be an identifier, so handle that case
+        if (value instanceof String) {
+            value = scope.lookup((String) value).value;
+        }
+
+        // Handle the minus sign
+        if (ctx.sign() != null && ctx.sign().MINUS() != null) {
+            value = ((GeneralType) value).applyOperation("NEGATE", null);
+        }
+        return (GeneralType) value;
+    }
 
     @Override
     public GeneralType visitString(delphiParser.StringContext ctx) {
