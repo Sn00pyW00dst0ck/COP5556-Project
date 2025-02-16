@@ -137,6 +137,22 @@ public class InterpreterTest {
 				Arguments.of("Function Definition", "function_definition.pas", """
 						127
 						Hello from GetMessage
-						"""));
+						"""),
+				Arguments.of("Repetetive Statements", "repetetive_statements.pas", """
+						While Statement
+						1 4 9 16 25 36 49 64 81 100\s
+						Repeat Statement:
+						1 4 9 16 25 36 49 64 81 100\s
+						For Statement (to variant):
+						1 2 3 4 5 6 7 8 9 10\s
+						For Statement (down to variant):
+						10 9 8 7 6 5 4 3 2 1\s
+						Loop over chars
+						ABCDEFGHIJKLMNOPQRSTUVWXYZ
+						zyxwvutsrqponmlkjihgfedcba
+						Loop over ENUMS
+						ONE TWO THREE FOUR FIVE SIX SEVEN EIGHT NINE TEN JACK QUEEN KING ACE\s
+						KING QUEEN JACK\s
+								"""));
 	}
 }

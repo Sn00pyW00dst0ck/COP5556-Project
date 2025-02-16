@@ -4,10 +4,14 @@ import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+import java.util.stream.Collectors;
+import java.util.stream.Stream;
 
 import plp.group.Interpreter.Types.GeneralType;
 import plp.group.Interpreter.Types.GeneralTypeFactory;
@@ -344,6 +348,108 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         }
 
         return null;
+    }
+
+    @Override
+    public Void visitWhileStatement(delphiParser.WhileStatementContext ctx) {
+        // While visiting the condition results in a boolean true, repetitively visit
+        // the statement.
+        while (((Boolean) (((BooleanType) visit(ctx.getChild(1))).getValue())).booleanValue()) {
+            visit(ctx.getChild(ctx.getChildCount() - 1));
+        }
+        return null;
+    }
+
+    @Override
+    public Void visitRepeatStatement(delphiParser.RepeatStatementContext ctx) {
+        // Guranteed to visit the statements once, then repeat as long as the condition
+        // is true.
+        do {
+            visit(ctx.getChild(1));
+        } while (!(((Boolean) (((BooleanType) visit(ctx.getChild(ctx.getChildCount() - 1))).getValue()))
+                .booleanValue()));
+        return null;
+    }
+
+    @Override
+    public Void visitForStatement(delphiParser.ForStatementContext ctx) {
+        var identifier = scope.lookup((String) visit(ctx.getChild(1)));
+
+        @SuppressWarnings("unchecked")
+        var list = (List<GeneralType>) visit(ctx.getChild(3));
+
+        for (var value : list) {
+            scope.update(identifier.name, new SymbolInfo(identifier.name, value));
+            visit(ctx.getChild(ctx.getChildCount() - 1));
+        }
+        return null;
+    }
+
+    @Override
+    public List<GeneralType> visitForList(delphiParser.ForListContext ctx) {
+        var initialValue = (GeneralType) visit(ctx.getChild(0));
+        var finalValue = (GeneralType) visit(ctx.getChild(2));
+
+        var result = new ArrayList<GeneralType>();
+
+        // Integer
+        if (initialValue instanceof GeneralInteger && finalValue instanceof GeneralInteger) {
+            // TODO: this might break for large numbers...
+            if (ctx.TO() != null) {
+                for (var i = ((BigInteger) initialValue.getValue())
+                        .intValue(); i <= ((BigInteger) finalValue.getValue())
+                                .intValue(); i++) {
+                    result.add(GeneralTypeFactory.createInteger(BigInteger.valueOf(i)));
+                }
+            } else {
+                for (var i = ((BigInteger) initialValue.getValue())
+                        .intValue(); i >= ((BigInteger) finalValue.getValue())
+                                .intValue(); i--) {
+                    result.add(GeneralTypeFactory.createInteger(BigInteger.valueOf(i)));
+                }
+            }
+            return result;
+        }
+        // Character
+        if (initialValue instanceof CharType && finalValue instanceof CharType) {
+            if (ctx.TO() != null) {
+                for (var i = ((Character) initialValue.getValue()).charValue(); i <= ((Character) finalValue.getValue())
+                        .charValue(); i++) {
+                    result.add(GeneralTypeFactory.createChar(Character.valueOf(i)));
+                }
+            } else {
+                for (var i = ((Character) initialValue.getValue()).charValue(); i >= ((Character) finalValue.getValue())
+                        .charValue(); i--) {
+                    result.add(GeneralTypeFactory.createChar(Character.valueOf(i)));
+                }
+            }
+            return result;
+        }
+        // Enum
+        if (initialValue instanceof EnumType && finalValue instanceof EnumType) {
+            var options = ((EnumType) initialValue).getOptions();
+            var keys = options.entrySet().stream()
+                    .sorted(Map.Entry.comparingByValue())
+                    .filter(e -> {
+                        if (ctx.DOWNTO() != null) {
+                            return (e.getValue() <= (Integer) ((EnumType) initialValue).getValue())
+                                    && (e.getValue() >= (Integer) ((EnumType) finalValue).getValue());
+                        }
+                        return (e.getValue() >= (Integer) ((EnumType) initialValue).getValue())
+                                && (e.getValue() <= (Integer) ((EnumType) finalValue).getValue());
+                    }).map(Map.Entry::getKey).collect(Collectors.toList());
+
+            if (ctx.DOWNTO() != null) {
+                Collections.reverse(keys);
+            }
+            for (var key : keys) {
+                result.add(GeneralTypeFactory.createEnum(options, key));
+            }
+
+            return result;
+        }
+
+        throw new RuntimeException("Invalid ForList: " + ctx.getText());
     }
 
     @Override
