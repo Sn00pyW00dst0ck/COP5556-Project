@@ -157,6 +157,7 @@ public class InterpreterTest {
 				Arguments.of("Case Statement", "case_statement.pas", """
 						The color is Green
 						17 mod 2 = 1
+						17 is either 17 or 0
 						"""));
 	}
 }
