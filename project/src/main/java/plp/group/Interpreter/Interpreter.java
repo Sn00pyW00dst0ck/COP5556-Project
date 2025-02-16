@@ -227,21 +227,37 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
+    public Void visitIfStatement(delphiParser.IfStatementContext ctx) {
+        var expr = (BooleanType) visit(ctx.getChild(1));
+
+        if (((Boolean) expr.getValue()).equals(Boolean.TRUE)) {
+            visit(ctx.getChild(3));
+        } else {
+            visit(ctx.getChild(5));
+        }
+
+        return null;
+    }
+
+    @Override
     public Void visitProcedureStatement(delphiParser.ProcedureStatementContext ctx) {
         var procedureDetails = (SymbolInfo) scope.lookup(((String) visit(ctx.getChild(0))));
 
-        var parameters = new ArrayList<Object>(); // Do we want to pass all parameters as GeneralType??
-        for (var i = 2; i < ctx.getChildCount() - 1; i++) {
-            var parameter = visit(ctx.getChild(i));
-            if (parameter instanceof SymbolInfo) {
-                parameter = ((SymbolInfo) parameter).value; // If SymbolInfo, grab the value from it.
-            }
-            parameters.add(((GeneralType) parameter));
-        }
+        @SuppressWarnings("unchecked")
+        var parameters = (List<GeneralType>) visit(ctx.getChild(2));
 
         // Below craziness passes the parameters one at a time...
         ((ProcedureImplementation) procedureDetails.value.getValue()).execute(parameters.toArray(new Object[0]));
         return null;
+    }
+
+    @Override
+    public List<GeneralType> visitParameterList(delphiParser.ParameterListContext ctx) {
+        var parameters = new ArrayList<GeneralType>();
+        for (var i = 0; i < ctx.getChildCount(); i += 2) {
+            parameters.add((GeneralType) visit(ctx.getChild(i)));
+        }
+        return parameters;
     }
 
     // #endregion Statements
@@ -346,8 +362,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         return (GeneralType) result;
 
-        // TODO: actually do all the below in their own visit functions (_set and
-        // functionDesignator)...
+        // TODO: actually do all the below in their own visit functions (_set)...
         /*
          * factor
          * : variable
@@ -396,16 +411,10 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public GeneralType visitFunctionDesignator(delphiParser.FunctionDesignatorContext ctx) {
         var function = (FunctionImplementation) (scope.lookup((String) visit(ctx.getChild(0))).value).getValue();
 
-        var parameters = new ArrayList<Object>(); // Do we want to pass all parameters as GeneralType??
-        for (var i = 2; i < ctx.getChildCount() - 1; i++) {
-            var parameter = visit(ctx.getChild(i));
-            if (parameter instanceof SymbolInfo) {
-                parameter = ((SymbolInfo) parameter).value; // If SymbolInfo, grab the value from it.
-            }
-            parameters.add(((GeneralType) parameter));
-        }
+        @SuppressWarnings("unchecked")
+        var parameters = (List<GeneralType>) visit(ctx.getChild(2));
 
-        return function.execute(parameters);
+        return function.execute(parameters.toArray(new Object[0]));
     }
 
     @Override
