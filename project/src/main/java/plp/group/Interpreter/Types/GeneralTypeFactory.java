@@ -100,6 +100,15 @@ public class GeneralTypeFactory {
             }
         }
 
+        if (knownTypes.get(name) instanceof SubrangeType) {
+            var range = (SubrangeType) knownTypes.get(name);
+            if (args.length == 0) {
+                return createSubrange(range.getLowerBound(), range.getUpperBound());
+            } else {
+                return createSubrange(range.getLowerBound(), range.getUpperBound(), (Comparable) args[0]);
+            }
+        }
+
         // For enything else, use this catch all...
         return ((Class<? extends GeneralType>) knownTypes.get(name.toLowerCase())).getDeclaredConstructor(argTypes)
                 .newInstance(args);

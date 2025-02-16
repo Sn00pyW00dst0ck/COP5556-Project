@@ -115,6 +115,12 @@ public class InterpreterTest {
 						"""),
 				Arguments.of("Enumerations", "enumerations.pas", """
 						GREEN
+						Sat
+						"""),
+				Arguments.of("Subranges", "subranges.pas", """
+						5
+						b
+						Mon
 						"""));
 	}
 }

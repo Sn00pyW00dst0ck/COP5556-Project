@@ -1,5 +1,6 @@
 package plp.group.Interpreter;
 
+import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -12,6 +13,13 @@ import plp.group.Interpreter.Types.GeneralType;
 import plp.group.Interpreter.Types.GeneralTypeFactory;
 import plp.group.Interpreter.Types.Procedural.FunctionImplementation;
 import plp.group.Interpreter.Types.Procedural.ProcedureImplementation;
+import plp.group.Interpreter.Types.Simple.BooleanType;
+import plp.group.Interpreter.Types.Simple.CharType;
+import plp.group.Interpreter.Types.Simple.EnumType;
+import plp.group.Interpreter.Types.Simple.StringType;
+import plp.group.Interpreter.Types.Simple.Integers.GeneralInteger;
+import plp.group.Interpreter.Types.Simple.Reals.GeneralReal;
+import plp.group.Interpreter.Types.Simple.Reals.RealType;
 import plp.group.project.delphiBaseVisitor;
 import plp.group.project.delphiParser;
 import plp.group.project.delphiParser.AdditiveoperatorContext;
@@ -160,10 +168,38 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public GeneralType visitSubrangeType(delphiParser.SubrangeTypeContext ctx) {
-        // TODO: update below to not error
-        // return GeneralTypeFactory.createSubrange((GeneralType)
-        // visit(ctx.getChild(0)),
-        // (GeneralType) visit(ctx.getChild(2)));
+        var lhs = visit(ctx.getChild(0));
+        var rhs = visit(ctx.getChild(2));
+
+        if (lhs instanceof String) {
+            lhs = scope.lookup((String) lhs).value;
+            rhs = scope.lookup((String) rhs).value;
+        }
+
+        if (lhs instanceof GeneralInteger) {
+            return GeneralTypeFactory.createSubrange((GeneralInteger) lhs, (GeneralInteger) rhs);
+        }
+
+        if (lhs instanceof GeneralReal) {
+            return GeneralTypeFactory.createSubrange((GeneralInteger) lhs, (GeneralInteger) rhs);
+        }
+
+        if (lhs instanceof CharType) {
+            return GeneralTypeFactory.createSubrange((CharType) lhs, (CharType) rhs);
+        }
+
+        if (lhs instanceof StringType) {
+            return GeneralTypeFactory.createSubrange((StringType) lhs, (StringType) rhs);
+        }
+
+        if (lhs instanceof BooleanType) {
+            return GeneralTypeFactory.createSubrange((StringType) lhs, (StringType) rhs);
+        }
+
+        if (lhs instanceof EnumType) {
+            return GeneralTypeFactory.createSubrange((EnumType) lhs, (EnumType) rhs);
+        }
+
         return null;
     }
 
