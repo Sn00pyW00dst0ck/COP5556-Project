@@ -1,6 +1,5 @@
 package plp.group.Interpreter;
 
-import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -11,9 +10,10 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 import java.util.stream.Collectors;
-import java.util.stream.Stream;
 
-import org.antlr.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.ParserRuleContext;
+import org.antlr.v4.runtime.tree.ParseTree;
+import org.antlr.v4.runtime.tree.RuleNode;
 
 import plp.group.Interpreter.Types.GeneralType;
 import plp.group.Interpreter.Types.GeneralTypeFactory;
@@ -25,7 +25,6 @@ import plp.group.Interpreter.Types.Simple.EnumType;
 import plp.group.Interpreter.Types.Simple.StringType;
 import plp.group.Interpreter.Types.Simple.Integers.GeneralInteger;
 import plp.group.Interpreter.Types.Simple.Reals.GeneralReal;
-import plp.group.Interpreter.Types.Simple.Reals.RealType;
 import plp.group.project.delphiBaseVisitor;
 import plp.group.project.delphiParser;
 import plp.group.project.delphiParser.AdditiveoperatorContext;
@@ -46,12 +45,12 @@ import plp.group.project.delphiParser.RelationaloperatorContext;
  * but this can write to the screen the 'Hello World' string properly.
  */
 public class Interpreter extends delphiBaseVisitor<Object> {
-
     private SymbolTable scope = new SymbolTable();
-    // private GeneralTypeRegistry knownTypes = new GeneralTypeRegistry();
 
     public Interpreter() {
+        super();
         scope.enterScope();
+
         // https://www.dcs.ed.ac.uk/home/SUNWspro/3.0/pascal/lang_ref/ref_builtin.doc.html
 
         // #region Built-In IO Functions
@@ -79,20 +78,61 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitProgram(delphiParser.ProgramContext ctx) {
-        // The program block introduces the global scope
+    public Void visitBlock(delphiParser.BlockContext ctx) {
         scope.enterScope();
-        visitChildren(ctx);
+        // Add all the labels into the new scope for the block.
+        if (ctx != null) {
+            var labels = (new LabelWalker(ctx)).getLabels();
+            for (var entry : labels.entrySet()) {
+                scope.insert(entry.getKey(), new SymbolInfo(entry.getKey(), entry.getValue()));
+            }
+
+            // This "infinite loop" runs until execution completes without a goto.
+            RuleNode node = ctx;
+            while (true) {
+                try {
+                    visitChildren(node); // Execute block normally
+                    break; // Exit loop when execution completes without `goto`
+                } catch (GoToException e) {
+                    RuleNode targetNode = (RuleNode) scope.lookup(e.label).value;
+                    if (targetNode == null) {
+                        throw new RuntimeException("Undefined label: " + e.label);
+                    }
+
+                    // Grab the part of the 'ctx' that is after the 'goto'
+                    node = getRemainingRules(targetNode);
+                }
+            }
+        }
         scope.exitScope();
         return null;
     }
 
-    @Override
-    public Void visitBlock(delphiParser.BlockContext ctx) {
-        scope.enterScope();
-        visitChildren(ctx);
-        scope.exitScope();
-        return null;
+    private RuleNode getRemainingRules(RuleNode targetNode) {
+        RuleNode parent = (RuleNode) targetNode.getParent();
+        if (parent == null) {
+            return targetNode; // If there's no parent, just return the target node
+        }
+
+        // Get the start index (where targetNode is)
+        int startIndex = -1;
+        for (int i = 0; i < parent.getChildCount(); i++) {
+            if (parent.getChild(i) == targetNode) {
+                startIndex = i;
+                break;
+            }
+        }
+        if (startIndex == -1) {
+            return targetNode; // Should never happen
+        }
+
+        // Creating context like this is really bad...
+        // BUT since we control where it goes 100% this is okay-ish...
+        var newContext = new delphiParser.BlockContext((ParserRuleContext) parent, startIndex);
+        for (int i = startIndex; i < parent.getChildCount(); i++) {
+            newContext.addAnyChild(parent.getChild(i));
+        }
+        return newContext;
     }
 
     // #region Declarations
@@ -154,7 +194,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             var result = scope.lookup("Result");
 
             scope.exitScope();
-            return result.value;
+            return (GeneralType) result.value;
         });
 
         scope.insert(identifier, new SymbolInfo(identifier, body));
@@ -341,6 +381,33 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
+    public Void visitProcedureStatement(delphiParser.ProcedureStatementContext ctx) {
+        var procedureDetails = (SymbolInfo) scope.lookup(((String) visit(ctx.getChild(0))));
+
+        @SuppressWarnings("unchecked")
+        var parameters = (List<GeneralType>) visit(ctx.getChild(2));
+
+        // Below craziness passes the parameters one at a time...
+        ((ProcedureImplementation) ((GeneralType) procedureDetails.value).getValue())
+                .execute(parameters.toArray(new Object[0]));
+        return null;
+    }
+
+    @Override
+    public List<GeneralType> visitParameterList(delphiParser.ParameterListContext ctx) {
+        var parameters = new ArrayList<GeneralType>();
+        for (var i = 0; i < ctx.getChildCount(); i += 2) {
+            parameters.add((GeneralType) visit(ctx.getChild(i)));
+        }
+        return parameters;
+    }
+
+    @Override
+    public Void visitGotoStatement(delphiParser.GotoStatementContext ctx) {
+        throw new GoToException(ctx.getChild(1).getText());
+    }
+
+    @Override
     public Void visitIfStatement(delphiParser.IfStatementContext ctx) {
         var expr = (BooleanType) visit(ctx.getChild(1));
 
@@ -490,27 +557,6 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         }
 
         throw new RuntimeException("Invalid ForList: " + ctx.getText());
-    }
-
-    @Override
-    public Void visitProcedureStatement(delphiParser.ProcedureStatementContext ctx) {
-        var procedureDetails = (SymbolInfo) scope.lookup(((String) visit(ctx.getChild(0))));
-
-        @SuppressWarnings("unchecked")
-        var parameters = (List<GeneralType>) visit(ctx.getChild(2));
-
-        // Below craziness passes the parameters one at a time...
-        ((ProcedureImplementation) procedureDetails.value.getValue()).execute(parameters.toArray(new Object[0]));
-        return null;
-    }
-
-    @Override
-    public List<GeneralType> visitParameterList(delphiParser.ParameterListContext ctx) {
-        var parameters = new ArrayList<GeneralType>();
-        for (var i = 0; i < ctx.getChildCount(); i += 2) {
-            parameters.add((GeneralType) visit(ctx.getChild(i)));
-        }
-        return parameters;
     }
 
     // #endregion Statements
@@ -686,7 +732,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public GeneralType visitFunctionDesignator(delphiParser.FunctionDesignatorContext ctx) {
-        var function = (FunctionImplementation) (scope.lookup((String) visit(ctx.getChild(0))).value).getValue();
+        var function = (FunctionImplementation) ((GeneralType) (scope.lookup((String) visit(ctx.getChild(0))).value))
+                .getValue();
 
         @SuppressWarnings("unchecked")
         var parameters = (List<GeneralType>) visit(ctx.getChild(2));

@@ -55,7 +55,6 @@ public class App {
             var interpreter = new Interpreter();
             interpreter.visit(tree);
         } catch (Exception e) {
-            System.out.println(e.toString());
             e.printStackTrace();
         }
     }
@@ -72,7 +71,7 @@ public class App {
             // Open a GUI window with the parse tree.
             Trees.inspect(tree, parser);
         } catch (Exception e) {
-            System.out.println(e.toString());
+            e.printStackTrace();
         }
     }
 
