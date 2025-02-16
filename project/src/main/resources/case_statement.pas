@@ -7,7 +7,7 @@ var
     color : TColor;
     number : Integer;
 
-procedure ShowColour(color : TColor);
+procedure ShowColor(color : TColor);
 begin
     Case color of
         RED : writeln('The color is Red');
@@ -23,7 +23,7 @@ end;
 
 begin
     color := GREEN;
-    ShowColour(color);
+    ShowColor(color);
 
     number := 17;
     Case number mod 2 of
