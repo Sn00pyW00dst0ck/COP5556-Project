@@ -46,7 +46,7 @@ public class InterpreterTest {
 		var parser = new delphiParser(tokens);
 		var tree = parser.program();
 
-		var interpreter = new Interpreter(); // TODO: Add way to specify output stream for testing purposes
+		var interpreter = new Interpreter();
 		interpreter.visit(tree);
 
 		assertEquals(expectedWrittenOutput, outContent.toString());
@@ -158,6 +158,16 @@ public class InterpreterTest {
 						The color is Green
 						17 mod 2 = 1
 						17 is either 17 or 0
+						"""),
+				Arguments.of("Goto Statement Simple", "goto_statement_simple.pas", """
+						0
+						"""),
+				Arguments.of("Goto Statement Complex", "goto_statement_complex.pas", """
+						Start
+						At Label 100
+						At Label 300
+						At Label 200
+						End of program
 						"""));
 	}
 }
