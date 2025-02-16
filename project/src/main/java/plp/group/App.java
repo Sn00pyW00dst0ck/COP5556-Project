@@ -52,6 +52,7 @@ public class App {
             interpreter.visit(tree);
         } catch (Exception e) {
             System.out.println(e.toString());
+            e.printStackTrace();
         }
     }
 

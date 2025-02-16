@@ -221,7 +221,7 @@ public abstract class GeneralInteger extends GeneralType implements Comparable<G
     // compareTo is needed in order to support making subranges of GeneralInteger.
     @Override
     public int compareTo(GeneralInteger o) {
-        return ((String) this.getValue()).compareTo((String) o.getValue());
+        return ((BigInteger) this.getValue()).compareTo((BigInteger) o.getValue());
     }
 
     @Override
