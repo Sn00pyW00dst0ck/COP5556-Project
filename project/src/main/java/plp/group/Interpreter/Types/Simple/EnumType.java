@@ -3,9 +3,16 @@ package plp.group.Interpreter.Types.Simple;
 import java.util.Map;
 
 import plp.group.Interpreter.Types.GeneralType;
+import plp.group.Interpreter.Types.GeneralTypeFactory;
 
 public class EnumType extends GeneralType implements Comparable<EnumType> {
     private final Map<String, Integer> enumValues;
+
+    public EnumType(Map<String, Integer> enumValues) {
+        super(String.class);
+        this.enumValues = enumValues;
+        defineOperations();
+    }
 
     public EnumType(Map<String, Integer> enumValues, String value) {
         super(value);
@@ -18,6 +25,10 @@ public class EnumType extends GeneralType implements Comparable<EnumType> {
         return enumValues.get((String) super.getValue());
     }
 
+    public Map<String, Integer> getOptions() {
+        return enumValues;
+    }
+
     private void defineOperations() {
         defineOperation("=", this::equalTo);
         defineOperation("<>", this::notEqualTo);
@@ -25,6 +36,7 @@ public class EnumType extends GeneralType implements Comparable<EnumType> {
         defineOperation("<=", this::lessThanOrEqualTo);
         defineOperation(">", this::greaterThan);
         defineOperation(">=", this::greaterThanOrEqualTo);
+        defineOperation("..", this::range);
     }
 
     private GeneralType equalTo(GeneralType lhs, GeneralType rhs) {
@@ -75,6 +87,13 @@ public class EnumType extends GeneralType implements Comparable<EnumType> {
         throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to an EnumType.");
     }
 
+    private GeneralType range(GeneralType lhs, GeneralType rhs) {
+        if (lhs instanceof EnumType && rhs instanceof EnumType) {
+            return GeneralTypeFactory.createSubrange((EnumType) lhs, (EnumType) rhs);
+        }
+        throw new UnsupportedOperationException("Cannot .. " + rhs.getType() + " to an EnumType.");
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)
@@ -93,6 +112,11 @@ public class EnumType extends GeneralType implements Comparable<EnumType> {
     @Override
     public int compareTo(EnumType o) {
         return ((Integer) this.getValue()).compareTo(((Integer) o.getValue()));
+    }
+
+    @Override
+    public String toString() {
+        return (String) super.getValue();
     }
 
 }

@@ -7,7 +7,7 @@ import plp.group.Interpreter.Types.GeneralType;
 import plp.group.Interpreter.Types.GeneralTypeFactory;
 import plp.group.Interpreter.Types.Simple.Integers.GeneralInteger;
 
-public class GeneralReal extends GeneralType {
+public class GeneralReal extends GeneralType implements Comparable<GeneralReal> {
 
     public GeneralReal() {
         super(BigDecimal.class);
@@ -33,6 +33,8 @@ public class GeneralReal extends GeneralType {
         defineOperation("/", this::division);
         defineOperation("DIV", this::division); // No int division for real
         defineOperation("NEGATE", this::negate);
+
+        defineOperation("..", this::range);
     }
 
     private GeneralType equalTo(GeneralType lhs, GeneralType rhs) {
@@ -164,4 +166,16 @@ public class GeneralReal extends GeneralType {
         throw new UnsupportedOperationException("Cannot negate non-real type.");
     }
 
+    private GeneralType range(GeneralType lhs, GeneralType rhs) {
+        if (lhs instanceof GeneralReal && rhs instanceof GeneralReal) {
+            return GeneralTypeFactory.createSubrange((GeneralReal) lhs, (GeneralReal) rhs);
+        }
+        throw new UnsupportedOperationException("Cannot negate non-real type.");
+    }
+
+    // compareTo is needed in order to support making subranges of GeneralRange.
+    @Override
+    public int compareTo(GeneralReal o) {
+        return ((String) this.getValue()).compareTo((String) o.getValue());
+    }
 }

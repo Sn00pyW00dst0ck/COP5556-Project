@@ -1,6 +1,7 @@
 package plp.group.Interpreter.Types.Simple;
 
 import plp.group.Interpreter.Types.GeneralType;
+import plp.group.Interpreter.Types.GeneralTypeFactory;
 
 public class CharType extends GeneralType implements Comparable<CharType> {
 
@@ -22,6 +23,7 @@ public class CharType extends GeneralType implements Comparable<CharType> {
         defineOperation("<=", this::lessThanOrEqualTo);
         defineOperation(">", this::greaterThan);
         defineOperation(">=", this::greaterThanOrEqualTo);
+        defineOperation("..", this::range);
     }
 
     private GeneralType append(GeneralType lhs, GeneralType rhs) {
@@ -41,7 +43,7 @@ public class CharType extends GeneralType implements Comparable<CharType> {
             var result = ((Character) lhs.getValue()).toString().compareTo(((Character) rhs.getValue()).toString());
             return new BooleanType(result == 0);
         }
-        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a StringType.");
+        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a CharType.");
     }
 
     private GeneralType notEqualTo(GeneralType lhs, GeneralType rhs) {
@@ -52,7 +54,7 @@ public class CharType extends GeneralType implements Comparable<CharType> {
             var result = ((Character) lhs.getValue()).toString().compareTo(((Character) rhs.getValue()).toString());
             return new BooleanType(result != 0);
         }
-        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a StringType.");
+        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a CharType.");
     }
 
     private GeneralType lessThan(GeneralType lhs, GeneralType rhs) {
@@ -63,7 +65,7 @@ public class CharType extends GeneralType implements Comparable<CharType> {
             var result = ((Character) lhs.getValue()).toString().compareTo(((Character) rhs.getValue()).toString());
             return new BooleanType(result < 0);
         }
-        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a StringType.");
+        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a CharType.");
     }
 
     private GeneralType lessThanOrEqualTo(GeneralType lhs, GeneralType rhs) {
@@ -74,7 +76,7 @@ public class CharType extends GeneralType implements Comparable<CharType> {
             var result = ((Character) lhs.getValue()).toString().compareTo(((Character) rhs.getValue()).toString());
             return new BooleanType(result <= 0);
         }
-        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a StringType.");
+        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a CharType.");
     }
 
     private GeneralType greaterThan(GeneralType lhs, GeneralType rhs) {
@@ -85,7 +87,7 @@ public class CharType extends GeneralType implements Comparable<CharType> {
             var result = ((Character) lhs.getValue()).toString().compareTo(((Character) rhs.getValue()).toString());
             return new BooleanType(result > 0);
         }
-        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a StringType.");
+        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a CharType.");
     }
 
     private GeneralType greaterThanOrEqualTo(GeneralType lhs, GeneralType rhs) {
@@ -96,7 +98,14 @@ public class CharType extends GeneralType implements Comparable<CharType> {
             var result = ((Character) lhs.getValue()).toString().compareTo(((Character) rhs.getValue()).toString());
             return new BooleanType(result >= 0);
         }
-        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a StringType.");
+        throw new UnsupportedOperationException("Cannot compare " + rhs.getType() + " to a CharType.");
+    }
+
+    private GeneralType range(GeneralType lhs, GeneralType rhs) {
+        if (lhs instanceof CharType && rhs instanceof CharType) {
+            return GeneralTypeFactory.createSubrange((CharType) lhs, (CharType) rhs);
+        }
+        throw new UnsupportedOperationException("Cannot .. " + rhs.getType() + " to a CharType.");
     }
 
     @Override

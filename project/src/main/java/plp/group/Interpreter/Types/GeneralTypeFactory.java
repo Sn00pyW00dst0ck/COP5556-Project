@@ -3,6 +3,7 @@ package plp.group.Interpreter.Types;
 import java.math.BigInteger;
 import java.lang.reflect.InvocationTargetException;
 import java.math.BigDecimal;
+import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.HashSet;
 import java.util.List;
@@ -21,7 +22,9 @@ public class GeneralTypeFactory {
 
     // #region Arbitrary Type Creation
 
-    private static HashMap<String, Class<? extends GeneralType>> knownTypes = new HashMap<>();
+    // Allowed to hold a .class or an actual GeneralType.
+    // If its an GeneralType its something fancy like a record/enum/etc.
+    private static HashMap<String, Object> knownTypes = new HashMap<>();
     static {
         knownTypes.put("procedure", ProcedureType.class);
         knownTypes.put("function", FunctionType.class);
@@ -41,8 +44,8 @@ public class GeneralTypeFactory {
         knownTypes.put("real48", Real48Type.class);
         knownTypes.put("double", DoubleType.class);
         knownTypes.put("single", SingleType.class);
-        knownTypes.put("Comp", CompType.class);
-        knownTypes.put("Currency", CurrencyType.class);
+        knownTypes.put("comp", CompType.class);
+        knownTypes.put("currency", CurrencyType.class);
 
         knownTypes.put("bool", BooleanType.class);
         knownTypes.put("char", CharType.class);
@@ -56,11 +59,11 @@ public class GeneralTypeFactory {
         knownTypes.put("record", RecordType.class);
     }
 
-    public static void registerType(String name, Class<? extends GeneralType> type) {
+    public static void registerType(String name, GeneralType type) {
         knownTypes.put(name, type);
     }
 
-    public static Class<? extends GeneralType> getType(String name) {
+    public static Object getType(String name) {
         return knownTypes.get(name);
     }
 
@@ -78,6 +81,7 @@ public class GeneralTypeFactory {
      * @throws NoSuchMethodException
      * @throws SecurityException
      */
+    @SuppressWarnings("unchecked")
     public static GeneralType constructType(String name, Object... args)
             throws InstantiationException, IllegalAccessException, IllegalArgumentException, InvocationTargetException,
             NoSuchMethodException, SecurityException {
@@ -87,7 +91,18 @@ public class GeneralTypeFactory {
             argTypes[i] = args[i].getClass(); // Extract runtime class of each argument
         }
 
-        return knownTypes.get(name.toLowerCase()).getDeclaredConstructor(argTypes).newInstance(args);
+        // Handle a user defined enum type.
+        if (knownTypes.get(name) instanceof EnumType) {
+            if (args.length == 0) {
+                return createEnum(((EnumType) knownTypes.get(name)).getOptions());
+            } else {
+                return createEnum(((EnumType) knownTypes.get(name)).getOptions(), (String) args[0]);
+            }
+        }
+
+        // For enything else, use this catch all...
+        return ((Class<? extends GeneralType>) knownTypes.get(name.toLowerCase())).getDeclaredConstructor(argTypes)
+                .newInstance(args);
     }
 
     // #endregion Arbitrary Type Creation
@@ -150,8 +165,16 @@ public class GeneralTypeFactory {
         return new StringType(value);
     }
 
+    public static GeneralType createEnum(Map<String, Integer> enumValues) {
+        return new EnumType(enumValues);
+    }
+
     public static GeneralType createEnum(Map<String, Integer> enumValues, String value) {
         return new EnumType(enumValues, value);
+    }
+
+    public static <T extends Comparable<T>> GeneralType createSubrange(T lowerBound, T upperBound) {
+        return new SubrangeType<T>(lowerBound, upperBound);
     }
 
     public static <T extends Comparable<T>> GeneralType createSubrange(T lowerBound, T upperBound, T value) {
