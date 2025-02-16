@@ -133,6 +133,10 @@ public class InterpreterTest {
 						value of a = 10 b =  20 and c = 30
 						Winthin the procedure parameter_display
 						value of a = 15 b =  45 and c = 60
+						"""),
+				Arguments.of("Function Definition", "function_definition.pas", """
+						127
+						Hello from GetMessage
 						"""));
 	}
 }

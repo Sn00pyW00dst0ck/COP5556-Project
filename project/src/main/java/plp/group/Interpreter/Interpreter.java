@@ -118,6 +118,49 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
+    public Void visitFunctionDeclaration(delphiParser.FunctionDeclarationContext ctx) {
+        var identifier = (String) visit(ctx.getChild(1));
+
+        @SuppressWarnings("unchecked")
+        var parameters = (List<SymbolInfo>) visit(ctx.getChild(2));
+
+        var returnType = (String) visit(ctx.getChild(ctx.getChildCount() - 3));
+
+        var body = GeneralTypeFactory.createFunction(arguments -> {
+            scope.enterScope();
+            // If we have expected parameters then add them here...
+            if (parameters != null) {
+                for (var i = 0; i < parameters.size(); i++) {
+                    scope.insert(parameters.get(i).name,
+                            new SymbolInfo(parameters.get(i).name, (GeneralType) arguments[i]));
+                }
+            }
+
+            // Define a result variable to hold the result
+            try {
+                scope.insert("Result", new SymbolInfo("Result", GeneralTypeFactory.constructType(returnType)));
+            } catch (Exception e) {
+                e.printStackTrace();
+            }
+
+            // Execute the code and get the result after
+            visit(ctx.getChild(ctx.getChildCount() - 1));
+            var result = scope.lookup("Result");
+
+            scope.exitScope();
+            return result.value;
+        });
+
+        scope.insert(identifier, new SymbolInfo(identifier, body));
+        return null;
+    }
+
+    @Override
+    public String visitResultType(delphiParser.ResultTypeContext ctx) {
+        return (String) visit(ctx.getChild(0));
+    }
+
+    @Override
     public Void visitProcedureDeclaration(delphiParser.ProcedureDeclarationContext ctx) {
         var identifier = (String) visit(ctx.getChild(1));
 
@@ -146,7 +189,10 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public List<SymbolInfo> visitFormalParameterList(delphiParser.FormalParameterListContext ctx) {
         var parameters = new ArrayList<SymbolInfo>();
         for (var i = 1; i < ctx.getChildCount(); i += 2) {
-            parameters.addAll((List<SymbolInfo>) visit(ctx.getChild(i)));
+            var list = (List<SymbolInfo>) visit(ctx.getChild(i));
+            if (list != null) {
+                parameters.addAll(list);
+            }
         }
         return parameters;
     }
