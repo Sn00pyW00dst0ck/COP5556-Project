@@ -18,6 +18,7 @@ import plp.group.project.delphiParser;
 public class App {
     public static void main(String[] args) {
         try (Scanner scanner = new Scanner(System.in)) {
+            displayHelpMenu();
             while (true) {
                 System.out.println("Enter your command to perform.");
                 System.out.print("> ");
@@ -31,6 +32,9 @@ public class App {
                         break;
                     case "tree":
                         displayParseTree(input[1]);
+                        break;
+                    case "help":
+                        displayHelpMenu();
                         break;
                     default:
                         System.out.println("Bad command, try again. ");
@@ -70,6 +74,20 @@ public class App {
         } catch (Exception e) {
             System.out.println(e.toString());
         }
+    }
+
+    private static void displayHelpMenu() {
+        System.out.println("Help Menu:");
+        System.out.println("--------------------");
+        System.out.println("exit");
+        System.out.println("\tQuits the program.\n");
+        System.out.println("eval <program_file>");
+        System.out.println("\tInterpret the program_file.\n");
+        System.out.println("help");
+        System.out.println("\tDisplays this help menu.\n");
+        System.out.println("tree <program_file>");
+        System.out.println("\tDisplays the parsed tree for the program_file in a GUI window.");
+        System.out.println("--------------------");
     }
 
 }
