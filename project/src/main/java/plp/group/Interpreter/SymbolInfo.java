@@ -16,7 +16,7 @@ public class SymbolInfo {
      * @param name  The name of the symbol.
      * @param value The value of the symbol.
      */
-    public SymbolInfo(String name, Object value) {
+    public SymbolInfo(String name, Object value, String accessModifier) {
         if (name.equals("Self")) {
             throw new RuntimeException("Error: `Self` cannot be directly reassigned.");
         }
