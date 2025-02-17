@@ -89,9 +89,9 @@ varDeclaration
     ;
 
 methodDeclaration
-    : ('constructor' | 'destructor') identifier? '(' parameterList? ')' SEMI
-    | 'procedure' identifier ('(' parameterList ')')? SEMI
-    | 'function' identifier ('(' parameterList ')')? COLON typeSpecifier SEMI
+    : ('constructor' | 'destructor') identifier? '(' parameterList? ')' SEMI block?
+    | 'procedure' identifier ('(' parameterList ')')? SEMI block?
+    | 'function' identifier ('(' parameterList ')')? COLON typeSpecifier SEMI block?
     ;
 
 parameterList
