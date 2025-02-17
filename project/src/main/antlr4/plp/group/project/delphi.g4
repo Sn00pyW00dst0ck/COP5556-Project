@@ -396,7 +396,6 @@ simpleStatement
     : assignmentStatement
     | procedureStatement
     | gotoStatement
-    | emptyStatement_
     | methodCall
     | objectInstantiation
     | compoundStatement
@@ -496,10 +495,6 @@ parameterwidth
 
 gotoStatement
     : GOTO label
-    ;
-
-emptyStatement_
-    :
     ;
 
 empty_
