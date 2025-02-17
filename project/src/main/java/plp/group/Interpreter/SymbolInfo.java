@@ -6,8 +6,9 @@ package plp.group.Interpreter;
  * A symbol is an identifier that represents a value/variable or a function.
  */
 public class SymbolInfo {
-    public String name = null; // The name of the variable/function.
+    public String name = null; // The name of the variable/function
     public Object value = null; // Holds actual value for variables
+    public String accessModifier = null; // public/private
 
     /**
      * Create a SymbolInfo for a variable with a value.
@@ -21,6 +22,7 @@ public class SymbolInfo {
         }
         this.name = name;
         this.value = value;
+        this.accessModifier = accessModifier;
     }
 
     /**
