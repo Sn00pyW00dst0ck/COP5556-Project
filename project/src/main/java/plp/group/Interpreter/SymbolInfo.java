@@ -12,10 +12,35 @@ public class SymbolInfo {
     /**
      * Create a SymbolInfo for a variable with a value.
      * 
-     * @param _value the value of the variable.
+     * @param name  The name of the symbol.
+     * @param value The value of the symbol.
      */
     public SymbolInfo(String name, Object value) {
+        if (name.equals("Self")) {
+            throw new RuntimeException("Error: `Self` cannot be directly reassigned.");
+        }
         this.name = name;
         this.value = value;
+    }
+
+    /**
+     * Update the value of this symbol.
+     * Prevents modification of `Self`.
+     *
+     * @param newValue The new value to assign.
+     */
+    public void setValue(Object newValue) {
+        if (this.name.equals("Self")) {
+            throw new RuntimeException("Error: `Self` cannot be reassigned.");
+        }
+        this.value = newValue;
+    }
+
+    /**
+     * Returns a string representation of the symbol.
+     */
+    @Override
+    public String toString() {
+        return "SymbolInfo{name='" + name + "', value=" + value + "}";
     }
 };
