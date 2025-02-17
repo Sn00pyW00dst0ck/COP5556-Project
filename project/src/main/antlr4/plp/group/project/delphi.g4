@@ -69,7 +69,7 @@ block
 
 // Class Definition
 classDeclaration
-    : 'type' identifier '=' 'class' classBody 'end' SEMI
+    : 'type' identifier '=' 'class' classBody? 'end' SEMI
     ;
 
 classBody
@@ -89,7 +89,7 @@ varDeclaration
     ;
 
 methodDeclaration
-    : ('constructor' | 'destructor') identifier? ('(' parameterList? ')')? SEMI
+    : ('constructor' | 'destructor') identifier? '(' parameterList? ')' SEMI
     | 'procedure' identifier ('(' parameterList ')')? SEMI
     | 'function' identifier ('(' parameterList ')')? COLON typeSpecifier SEMI
     ;
@@ -109,7 +109,7 @@ statementPart
     ;
 
 compoundStatement
-    : BEGIN statement+ END
+    : 'begin' statement+ 'end'
     ;
 
 unlabelledStatement
