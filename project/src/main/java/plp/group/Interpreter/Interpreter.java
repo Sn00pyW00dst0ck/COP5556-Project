@@ -101,8 +101,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public Void visitClassDeclaration(delphiParser.ClassDeclarationContext ctx) {
         String className = ctx.identifier().getText();
-        // Store the class definition in the symbol table
-        scope.insert(className, new SymbolInfo(className, new ClassDefinition(className, ctx)));
+        ClassDefinition classDef = new ClassDefinition(className, ctx);
+        scope.insert(className, new SymbolInfo(className, classDef, "public"));
         return null;
     }
 
@@ -121,7 +121,10 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         // Store the instance in the interpreter's memory
         objectInstances.put(variableName, instance);
         scope.insert(variableName, new SymbolInfo(variableName, instance));
-        instance.invokeConstructor(ctx.argumentList());
+        // Check if constructor exists
+        if (((ClassDefinition) classInfo.value).constructor != null) {
+            instance.invokeConstructor(ctx.argumentList());
+        }
         return null;
     }
 
@@ -134,7 +137,11 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         if (instance == null) {
             throw new RuntimeException("Object not found: " + objectName);
         }
-        instance.invokeMethod(methodName, ctx.argumentList());
+        if (methodName.equals("Free")) {
+            deleteObject(objectName);
+        } else {
+            instance.invokeMethod(methodName, ctx.argumentList());
+        }
         return null;
     }
 
@@ -144,6 +151,25 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         ObjectInstance(ClassDefinition classDefinition) {
             this.classDefinition = classDefinition;
+            
+            // Initialize fields from class definition
+            for (String fieldName : classDefinition.fields.keySet()) {
+                fields.put(fieldName, null); 
+            }
+        }
+        
+        void setField(String fieldName, Object value) {
+            if (!fields.containsKey(fieldName)) {
+                throw new RuntimeException("Field not found: " + fieldName);
+            }
+            fields.put(fieldName, value);
+        }
+        
+        Object getField(String fieldName) {
+            if (!fields.containsKey(fieldName)) {
+                throw new RuntimeException("Field not found: " + fieldName);
+            }
+            return fields.get(fieldName);
         }
 
         void invokeConstructor(delphiParser.ArgumentListContext args) {
@@ -171,6 +197,15 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 visit(classDefinition.constructor.block());
                 scope.exitScope();
             }
+        }
+        
+        void destroy() {
+            if (classDefinition.destructor != null) {
+                scope.enterScope();
+                scope.insert("Self", new SymbolInfo("Self", this));
+                visit(classDefinition.destructor.block());
+                scope.exitScope(); 
+            } 
         }
 
         Object invokeMethod(String methodName, delphiParser.ArgumentListContext args) {
@@ -217,6 +252,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         String name;
         delphiParser.ClassBodyContext body;
         delphiParser.MethodDeclarationContext constructor;
+        delphiParser.MethodDeclarationContext destructor;
+        Map<String, Object> fields = new HashMap<>();
 
         ClassDefinition(String name, delphiParser.ClassDeclarationContext ctx) {
             this.name = name;
@@ -227,7 +264,15 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     if (method.CONSTRUCTOR() != null) {
                         this.constructor = method;
                     }
+                    if (method.DESTRUCTOR() != null) {
+                        this.destructor = method;
                 }
+            }
+
+                // Extract fields from 'fieldDeclaration'
+                for (var field : section.fieldDeclaration()) {
+                    String fieldName = field.identifier().getText();
+                    fields.put(fieldName, null); 
             }
         }
     }
@@ -235,6 +280,19 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
 // object storage and class method execution ends here
 
+public void deleteObject(String objectName) {
+    if (!objectInstances.containsKey(objectName)) {
+        return;  // exit instead of throwing error
+    }
+    
+    ObjectInstance instance = objectInstances.get(objectName);
+    if (instance != null) {
+        instance.destroy(); // Call destructor before deletion
+        objectInstances.remove(objectName);
+        scope.remove(objectName);
+    } 
+}
+    
     @Override
     public Void visitBlock(delphiParser.BlockContext ctx) {
         scope.enterScope();
@@ -804,6 +862,12 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      */
     @Override
     public GeneralType visitExpression(delphiParser.ExpressionContext ctx) {
+        // Check if the expression is 'Self'
+        if (ctx.identifier() != null && ctx.identifier().getText().equals("Self")) {
+            SymbolInfo selfSymbol = scope.lookup("Self");
+            return (selfSymbol != null) ? selfSymbol.value : null;
+        }
+        // Otherwise its normal expression evaluation
         var lhs = (GeneralType) visit(ctx.getChild(0));
 
         if (ctx.relationaloperator() == null) {
