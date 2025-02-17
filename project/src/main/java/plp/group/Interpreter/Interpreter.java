@@ -46,6 +46,7 @@ import plp.group.project.delphiParser.RelationaloperatorContext;
  */
 public class Interpreter extends delphiBaseVisitor<Object> {
     private SymbolTable scope = new SymbolTable();
+    private Map<String, ObjectInstance> objectInstances = new HashMap<>();
 
     public Interpreter() {
         super();
@@ -94,6 +95,145 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         // #endregion Built-In IO Functions
     }
+
+    // object storage and class method execution starts here
+    
+    @Override
+    public Void visitClassDeclaration(delphiParser.ClassDeclarationContext ctx) {
+        String className = ctx.identifier().getText();
+        // Store the class definition in the symbol table
+        scope.insert(className, new SymbolInfo(className, new ClassDefinition(className, ctx)));
+        return null;
+    }
+
+    @Override
+    public Void visitObjectInstantiation(delphiParser.ObjectInstantiationContext ctx) {
+        String variableName = ctx.identifier(0).getText();
+        String className = ctx.identifier(1).getText();
+
+        // Lookup class definition
+        SymbolInfo classInfo = scope.lookup(className);
+        if (classInfo == null || !(classInfo.value instanceof ClassDefinition)) {
+            throw new RuntimeException("Class not found: " + className);
+        }
+
+        ObjectInstance instance = new ObjectInstance((ClassDefinition) classInfo.value);
+        // Store the instance in the interpreter's memory
+        objectInstances.put(variableName, instance);
+        scope.insert(variableName, new SymbolInfo(variableName, instance));
+        instance.invokeConstructor(ctx.argumentList());
+        return null;
+    }
+
+    @Override
+    public Void visitMethodCall(delphiParser.MethodCallContext ctx) {
+        String objectName = ctx.identifier(0).getText();
+        String methodName = ctx.identifier(1).getText();
+
+        ObjectInstance instance = objectInstances.get(objectName);
+        if (instance == null) {
+            throw new RuntimeException("Object not found: " + objectName);
+        }
+        instance.invokeMethod(methodName, ctx.argumentList());
+        return null;
+    }
+
+    class ObjectInstance {
+        private ClassDefinition classDefinition;
+        private Map<String, Object> fields = new HashMap<>();
+
+        ObjectInstance(ClassDefinition classDefinition) {
+            this.classDefinition = classDefinition;
+        }
+
+        void invokeConstructor(delphiParser.ArgumentListContext args) {
+            if (classDefinition.constructor != null) {
+                scope.enterScope();
+                
+                // Bind 'Self' to the instance
+                scope.insert("Self", new SymbolInfo("Self", this));
+                // Pass arguments to constructor
+                if (args != null && classDefinition.constructor.parameterList() != null) {
+                    List<ParseTree> passedArgs = args.expression();
+                    List<delphiParser.ParameterContext> expectedParams = classDefinition.constructor.parameterList().parameter();
+                    
+                    if (passedArgs.size() != expectedParams.size()) {
+                        throw new RuntimeException("Argument count mismatch in constructor");
+                    }
+                    
+                    for (int i = 0; i < passedArgs.size(); i++) {
+                        String paramName = expectedParams.get(i).identifier().getText();
+                        Object paramValue = visit(passedArgs.get(i)); // Evaluate argument
+                        scope.insert(paramName, new SymbolInfo(paramName, paramValue));
+                    }
+                }
+                
+                visit(classDefinition.constructor.block());
+                scope.exitScope();
+            }
+        }
+
+        Object invokeMethod(String methodName, delphiParser.ArgumentListContext args) {
+            // Search for the method in the class definition
+            delphiParser.MethodDeclarationContext method = null;
+            for (var section : classDefinition.body.classSection()) {
+                for (var m : section.methodDeclaration()) {
+                    if (m.identifier().getText().equals(methodName)) {
+                        method = m;
+                        break;
+                    }
+                }
+            }
+
+            if (method == null) {
+                throw new RuntimeException("Method not found: " + methodName + " in class " + classDefinition.name);
+            }
+
+            scope.enterScope();
+            // Bind 'Self' to reference the current instance
+            scope.insert("Self", new SymbolInfo("Self", this));
+            if (args != null && method.parameterList() != null) {
+                List<ParseTree> passedArgs = args.expression();
+                List<delphiParser.ParameterContext> expectedParams = method.parameterList().parameter();
+                
+                if (passedArgs.size() != expectedParams.size()) {
+                    throw new RuntimeException("Argument count mismatch for method " + methodName);
+                }
+                
+                for (int i = 0; i < passedArgs.size(); i++) {
+                    String paramName = expectedParams.get(i).identifier().getText();
+                    Object paramValue = visit(passedArgs.get(i)); // This evaluates argument
+                    scope.insert(paramName, new SymbolInfo(paramName, paramValue));
+                }
+            }
+            visit(method.block());
+            Object result = scope.lookup("Result") != null ? scope.lookup("Result").value : null;
+            scope.exitScope();
+            return result;
+        }
+    }
+
+    class ClassDefinition {
+        String name;
+        delphiParser.ClassBodyContext body;
+        delphiParser.MethodDeclarationContext constructor;
+
+        ClassDefinition(String name, delphiParser.ClassDeclarationContext ctx) {
+            this.name = name;
+            this.body = ctx.classBody();
+            // Iterate over methods to find the constructor
+            for (var section : ctx.classBody().classSection()) {
+                for (var method : section.methodDeclaration()) {
+                    if (method.CONSTRUCTOR() != null) {
+                        this.constructor = method;
+                    }
+                }
+            }
+        }
+    }
+} 
+
+// object storage and class method execution ends here
 
     @Override
     public Void visitBlock(delphiParser.BlockContext ctx) {
@@ -442,6 +582,21 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public Void visitAssignmentStatement(delphiParser.AssignmentStatementContext ctx) {
+        // Check if we're assigning to an object field
+        if (ctx.variable().DOT() != null) {
+            String objectName = ctx.variable().identifier(0).getText();
+            String fieldName = ctx.variable().identifier(1).getText();
+            ObjectInstance instance = objectInstances.get(objectName);
+            if (instance == null) {
+                throw new RuntimeException("Object not found: " + objectName);
+            }
+            
+            Object value = visit(ctx.expression());  // for expressions
+            instance.setField(fieldName, value);
+            return null;
+        }
+
+        // Normal variable assignment
         var identifier = (SymbolInfo) visit(ctx.getChild(0));
         var value = (GeneralType) visit(ctx.getChild(2));
 
