@@ -19,6 +19,10 @@ public class SymbolTable {
      * @param info the info about the symbol to insert.
      */
     public void insert(String name, SymbolInfo info) {
+        // Prevent overwriting `Self` in method scope
+        if (name.equals("Self") && scopes.peek().containsKey("Self")) {
+            throw new RuntimeException("Error: `Self` cannot be redefined in the current scope.");
+        }
         scopes.peek().put(name, info);
     }
 
@@ -32,6 +36,11 @@ public class SymbolTable {
     public void update(String name, SymbolInfo info) {
         for (HashMap<String, SymbolInfo> scope : scopes) {
             if (scope.containsKey(name)) {
+                // Prevent overwriting 'Self'
+                if (name.equals("Self")) {
+                    throw new RuntimeException("Error: `Self` cannot be reassigned.");
+                }
+                // Handle reference assignment
                 if (scope.get(name).value instanceof Reference) {
                     info.name = (((Reference) ((scope.get(name)).value)).refereeName);
                     this.update(info.name, info);
@@ -52,6 +61,9 @@ public class SymbolTable {
     public void delete(String name) {
         for (HashMap<String, SymbolInfo> scope : scopes) {
             if (scope.containsKey(name)) {
+                if (name.equals("Self")) {
+                    throw new RuntimeException("Error: `Self` cannot be deleted.");
+                }
                 // Don't delete reference origin
                 scope.remove(name);
                 return;
