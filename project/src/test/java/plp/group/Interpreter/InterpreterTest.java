@@ -133,10 +133,13 @@ public class InterpreterTest {
 						value of a = 10 b =  20 and c = 30
 						Winthin the procedure parameter_display
 						value of a = 15 b =  45 and c = 60
+						Modifying value within function
+						600
 						"""),
 				Arguments.of("Function Definition", "function_definition.pas", """
 						127
 						Hello from GetMessage
+						75
 						"""),
 				Arguments.of("Repetetive Statements", "repetetive_statements.pas", """
 						While Statement

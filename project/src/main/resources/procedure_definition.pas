@@ -1,6 +1,7 @@
 program Procedure_Definition;
 var
     a, b, c: integer;
+    output : integer;
 
 procedure display;
 var
@@ -26,6 +27,11 @@ begin
     writeln('value of a = ', a , ' b =  ',  b, ' and c = ', c);
 end;
 
+procedure SumByRef(a, b, c : integer; var m : integer);
+begin
+    m := a + b + c
+end;
+
 begin
     a:= 100;
     b:= 200;
@@ -35,4 +41,9 @@ begin
     writeln('value of a = ', a , ' b =  ',  b, ' and c = ', c);
     display();
     parameter_display(15, 45);
+
+    output := 0;
+    SumByRef(a, b, c, output);
+    writeln('Modifying value within function');
+    writeln (output);
 end.

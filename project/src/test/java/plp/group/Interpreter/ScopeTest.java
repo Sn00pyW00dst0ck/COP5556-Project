@@ -8,6 +8,7 @@ import org.junit.jupiter.params.ParameterizedTest;
 import org.junit.jupiter.params.provider.Arguments;
 import org.junit.jupiter.params.provider.MethodSource;
 
+import plp.group.Interpreter.Reference;
 import plp.group.Interpreter.Types.GeneralType;
 import plp.group.Interpreter.Types.Simple.BooleanType;
 import plp.group.Interpreter.Types.Simple.CharType;
@@ -63,6 +64,33 @@ public class ScopeTest {
                 ((GeneralType) table.lookup("y").value).getValue());
         table.delete("x");
         assertEquals(null, table.lookup("x"));
+        table.exitScope();
+    }
+
+    @Test
+    void testReference() {
+        SymbolTable table = new SymbolTable();
+        table.enterScope();
+        table.insert("x", new SymbolInfo("x", new BooleanType(true)));
+        table.insert("y", new SymbolInfo("y", new Reference("x")));
+
+        var referenceValue = (table.lookup("y"));
+
+        assertEquals(((GeneralType) new SymbolInfo("x", new BooleanType(true)).value).getValue(),
+                ((GeneralType) table.lookup("x").value).getValue());
+        assertEquals(((Reference) new SymbolInfo("y", new Reference("x")).value).refereeName,
+                ((Reference) referenceValue.value).refereeName);
+
+        // Update a value
+        table.update("y", new SymbolInfo(referenceValue.name, new BooleanType(false)));
+
+        assertEquals(((GeneralType) new SymbolInfo("x", new BooleanType(false)).value).getValue(),
+                ((GeneralType) table.lookup("x").value).getValue());
+
+        table.delete("y");
+        assertEquals(null, table.lookup("y"));
+        assertEquals(((GeneralType) new SymbolInfo("x", new BooleanType(false)).value).getValue(),
+                ((GeneralType) table.lookup("x").value).getValue());
         table.exitScope();
     }
 

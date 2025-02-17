@@ -61,7 +61,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 "write",
                 GeneralTypeFactory.createProcedure((arguments -> {
                     for (var arg : arguments) {
-                        System.out.print(arg);
+                        var value = (GeneralType) visit((ParseTree) arg);
+                        System.out.print(value.toString());
                     }
                 }))));
 
@@ -69,7 +70,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 "writeln",
                 GeneralTypeFactory.createProcedure((arguments -> {
                     for (var arg : arguments) {
-                        System.out.print(arg);
+                        var value = (GeneralType) visit((ParseTree) arg);
+                        System.out.print(value.toString());
                     }
                     System.out.println();
                 }))));
@@ -168,17 +170,32 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         var identifier = (String) visit(ctx.getChild(1));
 
         @SuppressWarnings("unchecked")
-        var parameters = (List<SymbolInfo>) visit(ctx.getChild(2));
+        var parameters = (List<List<SymbolInfo>>) visit(ctx.getChild(2));
 
         var returnType = (String) visit(ctx.getChild(ctx.getChildCount() - 3));
 
         var body = GeneralTypeFactory.createFunction(arguments -> {
             scope.enterScope();
-            // If we have expected parameters then add them here...
+            // If we have expected parameters then visit them here and process
+            // appropriately...
             if (parameters != null) {
+                var total = 0;
                 for (var i = 0; i < parameters.size(); i++) {
-                    scope.insert(parameters.get(i).name,
-                            new SymbolInfo(parameters.get(i).name, (GeneralType) arguments[i]));
+                    for (var j = 0; j < parameters.get(i).size(); j++) {
+                        var currParameter = parameters.get(i).get(j);
+
+                        var actualParameter = ((ParseTree) arguments[total]);
+                        var actualParameterVisited = (GeneralType) visit(actualParameter);
+
+                        if (i == 1) {
+                            scope.insert(currParameter.name,
+                                    new SymbolInfo(currParameter.name, new Reference(actualParameter.getText())));
+                        } else {
+                            scope.insert(currParameter.name,
+                                    new SymbolInfo(currParameter.name, actualParameterVisited));
+                        }
+                        total++;
+                    }
                 }
             }
 
@@ -211,15 +228,30 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         var identifier = (String) visit(ctx.getChild(1));
 
         @SuppressWarnings("unchecked")
-        var parameters = (List<SymbolInfo>) visit(ctx.getChild(2));
+        var parameters = (List<List<SymbolInfo>>) visit(ctx.getChild(2));
 
         var body = GeneralTypeFactory.createProcedure(arguments -> {
             scope.enterScope();
-            // If we have expected parameters then add them here...
+            // If we have expected parameters then visit them here and process
+            // appropriately...
             if (parameters != null) {
+                var total = 0;
                 for (var i = 0; i < parameters.size(); i++) {
-                    scope.insert(parameters.get(i).name,
-                            new SymbolInfo(parameters.get(i).name, (GeneralType) arguments[i]));
+                    for (var j = 0; j < parameters.get(i).size(); j++) {
+                        var currParameter = parameters.get(i).get(j);
+
+                        var actualParameter = ((ParseTree) arguments[total]);
+                        var actualParameterVisited = (GeneralType) visit(actualParameter);
+
+                        if (i == 1) {
+                            scope.insert(currParameter.name,
+                                    new SymbolInfo(currParameter.name, new Reference(actualParameter.getText())));
+                        } else {
+                            scope.insert(currParameter.name,
+                                    new SymbolInfo(currParameter.name, actualParameterVisited));
+                        }
+                        total++;
+                    }
                 }
             }
             visit(ctx.getChild(ctx.getChildCount() - 1));
@@ -232,18 +264,39 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @SuppressWarnings("unchecked")
     @Override
-    public List<SymbolInfo> visitFormalParameterList(delphiParser.FormalParameterListContext ctx) {
-        var parameters = new ArrayList<SymbolInfo>();
+    public List<List<SymbolInfo>> visitFormalParameterList(delphiParser.FormalParameterListContext ctx) {
+        var parameters = new ArrayList<List<SymbolInfo>>();
         for (var i = 1; i < ctx.getChildCount(); i += 2) {
             var list = (List<SymbolInfo>) visit(ctx.getChild(i));
             if (list != null) {
-                parameters.addAll(list);
+                parameters.add(list);
             }
         }
         return parameters;
     }
 
     // How to handle formal parameter section??
+    @Override
+    public List<SymbolInfo> visitFormalParameterSection(delphiParser.FormalParameterSectionContext ctx) {
+        if (ctx.getChildCount() < 1) {
+            return List.of();
+        }
+
+        @SuppressWarnings("unchecked")
+        var parameters = (List<SymbolInfo>) visit(ctx.getChild(ctx.getChildCount() - 1));
+
+        // Create reference types...
+        if (ctx.VAR() != null) {
+            var parameterGroup = ctx.getChild(ctx.getChildCount() - 1);
+            @SuppressWarnings("unchecked")
+            var identifiers = (List<String>) visit(parameterGroup.getChild(0));
+            for (var i = 0; i < parameters.size(); i++) {
+                parameters.set(i, new SymbolInfo(parameters.get(i).name, new Reference(identifiers.get(i))));
+            }
+        }
+
+        return parameters;
+    }
 
     @Override
     public List<SymbolInfo> visitParameterGroup(delphiParser.ParameterGroupContext ctx) {
@@ -362,10 +415,10 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return (String) ctx.getText();
     }
 
-    @Override
-    public Void visitStringtype(delphiParser.StringtypeContext ctx) {
-        return null;
-    }
+    // @Override
+    // public Void visitStringtype(delphiParser.StringtypeContext ctx) {
+    // return null;
+    // }
 
     // #endregion Types
 
@@ -388,16 +441,26 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         var parameters = (List<GeneralType>) visit(ctx.getChild(2));
 
         // Below craziness passes the parameters one at a time...
-        ((ProcedureImplementation) ((GeneralType) procedureDetails.value).getValue())
-                .execute(parameters.toArray(new Object[0]));
+        var implementation = ((GeneralType) procedureDetails.value).getValue();
+        if (implementation instanceof ProcedureImplementation) {
+            ((ProcedureImplementation) ((GeneralType) procedureDetails.value).getValue())
+                    .execute(parameters.toArray(new Object[0]));
+        } else {
+            ((FunctionImplementation) ((GeneralType) procedureDetails.value).getValue())
+                    .execute(parameters.toArray(new Object[0]));
+        }
+
         return null;
     }
 
+    /**
+     * Returns the ParseTree of each parameter.
+     */
     @Override
-    public List<GeneralType> visitParameterList(delphiParser.ParameterListContext ctx) {
-        var parameters = new ArrayList<GeneralType>();
+    public List<ParseTree> visitParameterList(delphiParser.ParameterListContext ctx) {
+        var parameters = new ArrayList<ParseTree>();
         for (var i = 0; i < ctx.getChildCount(); i += 2) {
-            parameters.add((GeneralType) visit(ctx.getChild(i)));
+            parameters.add(ctx.getChild(i));
         }
         return parameters;
     }
@@ -652,6 +715,11 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         // If its a symbol info, grab the GeneralType from it.
         if (result instanceof SymbolInfo) {
             result = ((SymbolInfo) result).value;
+        }
+
+        // If its a reference, repeatedly go up til it isn't anymore ()
+        while (result instanceof Reference) {
+            result = ((SymbolInfo) scope.lookup(((Reference) result).refereeName)).value;
         }
 
         // If a NOT is present, perform that operation.

@@ -32,6 +32,11 @@ public class SymbolTable {
     public void update(String name, SymbolInfo info) {
         for (HashMap<String, SymbolInfo> scope : scopes) {
             if (scope.containsKey(name)) {
+                if (scope.get(name).value instanceof Reference) {
+                    info.name = (((Reference) ((scope.get(name)).value)).refereeName);
+                    this.update(info.name, info);
+                    return;
+                }
                 scope.replace(name, info);
                 return;
             }
@@ -47,6 +52,7 @@ public class SymbolTable {
     public void delete(String name) {
         for (HashMap<String, SymbolInfo> scope : scopes) {
             if (scope.containsKey(name)) {
+                // Don't delete reference origin
                 scope.remove(name);
                 return;
             }
