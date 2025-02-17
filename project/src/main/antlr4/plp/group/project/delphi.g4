@@ -113,10 +113,8 @@ compoundStatement
     ;
 
 unlabelledStatement
-    : assignmentStatement
-    | methodCall
-    | objectInstantiation
-    | compoundStatement
+    : simpleStatement
+    | structuredStatement
     ;
 
 statement
@@ -252,9 +250,14 @@ subrangeType
     : constant DOTDOT constant
     ;
 
-typeSpecifier
+typeIdentifier
     : identifier
     | (CHAR | BOOLEAN | INTEGER | REAL | STRING)
+    ;
+
+typeSpecifier
+    : typeIdentifier
+    | 
     ;
 
 structuredType
@@ -389,16 +392,14 @@ resultType
     : typeIdentifier
     ;
 
-unlabelledStatement
-    : simpleStatement
-    | structuredStatement
-    ;
-
 simpleStatement
     : assignmentStatement
     | procedureStatement
     | gotoStatement
     | emptyStatement_
+    | methodCall
+    | objectInstantiation
+    | compoundStatement
     ;
 
 variable
