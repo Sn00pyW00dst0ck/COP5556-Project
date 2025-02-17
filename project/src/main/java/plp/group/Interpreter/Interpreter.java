@@ -55,7 +55,23 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         // #region Built-In IO Functions
 
+        @SuppressWarnings("resource")
         Scanner scanner = new Scanner(System.in);
+
+        scope.insert("readln", new SymbolInfo(
+                "readln",
+                GeneralTypeFactory.createProcedure(arguments -> {
+                    scope.enterScope();
+                    var user_inputs = scanner.nextLine().split(" ");
+
+                    for (var i = 0; i < user_inputs.length; i++) {
+                        var variableName = ((ParseTree) arguments[i]).getText();
+                        scope.update(variableName, new SymbolInfo(variableName,
+                                GeneralTypeFactory.createInteger(new BigInteger(user_inputs[i]))));
+                    }
+
+                    scope.exitScope();
+                })));
 
         scope.insert("write", new SymbolInfo(
                 "write",
