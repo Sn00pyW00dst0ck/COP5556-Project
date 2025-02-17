@@ -77,7 +77,7 @@ classBody
     ;
 
 classSection
-    : accessSpecifier? (varDeclaration | methodDeclaration)*
+    : accessSpecifier? (varDeclaration | methodDeclaration)
     ;
 
 accessSpecifier
