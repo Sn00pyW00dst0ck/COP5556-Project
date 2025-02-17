@@ -292,8 +292,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         ObjectInstance instance = objectInstances.get(objectName);
         if (instance != null) {
             instance.destroy(); // Call destructor before deletion
-            objectInstances.remove(objectName);
-            scope.remove(objectName);
+            objectInstances.delete(objectName);
+            scope.delete(objectName);
         } 
     }
     
