@@ -69,7 +69,7 @@ block
 
 // Class Definition
 classDeclaration
-    : 'type' identifier '=' 'class' (classBody)? 'end' SEMI
+    : 'type' identifier '=' 'class' classBody 'end' SEMI
     ;
 
 classBody
