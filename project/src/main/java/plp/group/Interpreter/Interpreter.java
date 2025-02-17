@@ -180,7 +180,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 scope.insert("Self", new SymbolInfo("Self", this));
                 // Pass arguments to constructor
                 if (args != null && classDefinition.constructor.parameterList() != null) {
-                    List<ParseTree> passedArgs = args.expression();
+                    List<ParseTree> passedArgs = new ArrayList<>(ctx.argumentList().expression());
                     List<delphiParser.ParameterContext> expectedParams = classDefinition.constructor.parameterList().parameter();
                     
                     if (passedArgs.size() != expectedParams.size()) {
@@ -194,7 +194,9 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     }
                 }
                 
-                visit(classDefinition.constructor.block());
+                if (classDefinition.constructor.compoundStatement() != null) {
+                    visit(classDefinition.constructor.compoundStatement());
+                }
                 scope.exitScope();
             }
         }
@@ -203,7 +205,9 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             if (classDefinition.destructor != null) {
                 scope.enterScope();
                 scope.insert("Self", new SymbolInfo("Self", this));
-                visit(classDefinition.destructor.block());
+                if (classDefinition.destructor.compoundStatement() != null) {
+                    visit(classDefinition.destructor.compoundStatement());
+                }
                 scope.exitScope(); 
             } 
         }
@@ -241,7 +245,9 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     scope.insert(paramName, new SymbolInfo(paramName, paramValue));
                 }
             }
-            visit(method.block());
+            if (method.compoundStatement() != null) {
+                visit(method.compoundStatement());
+            }
             Object result = scope.lookup("Result") != null ? scope.lookup("Result").value : null;
             scope.exitScope();
             return result;
@@ -266,32 +272,30 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     }
                     if (method.DESTRUCTOR() != null) {
                         this.destructor = method;
+                    }
                 }
-            }
 
-                // Extract fields from 'fieldDeclaration'
-                for (var field : section.fieldDeclaration()) {
+                // Extract fields from 'varDeclaration'
+                for (var field : section.varDeclaration()) {
                     String fieldName = field.identifier().getText();
                     fields.put(fieldName, null); 
+                }
             }
         }
-    }
-} 
-
-// object storage and class method execution ends here
-
-public void deleteObject(String objectName) {
-    if (!objectInstances.containsKey(objectName)) {
-        return;  // exit instead of throwing error
-    }
+    }           // object storage and class method execution ends here
     
-    ObjectInstance instance = objectInstances.get(objectName);
-    if (instance != null) {
-        instance.destroy(); // Call destructor before deletion
-        objectInstances.remove(objectName);
-        scope.remove(objectName);
-    } 
-}
+    public void deleteObject(String objectName) {
+        if (!objectInstances.containsKey(objectName)) {
+            return;  // exit instead of throwing error
+        }
+        
+        ObjectInstance instance = objectInstances.get(objectName);
+        if (instance != null) {
+            instance.destroy(); // Call destructor before deletion
+            objectInstances.remove(objectName);
+            scope.remove(objectName);
+        } 
+    }
     
     @Override
     public Void visitBlock(delphiParser.BlockContext ctx) {
