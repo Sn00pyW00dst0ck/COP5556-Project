@@ -67,6 +67,77 @@ block
     )* compoundStatement
     ;
 
+// Class Definition
+classDeclaration
+    : 'type' identifier '=' 'class' (classBody)? 'end' SEMI
+    ;
+
+classBody
+    : (classSection)*
+    ;
+
+classSection
+    : accessSpecifier? (varDeclaration | methodDeclaration)*
+    ;
+
+accessSpecifier
+    : ('public' | 'private' | 'protected') COLON
+    ;
+
+varDeclaration
+    : identifier COLON typeSpecifier SEMI
+    ;
+
+methodDeclaration
+    : ('constructor' | 'destructor') identifier? '(' parameterList? ')' SEMI
+    | 'procedure' identifier '(' parameterList? ')' SEMI
+    | 'function' identifier '(' parameterList? ')' COLON typeSpecifier SEMI
+    ;
+
+parameterList
+    : parameter (SEMI parameter)*
+    ;
+
+parameter
+    : identifier COLON typeSpecifier
+    ;
+
+statementPart
+    : compoundStatement
+    ;
+
+compoundStatement
+    : 'begin' statement* 'end'
+    ;
+
+statement
+    : assignmentStatement
+    | methodCall
+    | objectInstantiation
+    | compoundStatement
+    ;
+
+assignmentStatement
+    : identifier ASSIGN expression SEMI
+    ;
+
+methodCall
+    : identifier '.' identifier '(' argumentList? ')' SEMI
+    ;
+
+objectInstantiation
+    : identifier ASSIGN identifier '.' 'Create' '(' argumentList? ')' SEMI
+    ;
+
+argumentList
+    : expression (COMMA expression)*
+    ;
+
+expression
+    : identifier
+    | literal
+    ;
+
 usesUnitsPart
     : USES identifierList SEMI
     ;
