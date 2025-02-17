@@ -73,7 +73,7 @@ classDeclaration
     ;
 
 classBody
-    : (classSection)*
+    : (classSection)+
     ;
 
 classSection
@@ -89,9 +89,9 @@ varDeclaration
     ;
 
 methodDeclaration
-    : ('constructor' | 'destructor') identifier? '(' parameterList? ')' SEMI
-    | 'procedure' identifier '(' parameterList? ')' SEMI
-    | 'function' identifier '(' parameterList? ')' COLON typeSpecifier SEMI
+    : ('constructor' | 'destructor') identifier? ('(' parameterList? ')')? SEMI
+    | 'procedure' identifier ('(' parameterList ')')? SEMI
+    | 'function' identifier ('(' parameterList ')')? COLON typeSpecifier SEMI
     ;
 
 parameterList
@@ -109,7 +109,7 @@ statementPart
     ;
 
 compoundStatement
-    : BEGIN statement* END
+    : BEGIN statement+ END
     ;
 
 unlabelledStatement
