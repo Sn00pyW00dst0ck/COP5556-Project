@@ -79,23 +79,7 @@ COP5556-Project/
 │   │   ├── test/                 # Unit tests
 ```
 
-### Implemented:
-1. Pascal simple types, including operations on these types (comparisons, '+', '-', 'in', etc.).
-2. Pascal procedural types (procedure and function) and the ability to define them. 
-- There is currently one inconsistency in this implementation in the interpreter (see below).
-3. Pascal "built-in" functions for `write`, `writeln`, and `readln` functionality.
-4. Conditional statements (if and case).
-5. Repetetive statements (while, repeat, and for).
-6. Pascal subranges and enumerations.
-7. Labels and the `goto` statement.
-8. Variables and assignments to variables.
-9. Proper scoping on a per block level.
-10. Unit testing on both a per-class and interpreter-wide scale. 
-11. A simple `echo.pas` program which will echo out integers that the user inputs.
-12. Command line interface (with help menu) that allows users to either view the parsed tree in a GUI window, or interpret the given program.
-13. A set of `.pas` files for use in unit testing and demonstrating implmenented functionalities. These files can be loaded and interacted with via the CLI.
-
-### Our Approach 
+### Our Initial Approach 
 
 We added a file `GeneralTypeExtended` to enhance type representation, allowing objects to store **fields and methods** with **public and private access control**, similar to class-based OOP models. This transition moves from a simple **value-based** `GeneralType` to a **structured** type system. We planned to do this by:
 
@@ -113,6 +97,23 @@ But it lead to the following:
 3. Functions and procedures are slightly inconsistent with the grammar in how they accept arguments. The interpreter expects the for all the 'by value' arguments first, followed by the 'by reference' values second. 
 4. `goto` statement may or may not cause erratic behavior when jumping across scopes.
 5. Error messages are not given in a Delphi-like manner. Instead, if interpretation encounters an issue a stack trace of the java exception is shown.
+
+### The final Implemented functions:
+1. Pascal simple types, including operations on these types (comparisons, '+', '-', 'in', etc.).
+2. Pascal procedural types (procedure and function) and the ability to define them. 
+- There is currently one inconsistency in this implementation in the interpreter (see below).
+3. Pascal "built-in" functions for `write`, `writeln`, and `readln` functionality.
+4. Conditional statements (if and case).
+5. Repetetive statements (while, repeat, and for).
+6. Pascal subranges and enumerations.
+7. Labels and the `goto` statement.
+8. Variables and assignments to variables.
+9. Proper scoping on a per block level.
+10. Unit testing on both a per-class and interpreter-wide scale. 
+11. A simple `echo.pas` program which will echo out integers that the user inputs.
+12. Command line interface (with help menu) that allows users to either view the parsed tree in a GUI window, or interpret the given program.
+13. A set of `.pas` files for use in unit testing and demonstrating implmenented functionalities. These files can be loaded and interacted with via the CLI.
+
 
 ## References
 
