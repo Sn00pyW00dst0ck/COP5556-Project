@@ -2,6 +2,8 @@
 
 This is a pseudo-delphi interpreter written utilizing ANTLR4 and Java. 
 
+By [Gabriel Aldous](https://github.com/Sn00pyW00dst0ck) & [Rishika Sharma](https://github.com/rishika64)
+
 ## Project Setup 
 
 This project was built using the following tools:
@@ -43,12 +45,7 @@ This project includes unit tests to verify the functionality of the interpreter.
 mvn test
 ```
 
-If you want to run individual test `.pas` file run it using:
-```
-java -jar target/cop5556-project.jar FileName.jar
-```
-
-Test cases are located in `src/test/java/plp/group/tests/`. These cover various functionalities including parsing, expression evaluation, and command-line interactions. They are as follows:
+Test cases are located in `src/test/java/plp/group/`. These cover various functionalities including parsing, expression evaluation, and command-line interactions. They are as follows:
 1. Parsing Tests - Ensures that valid Pascal code is parsed correctly and errors are raised for invalid syntax.
 2. Expression Evaluation Tests - Validates operations involving integers, reals, booleans, and comparisons.
 3. Conditional Statements Tests - Ensures correct execution of `if` and `case` statements.
@@ -72,7 +69,7 @@ COP5556-Project/
 │   │   │   ├── antlr4/           # ANTLR grammar files
 │   │   │   ├── java/plp/group/   # Java source code
 │   │   │   │   ├── Interpreter/  # Interpreter logic
-│   │   │   │   ├── CLI/          # Command-line interface
+│   │   │   │   ├── App.java      # Command-line interface
 │   │   │   ├── resources/        # Sample test Pascal programs
 │   │   ├── test/                 # Unit tests
 ```
@@ -89,20 +86,22 @@ We added a file `GeneralTypeExtended` to enhance type representation, allowing o
 4. Object instances stay in `GeneralTypeExtended`, making them **true objects** with fields/methods.
 5. Removing direct `Map<String, Object>` usage for more structured class-like access.
 
-But it lead to the following: 
+However that approach led to extreme complications. The introductino of this type would add extra complications to nearly every aspect of the project. 
+The symbol table and nearly all of the expression interpreting logic would need to be re-written to support this one type, which by the time we had the 
+grammar properly implemented was an monumental task for the short timeframe remaining. The team decided it was better to submit the working interpreter in its most advanced state, and rolled back the project to the version which was last working.
 
 ### Known bugs & inconsistencies:
 1. When working with integers or reals, the smallest type elligible for the value will always be utilized, regardless of user declared type.
 2. The `write`, `writeln`, and `readln` functionality is hard-coded to work with the Java System.out and System.in streams, so no file operations are possible.
 3. Functions and procedures are slightly inconsistent with the grammar in how they accept arguments. The interpreter expects the for all the 'by value' arguments first, followed by the 'by reference' values second. 
-4. `goto` statement may or may not cause erratic behavior when jumping across scopes.
+4. `goto` statement may or may not cause erratic behavior when jumping across scopes (this is untested behavior).
 5. Error messages are not given in a Delphi-like manner. Instead, if interpretation encounters an issue a stack trace of the java exception is shown.
 6. Classes are within the grammar and you can view their parse tree, but they cannot be interpreted.
 
 ### The final Implemented functions:
 1. Pascal simple types, including operations on these types (comparisons, '+', '-', 'in', etc.).
 2. Pascal procedural types (procedure and function) and the ability to define them. 
-- There is currently one inconsistency in this implementation in the interpreter (see below).
+- There is currently one inconsistency in this implementation in the interpreter (see above).
 3. Pascal "built-in" functions for `write`, `writeln`, and `readln` functionality.
 4. Conditional statements (if and case).
 5. Repetetive statements (while, repeat, and for).
