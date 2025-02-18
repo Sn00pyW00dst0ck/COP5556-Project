@@ -67,6 +67,92 @@ block
     )* compoundStatement
     ;
 
+// Class Definition
+classDeclaration
+    : 'type' identifier '=' 'class' classBody? 'end' SEMI
+    ;
+
+classBody
+    : (classSection)+
+    ;
+
+classSection
+    : accessSpecifier? (varDeclaration | methodDeclaration)
+    ;
+
+accessSpecifier
+    : ('public' | 'private' | 'protected') COLON
+    ;
+
+varDeclaration
+    : identifier COLON typeSpecifier SEMI
+    ;
+
+methodDeclaration
+    : ('constructor' | 'destructor') identifier? '(' parameterList? ')' SEMI block?
+    | 'procedure' identifier ('(' parameterList ')')? SEMI block?
+    | 'function' identifier ('(' parameterList ')')? COLON typeSpecifier SEMI block?
+    ;
+
+parameterList
+    : actualParameter (COMMA actualParameter)*
+    | (parameter (SEMI parameter)*)
+    |
+    ;
+
+parameter
+    : identifier COLON typeSpecifier
+    ;
+
+statementPart
+    : compoundStatement
+    ;
+
+compoundStatement
+    : 'begin' statement+ 'end'
+    ;
+
+unlabelledStatement
+    : simpleStatement
+    | structuredStatement
+    ;
+
+statement
+    : label COLON unlabelledStatement
+    | unlabelledStatement
+    ;
+
+assignmentStatement
+    : (identifier | variable) ASSIGN expression SEMI
+    ;
+
+methodCall
+    : identifier '.' identifier '(' argumentList? ')' SEMI
+    ;
+
+objectInstantiation
+    : identifier ASSIGN identifier '.' 'Create' '(' argumentList? ')' SEMI
+    ;
+
+argumentList
+    : expression (COMMA expression)*
+    ;
+
+expression
+    : simpleExpression (relationaloperator expression)?
+    | identifier
+    | literal
+    ;
+
+literal
+    : NUM_INT       
+    | NUM_REAL      
+    | STRING_LITERAL 
+    | TRUE          
+    | FALSE         
+    | NIL           
+    ;
+
 usesUnitsPart
     : USES identifierList SEMI
     ;
@@ -167,6 +253,11 @@ subrangeType
 typeIdentifier
     : identifier
     | (CHAR | BOOLEAN | INTEGER | REAL | STRING)
+    ;
+
+typeSpecifier
+    : typeIdentifier
+    | 
     ;
 
 structuredType
@@ -301,25 +392,13 @@ resultType
     : typeIdentifier
     ;
 
-statement
-    : label COLON unlabelledStatement
-    | unlabelledStatement
-    ;
-
-unlabelledStatement
-    : simpleStatement
-    | structuredStatement
-    ;
-
 simpleStatement
     : assignmentStatement
     | procedureStatement
     | gotoStatement
-    | emptyStatement_
-    ;
-
-assignmentStatement
-    : variable ASSIGN expression
+    | methodCall
+    | objectInstantiation
+    | compoundStatement
     ;
 
 variable
@@ -329,10 +408,6 @@ variable
         | DOT identifier
         | POINTER
     )*
-    ;
-
-expression
-    : simpleExpression (relationaloperator expression)?
     ;
 
 relationaloperator
@@ -392,11 +467,6 @@ functionDesignator
     : identifier LPAREN parameterList RPAREN
     ;
 
-parameterList
-    : actualParameter (COMMA actualParameter)*
-    |
-    ;
-
 set_
     : LBRACK elementList RBRACK
     | LBRACK2 elementList RBRACK2
@@ -427,10 +497,6 @@ gotoStatement
     : GOTO label
     ;
 
-emptyStatement_
-    :
-    ;
-
 empty_
     :
     /* empty */
@@ -441,10 +507,6 @@ structuredStatement
     | conditionalStatement
     | repetetiveStatement
     | withStatement
-    ;
-
-compoundStatement
-    : BEGIN statements END
     ;
 
 statements
