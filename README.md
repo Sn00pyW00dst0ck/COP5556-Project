@@ -58,8 +58,6 @@ Test cases are located in `src/test/java/plp/group/tests/`. These cover various 
 7. Goto and Label Tests - Validates behavior of labels and `goto` statements, ensuring expected jumps occur.
 8. Command-line Interface Tests - Ensures the CLI correctly interprets user input and executes provided Pascal programs.
 
-
-
 ## Project Overview
 
 ### Project Structure
@@ -97,13 +95,15 @@ COP5556-Project/
 
 ### Our Approach 
 
+We attempted to implement interpreting for classes; however, we ran into numerous issues that would have required an extensive re-write of the application which the team did not have time to implement, as it would have involved almost completely restarting the interpreter from scratch. Below we have listed out the approach we tried to implement before reverting the code due to numerous issues with it.
+
 We added a file `GeneralTypeExtended` to enhance type representation, allowing objects to store **fields and methods** with **public and private access control**, similar to class-based OOP models. This transition moves from a simple **value-based** `GeneralType` to a **structured** type system. We planned to do this by:
 
 1. Introduce a class that holds **fields** (public/private) and **methods** (public/private).
 2. Move fields from `Map<String, Object>` to `GeneralTypeExtended`.
 3. Convert stored `fields` and `methods` into structured **public/private storage**. That is, when a class is parsed, its methods and fields are stored in a `GeneralTypeExtended` instance.
 4. Object instances stay in `GeneralTypeExtended`, making them **true objects** with fields/methods.
-5. Removing direct `Map<String, Object>` usage in fpr more structured class-like access.
+5. Removing direct `Map<String, Object>` usage for more structured class-like access.
 
 But it lead to the following: 
 
@@ -113,6 +113,7 @@ But it lead to the following:
 3. Functions and procedures are slightly inconsistent with the grammar in how they accept arguments. The interpreter expects the for all the 'by value' arguments first, followed by the 'by reference' values second. 
 4. `goto` statement may or may not cause erratic behavior when jumping across scopes.
 5. Error messages are not given in a Delphi-like manner. Instead, if interpretation encounters an issue a stack trace of the java exception is shown.
+6. Classes are within the grammar and you can view their parse tree, but they cannot be interpreted.
 
 ## References
 
