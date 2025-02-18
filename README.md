@@ -2,7 +2,7 @@
 
 This is a pseudo-delphi interpreter written utilizing ANTLR4 and Java. 
 
-By [Gabriel Aldous](https://github.com/Sn00pyW00dst0ck) & [Rishika Sharma](https://github.com/rishika64)
+By [Gabriel Aldous](https://github.com/Sn00pyW00dst0ck) (70444594) & [Rishika Sharma](https://github.com/rishika64) (32772571)
 
 ## Project Setup 
 
@@ -72,6 +72,7 @@ COP5556-Project/
 │   │   │   │   ├── App.java      # Command-line interface
 │   │   │   ├── resources/        # Sample test Pascal programs
 │   │   ├── test/                 # Unit tests
+├── unintegrated-but-correct-grammar.g4 # A version of the grammar which to our knowledge would parse classes, but due to constraints discussed below could not be integrated.
 ```
 
 ### Our Initial Approach 
@@ -86,17 +87,20 @@ We added a file `GeneralTypeExtended` to enhance type representation, allowing o
 4. Object instances stay in `GeneralTypeExtended`, making them **true objects** with fields/methods.
 5. Removing direct `Map<String, Object>` usage for more structured class-like access.
 
-However that approach led to extreme complications. The introductino of this type would add extra complications to nearly every aspect of the project. 
+However that approach led to extreme complications. The introduction of this type would add extra complications to nearly every aspect of the project. 
 The symbol table and nearly all of the expression interpreting logic would need to be re-written to support this one type, which by the time we had the 
 grammar properly implemented was an monumental task for the short timeframe remaining. The team decided it was better to submit the working interpreter in its most advanced state, and rolled back the project to the version which was last working.
 
+*NOTE:* There is a file `unintegrated-but-correct-grammar.g4` which to our best knowledge would properly parse delphi classes as asked. However, due to the nature of how we developed the interpreter integrating that updated grammar correctly was an infeasible task within the time constraint.
+
 ### Known bugs & inconsistencies:
-1. When working with integers or reals, the smallest type elligible for the value will always be utilized, regardless of user declared type.
-2. The `write`, `writeln`, and `readln` functionality is hard-coded to work with the Java System.out and System.in streams, so no file operations are possible.
-3. Functions and procedures are slightly inconsistent with the grammar in how they accept arguments. The interpreter expects the for all the 'by value' arguments first, followed by the 'by reference' values second. 
-4. `goto` statement may or may not cause erratic behavior when jumping across scopes (this is untested behavior).
-5. Error messages are not given in a Delphi-like manner. Instead, if interpretation encounters an issue a stack trace of the java exception is shown.
-6. Classes are within the grammar and you can view their parse tree, but they cannot be interpreted.
+1. Currently the grammar does not correctly parse classes. The team co-developed the interpreter and updated grammar at the same time, resulting in merge issues and as such currently the grammar that is used by the interpreter does not properly parse class definitions (though it has added rules for classes, it cannot properly parse the class definitions due to cascading empty ruleset violations).
+2. When working with integers or reals, the smallest type elligible for the value will always be utilized, regardless of user declared type.
+3. The `write`, `writeln`, and `readln` functionality is hard-coded to work with the Java System.out and System.in streams, so no file operations are possible.
+4. Functions and procedures are slightly inconsistent with the grammar in how they accept arguments. The interpreter expects the for all the 'by value' arguments first, followed by the 'by reference' values second. 
+5. `goto` statement may or may not cause erratic behavior when jumping across scopes (this is untested behavior).
+6. Error messages are not given in a Delphi-like manner. Instead, if interpretation encounters an issue a stack trace of the java exception is shown.
+7. Classes are within the grammar and you can view their parse tree, but they cannot be interpreted.
 
 ### The final Implemented functions:
 1. Pascal simple types, including operations on these types (comparisons, '+', '-', 'in', etc.).
@@ -113,6 +117,8 @@ grammar properly implemented was an monumental task for the short timeframe rema
 11. A simple `echo.pas` program which will echo out integers that the user inputs.
 12. Command line interface (with help menu) that allows users to either view the parsed tree in a GUI window, or interpret the given program.
 13. A set of `.pas` files for use in unit testing and demonstrating implmenented functionalities. These files can be loaded and interacted with via the CLI.
+
+*NOTE:* There is a file `unintegrated-but-correct-grammar.g4` which to our best knowledge would properly parse delphi classes as asked. However, due to the nature of how we developed the interpreter integrating that updated grammar correctly was an infeasible task within the time constraint.
 
 
 ## References
