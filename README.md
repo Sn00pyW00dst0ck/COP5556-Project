@@ -29,7 +29,55 @@ mvn clean package
 
 VSCode has been setup such that when viewing any of the `.java` files within the `src` directory the run button will be available in the top left corner. This can be used to run the application either in normal or debug mode. 
 
+### Using Command Line
+
+Run the interpreter by executing:
+```
+java -jar target/cop5556-project.jar <options>
+```
+
+## Running Test Cases
+
+This project includes unit tests to verify the functionality of the interpreter. For running Tests with Maven:
+```
+mvn test
+```
+
+If you want to run individual test `.pas` file run it using:
+```
+java -jar target/cop5556-project.jar FileName.jar
+```
+
+Test cases are located in `src/test/java/plp/group/tests/`. These cover various functionalities including parsing, expression evaluation, and command-line interactions. They are as follows:
+1. Parsing Tests - Ensures that valid Pascal code is parsed correctly and errors are raised for invalid syntax.
+2. Expression Evaluation Tests - Validates operations involving integers, reals, booleans, and comparisons.
+3. Conditional Statements Tests - Ensures correct execution of `if` and `case` statements.
+4. Looping Constructs Tests - Tests the behavior of `while`, `repeat`, and `for` loops.
+5. Function and Procedure Tests - Verifies correct scoping, parameter passing, and return values.
+6. Variable Assignment Tests - Ensures variables are correctly assigned and updated.
+7. Goto and Label Tests - Validates behavior of labels and `goto` statements, ensuring expected jumps occur.
+8. Command-line Interface Tests - Ensures the CLI correctly interprets user input and executes provided Pascal programs.
+
+
+
 ## Project Overview
+
+### Project Structure
+```
+COP5556-Project/
+├── .github/                     # CI/CD workflows and templates
+├── .vscode/                     # VS Code workspace settings
+├── project/
+│   ├── pom.xml                  # Maven build file
+│   ├── src/
+│   │   ├── main/
+│   │   │   ├── antlr4/           # ANTLR grammar files
+│   │   │   ├── java/plp/group/   # Java source code
+│   │   │   │   ├── Interpreter/  # Interpreter logic
+│   │   │   │   ├── CLI/          # Command-line interface
+│   │   │   ├── resources/        # Sample test Pascal programs
+│   │   ├── test/                 # Unit tests
+```
 
 ### Implemented:
 1. Pascal simple types, including operations on these types (comparisons, '+', '-', 'in', etc.).
@@ -45,18 +93,26 @@ VSCode has been setup such that when viewing any of the `.java` files within the
 10. Unit testing on both a per-class and interpreter-wide scale. 
 11. A simple `echo.pas` program which will echo out integers that the user inputs.
 12. Command line interface (with help menu) that allows users to either view the parsed tree in a GUI window, or interpret the given program.
-13. A set of `.pas` files for use in unit testing and demonstrating implmenented functionalities. These files can be loaded and interacted with via the CLI. 
+13. A set of `.pas` files for use in unit testing and demonstrating implmenented functionalities. These files can be loaded and interacted with via the CLI.
 
-### Un-implmented: 
-1. Structural types (Pascal records, arrays, sets, and file types), and interpretation of those types.
-2. Error messages are not given in a Delphi-like manner. Instead, if interpretation encounters an issue a stack trace of the java exception is shown.
+### Our Approach 
 
+We added a file `GeneralTypeExtended` to enhance type representation, allowing objects to store **fields and methods** with **public and private access control**, similar to class-based OOP models. This transition moves from a simple **value-based** `GeneralType` to a **structured** type system. We planned to do this by:
+
+1. Introduce a class that holds **fields** (public/private) and **methods** (public/private).
+2. Move fields from `Map<String, Object>` to `GeneralTypeExtended`.
+3. Convert stored `fields` and `methods` into structured **public/private storage**. That is, when a class is parsed, its methods and fields are stored in a `GeneralTypeExtended` instance.
+4. Object instances stay in `GeneralTypeExtended`, making them **true objects** with fields/methods.
+5. Removing direct `Map<String, Object>` usage in fpr more structured class-like access.
+
+But it lead to the following: 
 
 ### Known bugs & inconsistencies:
 1. When working with integers or reals, the smallest type elligible for the value will always be utilized, regardless of user declared type.
 2. The `write`, `writeln`, and `readln` functionality is hard-coded to work with the Java System.out and System.in streams, so no file operations are possible.
 3. Functions and procedures are slightly inconsistent with the grammar in how they accept arguments. The interpreter expects the for all the 'by value' arguments first, followed by the 'by reference' values second. 
 4. `goto` statement may or may not cause erratic behavior when jumping across scopes.
+5. Error messages are not given in a Delphi-like manner. Instead, if interpretation encounters an issue a stack trace of the java exception is shown.
 
 ## References
 
