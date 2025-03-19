@@ -383,7 +383,7 @@ assignmentStatement
     ;
 
 variable
-    : primary (memberAccess)*
+    : primary (memberAccess)?
     ;
 
 primary
@@ -391,7 +391,8 @@ primary
     ;
 
 memberAccess
-    : DOT identifier (parameterList)?
+    : DOT variable
+    | LPAREN parameterList RPAREN (DOT variable)?
     | LBRACK expression (COMMA expression)* RBRACK
     | LBRACK2 expression (COMMA expression)* RBRACK2
     | POINTER
