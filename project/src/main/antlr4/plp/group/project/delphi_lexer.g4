@@ -4,6 +4,30 @@ options {
     caseInsensitive = true;
 }
 
+CLASS
+    : 'CLASS'
+    ;
+
+CONSTRUCTOR
+    : 'CONSTRUCTOR'
+    ;
+
+DESTRUCTOR
+    : 'DESTRUCTOR'
+    ;
+
+PRIVATE
+    : 'PRIVATE'
+    ;
+
+PROTECTED
+    : 'PROTECTED'
+    ;
+
+PUBLIC
+    : 'PUBLIC'
+    ;
+
 AND
     : 'AND'
     ;

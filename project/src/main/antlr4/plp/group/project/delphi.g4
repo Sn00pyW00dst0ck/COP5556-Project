@@ -63,7 +63,7 @@ block
         | constantDefinitionPart
         | typeDefinitionPart
         | variableDeclarationPart
-        | procedureAndFunctionDeclarationPart
+        | callableImplementationPart
         | usesUnitsPart
         | IMPLEMENTATION
     )* compoundStatement
@@ -134,7 +134,7 @@ typeDefinitionPart
     ;
 
 typeDefinition
-    : identifier EQUAL (type_ | functionType | procedureType)
+    : identifier EQUAL (type_ | functionType | procedureType | classType)
     ;
 
 functionType
@@ -251,6 +251,42 @@ pointerType
     : POINTER typeIdentifier
     ;
 
+classType
+    : CLASS (visibilitySection)+ END
+    ;
+
+visibilitySection
+    : (PRIVATE | PROTECTED | PUBLIC) classMemberDeclaration+
+    ;
+
+classMemberDeclaration
+    : classFieldDeclaration SEMI
+    | classProcedureDeclaration SEMI
+    | classFunctionDeclaration SEMI
+    | constructorDeclaration SEMI
+    | destructorDeclaration SEMI
+    ;
+
+classFieldDeclaration
+    : identifier COLON type_
+    ;
+
+classProcedureDeclaration
+    : PROCEDURE identifier (formalParameterList)?
+    ;
+
+classFunctionDeclaration
+    : FUNCTION identifier (formalParameterList)? COLON resultType
+    ;
+
+constructorDeclaration
+    : CONSTRUCTOR identifier (formalParameterList)?
+    ;
+
+destructorDeclaration
+    : DESTRUCTOR identifier
+    ;
+
 variableDeclarationPart
     : VAR variableDeclaration (SEMI variableDeclaration)* SEMI
     ;
@@ -259,16 +295,20 @@ variableDeclaration
     : identifierList COLON type_
     ;
 
-procedureAndFunctionDeclarationPart
-    : procedureOrFunctionDeclaration SEMI
+callableImplementationPart
+    : callableImplementation SEMI
     ;
 
-procedureOrFunctionDeclaration
-    : procedureDeclaration
-    | functionDeclaration
+callableImplementation
+    : procedureImplementation
+    | functionImplementation
+    | constructorImplementation
+    | destructorImplementation
+    | classProcedureImplementation
+    | classFunctionImplementation
     ;
 
-procedureDeclaration
+procedureImplementation
     : PROCEDURE identifier (formalParameterList)? SEMI block
     ;
 
@@ -276,11 +316,13 @@ formalParameterList
     : LPAREN formalParameterSection (SEMI formalParameterSection)* RPAREN
     ;
 
+// We could have no parameters, so this is needed...
 formalParameterSection
     : parameterGroup
     | VAR parameterGroup
     | FUNCTION parameterGroup
     | PROCEDURE parameterGroup
+    |
     ;
 
 parameterGroup
@@ -295,12 +337,28 @@ constList
     : constant (COMMA constant)*
     ;
 
-functionDeclaration
+functionImplementation
     : FUNCTION identifier (formalParameterList)? COLON resultType SEMI block
     ;
 
 resultType
     : typeIdentifier
+    ;
+
+constructorImplementation
+    : CONSTRUCTOR identifier DOT identifier (formalParameterList)? SEMI block
+    ;
+
+destructorImplementation
+    : DESTRUCTOR identifier DOT identifier SEMI block
+    ;
+
+classProcedureImplementation
+    : PROCEDURE identifier DOT identifier (formalParameterList)? SEMI block
+    ;
+
+classFunctionImplementation
+    : FUNCTION identifier DOT identifier (formalParameterList)? COLON resultType SEMI block
     ;
 
 statement
@@ -325,12 +383,18 @@ assignmentStatement
     ;
 
 variable
-    : (AT identifier | identifier) (
-        LBRACK expression (COMMA expression)* RBRACK
-        | LBRACK2 expression (COMMA expression)* RBRACK2
-        | DOT identifier
-        | POINTER
-    )*
+    : primary (memberAccess)*
+    ;
+
+primary
+    : AT? identifier 
+    ;
+
+memberAccess
+    : DOT identifier (parameterList)?
+    | LBRACK expression (COMMA expression)* RBRACK
+    | LBRACK2 expression (COMMA expression)* RBRACK2
+    | POINTER
     ;
 
 expression
