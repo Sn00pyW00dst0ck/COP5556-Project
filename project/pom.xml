@@ -54,6 +54,13 @@
 	  	<artifactId>antlr4-maven-plugin</artifactId>
 	  	<version>${antlr4.plugin.version}</version>
 	  </dependency>
+
+    <dependency>
+      <groupId>org.checkerframework</groupId>
+      <artifactId>checker-qual</artifactId>
+      <version>3.49.1</version>
+    </dependency>
+
   </dependencies>
 
   <build>
