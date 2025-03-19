@@ -18,7 +18,7 @@ public sealed interface RuntimeValue {
     ) implements RuntimeValue {};
 
     /**
-     * Represents a function or procedure.
+     * Represents a function or procedure. 
      */
     record Method(
         String name,
@@ -53,7 +53,7 @@ public sealed interface RuntimeValue {
     ) implements RuntimeValue {};
 
     record ClassInstance(
-        // WHAT GOES HERE? NAME AND A SCOPE?
+        // WHAT GOES HERE? NAME AND A SCOPE? Definition and a scope? 
     ) implements RuntimeValue {};
 
 }
