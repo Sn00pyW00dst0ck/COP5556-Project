@@ -6,7 +6,7 @@ import org.antlr.v4.gui.Trees;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
-
+import plp.group.Interpreter.Interpreter;
 import plp.group.project.delphi;
 import plp.group.project.delphi_lexer;
 
@@ -52,8 +52,8 @@ public class App {
             var tokens = new CommonTokenStream(lexer);
             var parser = new delphi(tokens);
             var tree = parser.program();
-            // var interpreter = new Interpreter();
-            // interpreter.visit(tree);
+            var interpreter = new Interpreter();
+            interpreter.visit(tree);
         } catch (Exception e) {
             e.printStackTrace();
         }
