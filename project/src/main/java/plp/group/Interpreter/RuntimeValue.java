@@ -48,10 +48,18 @@ public sealed interface RuntimeValue {
 
     // Some sort of REFERENCE implementation here... Reference to another RuntimeValue? Then how to tell apart References to different things when comparing?
 
+    /**
+     * Represents the definition of a class. 
+     * A class instance is created based on its definition.
+     */
     record ClassDefinition(
         // WHAT GOES HERE? NAME AND A SCOPE? 
     ) implements RuntimeValue {};
 
+    /**
+     * Creates a new instance of a class (aka an object).
+     * Not called an object because it would conflict with 'Object' in Java.
+     */
     record ClassInstance(
         // WHAT GOES HERE? NAME AND A SCOPE? Definition and a scope? 
     ) implements RuntimeValue {};

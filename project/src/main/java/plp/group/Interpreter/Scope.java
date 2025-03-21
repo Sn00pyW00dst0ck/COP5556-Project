@@ -18,8 +18,9 @@ public class Scope {
     private final Optional<Scope> parent;
 
     /**
+     * Create a new (empty) scope object.
      * 
-     * @param parent
+     * @param parent the scope to be set as the parent of the newly created scope.
      */
     public Scope(Optional<Scope> parent) {
         this.parent = parent;
