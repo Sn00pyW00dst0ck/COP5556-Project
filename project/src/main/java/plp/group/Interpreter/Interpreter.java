@@ -17,6 +17,72 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     //#region Expressions
 
     @Override
+    public RuntimeValue visitTerm(delphi.TermContext ctx) {
+        RuntimeValue lhs = visitSignedFactor(ctx.signedFactor());
+
+        if (ctx.multiplicativeoperator() == null) {
+            return lhs;
+        }
+
+        return switch (ctx.multiplicativeoperator().getChild(0)) {
+            case TerminalNode t when t.getSymbol().getType() == delphi.AND -> {
+                Boolean result = RuntimeValue.requireType(lhs, Boolean.class) && RuntimeValue.requireType(visitTerm(ctx.term()), Boolean.class);
+                yield new RuntimeValue.Primitive(result);
+            }
+            case TerminalNode t when (
+                t.getSymbol().getType() == delphi.STAR ||
+                t.getSymbol().getType() == delphi.SLASH ||
+                t.getSymbol().getType() == delphi.DIV ||
+                t.getSymbol().getType() == delphi.MOD
+            ) -> {
+                RuntimeValue rhs = visitTerm(ctx.term());
+
+                // If either one is not a number there is an issue
+                var lhsValue = RuntimeValue.requireType(lhs, Number.class);
+                var rhsValue = RuntimeValue.requireType(rhs, Number.class);
+
+                if (lhsValue instanceof BigDecimal || rhsValue instanceof BigDecimal) {
+                    // We know the result type is BigDecimal
+                    yield switch (t.getSymbol().getType()) {
+                        case delphi.STAR -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).multiply(new BigDecimal(rhsValue.toString())));
+                        case delphi.DIV -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).divide(new BigDecimal(rhsValue.toString())));
+                        case delphi.SLASH -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).divide(new BigDecimal(rhsValue.toString())));
+                        case delphi.MOD -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).remainder(new BigDecimal(rhsValue.toString())));
+                        default -> throw new RuntimeException("Unexpected symbol '" + t.getText() + "' when attempting to evaluate 'term'."); // Should never happen
+                    };
+                } else {
+                    // We know the result type is BigInteger
+                    yield switch (t.getSymbol().getType()) {
+                        case delphi.STAR -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).multiply(new BigInteger(rhsValue.toString())));
+                        case delphi.DIV -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).divide(new BigInteger(rhsValue.toString())));
+                        case delphi.SLASH -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).divide(new BigInteger(rhsValue.toString())));
+                        case delphi.MOD -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).remainder(new BigInteger(rhsValue.toString())));
+                        default -> throw new RuntimeException("Unexpected symbol '" + t.getText() + "' when attempting to evaluate 'term'."); // Should never happen
+                    };    
+                }
+            }
+            default -> throw new RuntimeException("Unexpected item '" + ctx.multiplicativeoperator().getText() + "' when attempting to evaluate 'term'.");
+        };
+    }
+
+    @Override
+    public RuntimeValue visitSignedFactor(delphi.SignedFactorContext ctx) {
+        return switch (ctx.getChild(0)) {
+            case TerminalNode t when t.getSymbol().getType() == delphi.PLUS -> visitFactor(ctx.factor());
+            case TerminalNode t when t.getSymbol().getType() == delphi.MINUS -> {
+                Number n = RuntimeValue.requireType(visitFactor(ctx.factor()), Number.class);
+                yield switch (n) {
+                    case BigInteger bigInteger -> new RuntimeValue.Primitive(bigInteger.negate());
+                    case BigDecimal bigDecimal -> new RuntimeValue.Primitive(bigDecimal.negate());
+                    default -> throw new RuntimeException("Expected BigInteger or BigDecimal when attempting to negate value when attempting to evaluate 'signed factor'.");
+                };
+            }
+            case delphi.FactorContext factorCtx -> visitFactor(factorCtx);
+            default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(0).getText() + "' when attempting to evaluate 'signed factor'.");
+        };
+    }
+
+    @Override
     public RuntimeValue visitFactor(delphi.FactorContext ctx) {
         // We can tell what we are parsing based on the first child, so use a switch expression to return the proper thing.
         return switch (ctx.getChild(0)) {
