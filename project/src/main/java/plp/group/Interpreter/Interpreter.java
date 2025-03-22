@@ -17,6 +17,46 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     //#region Expressions
 
     @Override
+    public RuntimeValue visitExpression(delphi.ExpressionContext ctx) {
+        RuntimeValue lhs = visitSimpleExpression(ctx.simpleExpression());
+
+        if (ctx.relationaloperator() == null) {
+            return lhs;
+        }    
+        
+        return switch (ctx.relationaloperator().getChild(0)) {
+            case TerminalNode t when (
+                t.getSymbol().getType() == delphi.EQUAL ||
+                t.getSymbol().getType() == delphi.NOT_EQUAL ||
+                t.getSymbol().getType() == delphi.LT ||
+                t.getSymbol().getType() == delphi.LE ||
+                t.getSymbol().getType() == delphi.GT ||
+                t.getSymbol().getType() == delphi.GE
+            ) -> {
+                RuntimeValue rhs = visitExpression(ctx.expression());
+
+                // If either one is not a comparable there is an issue
+                var lhsValue = RuntimeValue.requireType(lhs, Comparable.class);
+                var rhsValue = RuntimeValue.requireType(rhs, lhsValue.getClass());
+
+                @SuppressWarnings("unchecked")
+                var result = lhsValue.compareTo(rhsValue);
+
+                yield switch (t.getSymbol().getType()) {
+                    case delphi.EQUAL -> new RuntimeValue.Primitive(result == 0);
+                    case delphi.NOT_EQUAL -> new RuntimeValue.Primitive(result != 0);
+                    case delphi.LT -> new RuntimeValue.Primitive(result < 0);
+                    case delphi.LE -> new RuntimeValue.Primitive(result <= 0);
+                    case delphi.GT -> new RuntimeValue.Primitive(result > 0);
+                    case delphi.GE -> new RuntimeValue.Primitive(result >= 0);
+                    default -> throw new RuntimeException("Unexpected item '" + ctx.relationaloperator().getText() + "' when attempting to evaluate 'expression'.");
+                };
+            }
+            default -> throw new RuntimeException("Unexpected item '" + ctx.relationaloperator().getText() + "' when attempting to evaluate 'expression'.");
+        };
+    }
+
+    @Override
     public RuntimeValue visitSimpleExpression(delphi.SimpleExpressionContext ctx) {
         RuntimeValue lhs = visitTerm(ctx.term());
 
@@ -33,7 +73,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 t.getSymbol().getType() == delphi.PLUS ||
                 t.getSymbol().getType() == delphi.MINUS
             ) -> {
-                RuntimeValue rhs = visitTerm(ctx.term());
+                RuntimeValue rhs = visitSimpleExpression(ctx.simpleExpression());
 
                 // If either one is not a number there is an issue
                 var lhsValue = RuntimeValue.requireType(lhs, Number.class);
