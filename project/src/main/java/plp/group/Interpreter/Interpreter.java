@@ -17,6 +17,47 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     //#region Expressions
 
     @Override
+    public RuntimeValue visitSimpleExpression(delphi.SimpleExpressionContext ctx) {
+        RuntimeValue lhs = visitTerm(ctx.term());
+
+        if (ctx.additiveoperator() == null) {
+            return lhs;
+        }
+
+        return switch (ctx.additiveoperator().getChild(0)) {
+            case TerminalNode t when t.getSymbol().getType() == delphi.OR -> {
+                Boolean result = RuntimeValue.requireType(lhs, Boolean.class) || RuntimeValue.requireType(visitSimpleExpression(ctx.simpleExpression()), Boolean.class);
+                yield new RuntimeValue.Primitive(result);
+            }
+            case TerminalNode t when (
+                t.getSymbol().getType() == delphi.PLUS ||
+                t.getSymbol().getType() == delphi.MINUS
+            ) -> {
+                RuntimeValue rhs = visitTerm(ctx.term());
+
+                // If either one is not a number there is an issue
+                var lhsValue = RuntimeValue.requireType(lhs, Number.class);
+                var rhsValue = RuntimeValue.requireType(rhs, Number.class);
+
+                if (lhsValue instanceof BigDecimal || rhsValue instanceof BigDecimal) {
+                    yield switch (t.getSymbol().getType()) {
+                        case delphi.PLUS -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).add(new BigDecimal(rhsValue.toString())));
+                        case delphi.MINUS -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).subtract(new BigDecimal(rhsValue.toString())));
+                        default -> throw new RuntimeException("Unexpected symbol '" + t.getText() + "' when attempting to evaluate 'simple expression'."); // Should never happen
+                    };
+                } else {
+                    yield switch (t.getSymbol().getType()) {
+                        case delphi.PLUS -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).add(new BigInteger(rhsValue.toString())));
+                        case delphi.MINUS -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).subtract(new BigInteger(rhsValue.toString())));
+                        default -> throw new RuntimeException("Unexpected symbol '" + t.getText() + "' when attempting to evaluate 'simple expression'."); // Should never happen
+                    };
+                }
+            }
+            default -> throw new RuntimeException("Unexpected item '" + ctx.additiveoperator().getText() + "' when attempting to evaluate 'simple expression'.");
+        };
+    }
+
+    @Override
     public RuntimeValue visitTerm(delphi.TermContext ctx) {
         RuntimeValue lhs = visitSignedFactor(ctx.signedFactor());
 
