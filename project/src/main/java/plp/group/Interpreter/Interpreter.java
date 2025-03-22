@@ -25,7 +25,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             // case delphi.FunctionDesignatorContext functionDesignatorCtx -> null;
             case delphi.UnsignedConstantContext unsignedConstantCtx -> visitUnsignedConstant(unsignedConstantCtx);
             // case delphi.Set_Context setContext -> null;
-            case TerminalNode t when t.getSymbol().getType() == delphi.NOT -> new RuntimeValue.Primitive(!requireType(visitFactor(ctx.factor()), Boolean.class));
+            case TerminalNode t when t.getSymbol().getType() == delphi.NOT -> new RuntimeValue.Primitive(!RuntimeValue.requireType(visitFactor(ctx.factor()), Boolean.class));
             case delphi.Bool_Context boolCtx -> visitBool_(boolCtx);
             default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(0).getText() + "' when attempting to evaluate 'factor'.");
         };
@@ -48,7 +48,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 };
 
                 if (signCtx.MINUS() != null) {
-                    Number n = requireType(value, Number.class);
+                    Number n = RuntimeValue.requireType(value, Number.class);
                     value = switch (n) {
                         case BigInteger bigInteger -> new RuntimeValue.Primitive(bigInteger.negate());
                         case BigDecimal bigDecimal -> new RuntimeValue.Primitive(bigDecimal.negate());
@@ -112,30 +112,5 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     //#endregion Constants
-
-    /**
-     * Use requireType to convert a RuntimeValue into an instance of a requested class.
-     * 
-     * @param <T> 
-     * @param value The RuntimeValue to convert to a requested type.
-     * @param type The '.class' of the type we want. 
-     * @return the RuntimeValue as the requested class. 
-     */
-    @SuppressWarnings("unchecked")
-    private static <T> T requireType(RuntimeValue value, Class<T> type) {
-        if (RuntimeValue.class.isAssignableFrom(type)) {
-            if (!type.isInstance(value)) {
-                throw new RuntimeException("Expected value to be of type " + type + ", received " + value.getClass() + ".");
-            }
-            return (T) value;
-        } else {
-            var primitive = requireType(value, RuntimeValue.Primitive.class);
-            if (!type.isInstance(primitive.value())) {
-                var received = primitive.value() != null ? primitive.value().getClass() : null;
-                throw new RuntimeException("Expected value to be of type " + type + ", received " + received + ".");
-            }
-            return (T) primitive.value();
-        }
-    }
 
 }

@@ -64,4 +64,29 @@ public sealed interface RuntimeValue {
         // WHAT GOES HERE? NAME AND A SCOPE? Definition and a scope? 
     ) implements RuntimeValue {};
 
+        /**
+     * Use requireType to convert a RuntimeValue into an instance of a requested class.
+     * 
+     * @param <T> 
+     * @param value The RuntimeValue to convert to a requested type.
+     * @param type The '.class' of the type we want. 
+     * @return the RuntimeValue as the requested class. 
+     */
+    @SuppressWarnings("unchecked")
+    public static <T> T requireType(RuntimeValue value, Class<T> type) {
+        if (RuntimeValue.class.isAssignableFrom(type)) {
+            if (!type.isInstance(value)) {
+                throw new RuntimeException("Expected value to be of type " + type + ", received " + value.getClass() + ".");
+            }
+            return (T) value;
+        } else {
+            var primitive = requireType(value, RuntimeValue.Primitive.class);
+            if (!type.isInstance(primitive.value())) {
+                var received = primitive.value() != null ? primitive.value().getClass() : null;
+                throw new RuntimeException("Expected value to be of type " + type + ", received " + received + ".");
+            }
+            return (T) primitive.value();
+        }
+    }
+
 }
