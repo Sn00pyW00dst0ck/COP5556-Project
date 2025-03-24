@@ -2,11 +2,15 @@ package plp.group.Interpreter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import plp.group.project.delphi;
+import plp.group.project.delphi.ActualParameterContext;
 import plp.group.project.delphiBaseVisitor;
 
 /**
@@ -22,7 +26,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     /*
      * TODO: 
      *  1. Built in functions (write, writeln, readln).
-     *  2. Finish visitFactor & visitConstant & visitVariable.
+     *  2. Finish visitFactor & visitVariable.
      *  3. Statements (broad / biggest thing)
      *      3.5. Break/continue keywords.
      *  4. Function/Procedure Definitions.
@@ -91,6 +95,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 Boolean result = RuntimeValue.requireType(lhs, Boolean.class) || RuntimeValue.requireType(visitSimpleExpression(ctx.simpleExpression()), Boolean.class);
                 yield new RuntimeValue.Primitive(result);
             }
+            // TODO: BELOW CURRENTLY ONLY SUPPORTS NUMERICAL OPERATIONS, ADD SUPPORT FOR CHARS AND STRINGS!
             case TerminalNode t when (
                 t.getSymbol().getType() == delphi.PLUS ||
                 t.getSymbol().getType() == delphi.MINUS
@@ -189,15 +194,46 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public RuntimeValue visitFactor(delphi.FactorContext ctx) {
         // We can tell what we are parsing based on the first child, so use a switch expression to return the proper thing.
         return switch (ctx.getChild(0)) {
-            // case delphi.VariableContext variableCtx -> null;
-            // case TerminalNode t when t.getSymbol().getType() == delphi.LPAREN -> null;
-            // case delphi.FunctionDesignatorContext functionDesignatorCtx -> null;
+            // case delphi.VariableContext variableCtx -> null; TODO: evaluate variables
+            case TerminalNode t when t.getSymbol().getType() == delphi.LPAREN -> visitExpression(ctx.expression());
+            case delphi.FunctionDesignatorContext functionDesignatorCtx -> visitFunctionDesignator(functionDesignatorCtx);
             case delphi.UnsignedConstantContext unsignedConstantCtx -> visitUnsignedConstant(unsignedConstantCtx);
-            // case delphi.Set_Context setContext -> null;
+            // case delphi.Set_Context setContext -> null; TODO: add set representation
             case TerminalNode t when t.getSymbol().getType() == delphi.NOT -> new RuntimeValue.Primitive(!RuntimeValue.requireType(visitFactor(ctx.factor()), Boolean.class));
             case delphi.Bool_Context boolCtx -> visitBool_(boolCtx);
             default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(0).getText() + "' when attempting to evaluate 'factor'.");
         };
+    }
+
+    @Override
+    public RuntimeValue visitFunctionDesignator(delphi.FunctionDesignatorContext ctx) {
+        RuntimeValue scopeValue = scope.lookup(ctx.identifier().getText()).orElseThrow(() -> new NoSuchElementException("Method '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'function designator'."));
+        RuntimeValue.Method method = RuntimeValue.requireType(scopeValue, RuntimeValue.Method.class);
+
+        // For each parameter in the parameter list we need to require the correct type...
+        List<RuntimeValue> parameters = visitParameterList(ctx.parameterList());
+        if (parameters.size() != method.signature().parameterTypes().size()) {
+            throw new RuntimeException("Expected " + method.signature().parameterTypes().size() + " arguments to '" + method.name() + "', but received " + parameters.size() + " when attempting to evaluate 'function designator'.");
+        }
+        for (int i = 0; i < parameters.size(); i++) {
+            RuntimeValue.requireType(parameters.get(i), method.signature().parameterTypes().get(i));
+        }
+
+        // A procedure will return a RuntimeValue with null as the value.
+        return method.definition().invoke(parameters);
+    }
+
+    @Override
+    public List<RuntimeValue> visitParameterList(delphi.ParameterListContext ctx) {
+        List<RuntimeValue> parameters = new ArrayList<>();
+
+        for (delphi.ActualParameterContext parameter: ctx.actualParameter()) {
+            parameters.add(visitExpression(parameter.expression()));
+            // TODO: figure out how to deal with parameter width... What even is it??
+            // parameter.parameterwidth();
+        }
+
+        return parameters;
     }
 
     //#endregion Expressions
@@ -207,11 +243,17 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public RuntimeValue visitConstant(delphi.ConstantContext ctx) {
         return switch (ctx.getChild(0)) {
-            // case delphi.IdentifierContext identifierCtx -> null;
+            case delphi.IdentifierContext identifierCtx -> {
+                Optional<RuntimeValue> result = scope.lookup(identifierCtx.IDENT().getText());
+                yield result.orElseThrow(() -> new NoSuchElementException("Variable '" + identifierCtx.IDENT().getText() + "' is not present in scope when attempting to evaluate 'constant'."));
+            }
             case delphi.UnsignedNumberContext unsignedNumberCtx -> visitUnsignedNumber(unsignedNumberCtx);
             case delphi.SignContext signCtx -> {
                 RuntimeValue value = switch (ctx.getChild(1)) {
-                    // case delphi.IdentifierContext identifierCtx -> null;
+                    case delphi.IdentifierContext identifierCtx -> {
+                        Optional<RuntimeValue> result = scope.lookup(identifierCtx.IDENT().getText());
+                        yield result.orElseThrow(() -> new NoSuchElementException("Variable '" + identifierCtx.IDENT().getText() + "' is not present in scope when attempting to evaluate 'constant'."));
+                    }
                     case delphi.UnsignedNumberContext unsignedNumberCtx -> visitUnsignedNumber(unsignedNumberCtx);
                     default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(1).getText() + "' when attempting to evaluate 'constant'.");
                 };
