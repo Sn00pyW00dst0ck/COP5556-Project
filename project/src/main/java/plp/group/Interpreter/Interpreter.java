@@ -2,6 +2,7 @@ package plp.group.Interpreter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.Optional;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -13,6 +14,27 @@ import plp.group.project.delphiBaseVisitor;
  */
 public class Interpreter extends delphiBaseVisitor<Object> {
     
+    /**
+     * The scope of the interpreter as it is running. 
+     */
+    private Scope scope = new Scope(Optional.empty());
+
+    /*
+     * TODO: 
+     *  1. Built in functions (write, writeln, readln).
+     *  2. Finish visitFactor & visitConstant & visitVariable.
+     *  3. Statements (broad / biggest thing)
+     *      3.5. Break/continue keywords.
+     *  4. Function/Procedure Definitions.
+     *  5. Class Definitions / Usage -> Pair program? 
+     *  6. Other types we had in P1 (range, enum, etc).
+     * 
+     *  * Write unit tests!
+     */
+
+    //#region Statements
+
+    //#endregion Statements
 
     //#region Expressions
 
@@ -22,7 +44,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         if (ctx.relationaloperator() == null) {
             return lhs;
-        }    
+        }
         
         return switch (ctx.relationaloperator().getChild(0)) {
             case TerminalNode t when (
