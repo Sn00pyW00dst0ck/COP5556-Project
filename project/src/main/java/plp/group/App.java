@@ -7,8 +7,8 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
 import plp.group.Interpreter.Interpreter;
-import plp.group.project.delphiLexer;
-import plp.group.project.delphiParser;
+import plp.group.project.delphi;
+import plp.group.project.delphi_lexer;
 
 /**
  * Right now this invokes ANTLR4 tooling to view the AST in a GUI window, in
@@ -47,10 +47,10 @@ public class App {
     private static void interpretProgram(String programFileName) {
         try {
             // Get the parse tree for the file we enter in command line.
-            var lexer = new delphiLexer(
+            var lexer = new delphi_lexer(
                     CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream(programFileName)));
             var tokens = new CommonTokenStream(lexer);
-            var parser = new delphiParser(tokens);
+            var parser = new delphi(tokens);
             var tree = parser.program();
             var interpreter = new Interpreter();
             interpreter.visit(tree);
@@ -62,14 +62,15 @@ public class App {
     private static void displayParseTree(String programFileName) {
         try {
             // Get the parse tree for the file we enter in command line.
-            var lexer = new delphiLexer(
+            var lexer = new delphi_lexer(
                     CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream(programFileName)));
             var tokens = new CommonTokenStream(lexer);
-            var parser = new delphiParser(tokens);
+            var parser = new delphi(tokens);
             var tree = parser.program();
 
             // Open a GUI window with the parse tree.
-            Trees.inspect(tree, parser);
+            var frame = Trees.inspect(tree, parser);
+            frame.get().setSize(600, 800);
         } catch (Exception e) {
             e.printStackTrace();
         }

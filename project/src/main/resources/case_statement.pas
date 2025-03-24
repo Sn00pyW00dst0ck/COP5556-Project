@@ -32,6 +32,6 @@ begin
     end;
 
     Case number of
-        0, 17 : writeln(number, ' is either 17 or 0');
+        0, 17 : writeln(number, ' is either 17 or 0')
     end;
 end.

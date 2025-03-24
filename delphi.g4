@@ -37,11 +37,10 @@ Adapted from pascal.g by  Hakki Dogusan, Piet Schoutteten and Marton Papp
 // $antlr-format alignTrailingComments true, columnLimit 150, minEmptyLines 1, maxEmptyLinesToKeep 1, reflowComments false, useTab false
 // $antlr-format allowShortRulesOnASingleLine false, allowShortBlocksOnASingleLine true, alignSemicolons hanging, alignColons hanging
 
-parser grammar delphi;
+grammar delphi;
 
 options {
     caseInsensitive = true;
-    tokenVocab = delphi_lexer;
 }
 
 program
@@ -63,7 +62,7 @@ block
         | constantDefinitionPart
         | typeDefinitionPart
         | variableDeclarationPart
-        | callableImplementationPart
+        | procedureAndFunctionDeclarationPart
         | usesUnitsPart
         | IMPLEMENTATION
     )* compoundStatement
@@ -134,7 +133,7 @@ typeDefinitionPart
     ;
 
 typeDefinition
-    : identifier EQUAL (type_ | functionType | procedureType | classType)
+    : identifier EQUAL (type_ | functionType | procedureType)
     ;
 
 functionType
@@ -251,42 +250,6 @@ pointerType
     : POINTER typeIdentifier
     ;
 
-classType
-    : CLASS (visibilitySection)+ END
-    ;
-
-visibilitySection
-    : (PRIVATE | PROTECTED | PUBLIC) classMemberDeclaration+
-    ;
-
-classMemberDeclaration
-    : classFieldDeclaration SEMI
-    | classProcedureDeclaration SEMI
-    | classFunctionDeclaration SEMI
-    | constructorDeclaration SEMI
-    | destructorDeclaration SEMI
-    ;
-
-classFieldDeclaration
-    : identifier COLON type_
-    ;
-
-classProcedureDeclaration
-    : PROCEDURE identifier (formalParameterList)?
-    ;
-
-classFunctionDeclaration
-    : FUNCTION identifier (formalParameterList)? COLON resultType
-    ;
-
-constructorDeclaration
-    : CONSTRUCTOR identifier (formalParameterList)?
-    ;
-
-destructorDeclaration
-    : DESTRUCTOR identifier
-    ;
-
 variableDeclarationPart
     : VAR variableDeclaration (SEMI variableDeclaration)* SEMI
     ;
@@ -295,20 +258,16 @@ variableDeclaration
     : identifierList COLON type_
     ;
 
-callableImplementationPart
-    : callableImplementation SEMI
+procedureAndFunctionDeclarationPart
+    : procedureOrFunctionDeclaration SEMI
     ;
 
-callableImplementation
-    : procedureImplementation
-    | functionImplementation
-    | constructorImplementation
-    | destructorImplementation
-    | classProcedureImplementation
-    | classFunctionImplementation
+procedureOrFunctionDeclaration
+    : procedureDeclaration
+    | functionDeclaration
     ;
 
-procedureImplementation
+procedureDeclaration
     : PROCEDURE identifier (formalParameterList)? SEMI block
     ;
 
@@ -316,13 +275,11 @@ formalParameterList
     : LPAREN formalParameterSection (SEMI formalParameterSection)* RPAREN
     ;
 
-// We could have no parameters, so this is needed...
 formalParameterSection
     : parameterGroup
     | VAR parameterGroup
     | FUNCTION parameterGroup
     | PROCEDURE parameterGroup
-    |
     ;
 
 parameterGroup
@@ -337,28 +294,12 @@ constList
     : constant (COMMA constant)*
     ;
 
-functionImplementation
+functionDeclaration
     : FUNCTION identifier (formalParameterList)? COLON resultType SEMI block
     ;
 
 resultType
     : typeIdentifier
-    ;
-
-constructorImplementation
-    : CONSTRUCTOR identifier DOT identifier (formalParameterList)? SEMI block
-    ;
-
-destructorImplementation
-    : DESTRUCTOR identifier DOT identifier SEMI block
-    ;
-
-classProcedureImplementation
-    : PROCEDURE identifier DOT identifier (formalParameterList)? SEMI block
-    ;
-
-classFunctionImplementation
-    : FUNCTION identifier DOT identifier (formalParameterList)? COLON resultType SEMI block
     ;
 
 statement
@@ -383,19 +324,12 @@ assignmentStatement
     ;
 
 variable
-    : primary (memberAccess)?
-    ;
-
-primary
-    : AT? identifier 
-    ;
-
-memberAccess
-    : DOT variable
-    | LPAREN parameterList RPAREN (DOT variable)?
-    | LBRACK expression (COMMA expression)* RBRACK
-    | LBRACK2 expression (COMMA expression)* RBRACK2
-    | POINTER
+    : (AT identifier | identifier) (
+        LBRACK expression (COMMA expression)* RBRACK
+        | LBRACK2 expression (COMMA expression)* RBRACK2
+        | DOT identifier
+        | POINTER
+    )*
     ;
 
 expression
@@ -571,4 +505,360 @@ withStatement
 
 recordVariableList
     : variable (COMMA variable)*
+    ;
+
+/*
+    Tokens
+*/
+
+CLASS
+    : 'CLASS'
+    ;
+
+CONSTRUCTOR
+    : 'CONSTRUCTOR'
+    ;
+
+DESTRUCTOR
+    : 'DESTRUCTOR'
+    ;
+
+PROPERTY
+    : 'PROPERTY'
+    ;
+
+PUBLIC
+    : 'PUBLIC'
+    ;
+
+PRIVATE
+    : 'PRIVATE'
+    ;
+
+PROTECTED
+    : 'PROTECTED'
+    ;
+
+AND
+    : 'AND'
+    ;
+
+ARRAY
+    : 'ARRAY'
+    ;
+
+BEGIN
+    : 'BEGIN'
+    ;
+
+BOOLEAN
+    : 'BOOLEAN'
+    ;
+
+CASE
+    : 'CASE'
+    ;
+
+CHAR
+    : 'CHAR'
+    ;
+
+CHR
+    : 'CHR'
+    ;
+
+CONST
+    : 'CONST'
+    ;
+
+DIV
+    : 'DIV'
+    ;
+
+DO
+    : 'DO'
+    ;
+
+DOWNTO
+    : 'DOWNTO'
+    ;
+
+ELSE
+    : 'ELSE'
+    ;
+
+END
+    : 'END'
+    ;
+
+FILE
+    : 'FILE'
+    ;
+
+FOR
+    : 'FOR'
+    ;
+
+FUNCTION
+    : 'FUNCTION'
+    ;
+
+GOTO
+    : 'GOTO'
+    ;
+
+IF
+    : 'IF'
+    ;
+
+IN
+    : 'IN'
+    ;
+
+INTEGER
+    : 'INTEGER'
+    ;
+
+LABEL
+    : 'LABEL'
+    ;
+
+MOD
+    : 'MOD'
+    ;
+
+NIL
+    : 'NIL'
+    ;
+
+NOT
+    : 'NOT'
+    ;
+
+OF
+    : 'OF'
+    ;
+
+OR
+    : 'OR'
+    ;
+
+PACKED
+    : 'PACKED'
+    ;
+
+PROCEDURE
+    : 'PROCEDURE'
+    ;
+
+PROGRAM
+    : 'PROGRAM'
+    ;
+
+REAL
+    : 'REAL'
+    ;
+
+RECORD
+    : 'RECORD'
+    ;
+
+REPEAT
+    : 'REPEAT'
+    ;
+
+SET
+    : 'SET'
+    ;
+
+THEN
+    : 'THEN'
+    ;
+
+TO
+    : 'TO'
+    ;
+
+TYPE
+    : 'TYPE'
+    ;
+
+UNTIL
+    : 'UNTIL'
+    ;
+
+VAR
+    : 'VAR'
+    ;
+
+WHILE
+    : 'WHILE'
+    ;
+
+WITH
+    : 'WITH'
+    ;
+
+PLUS
+    : '+'
+    ;
+
+MINUS
+    : '-'
+    ;
+
+STAR
+    : '*'
+    ;
+
+SLASH
+    : '/'
+    ;
+
+ASSIGN
+    : ':='
+    ;
+
+COMMA
+    : ','
+    ;
+
+SEMI
+    : ';'
+    ;
+
+COLON
+    : ':'
+    ;
+
+EQUAL
+    : '='
+    ;
+
+NOT_EQUAL
+    : '<>'
+    ;
+
+LT
+    : '<'
+    ;
+
+LE
+    : '<='
+    ;
+
+GE
+    : '>='
+    ;
+
+GT
+    : '>'
+    ;
+
+LPAREN
+    : '('
+    ;
+
+RPAREN
+    : ')'
+    ;
+
+LBRACK
+    : '['
+    ;
+
+LBRACK2
+    : '(.'
+    ;
+
+RBRACK
+    : ']'
+    ;
+
+RBRACK2
+    : '.)'
+    ;
+
+POINTER
+    : '^'
+    ;
+
+AT
+    : '@'
+    ;
+
+DOT
+    : '.'
+    ;
+
+DOTDOT
+    : '..'
+    ;
+
+LCURLY
+    : '{'
+    ;
+
+RCURLY
+    : '}'
+    ;
+
+UNIT
+    : 'UNIT'
+    ;
+
+INTERFACE
+    : 'INTERFACE'
+    ;
+
+USES
+    : 'USES'
+    ;
+
+STRING
+    : 'STRING'
+    ;
+
+IMPLEMENTATION
+    : 'IMPLEMENTATION'
+    ;
+
+TRUE
+    : 'TRUE'
+    ;
+
+FALSE
+    : 'FALSE'
+    ;
+
+WS
+    : [ \t\r\n] -> skip
+    ;
+
+COMMENT_1
+    : '(*' .*? '*)' -> skip
+    ;
+
+COMMENT_2
+    : '{' .*? '}' -> skip
+    ;
+
+IDENT
+    : ('A' .. 'Z') ('A' .. 'Z' | '0' .. '9' | '_')*
+    ;
+
+STRING_LITERAL
+    : '\'' ('\'\'' | ~ ('\''))* '\''
+    ;
+
+NUM_INT
+    : ('0' .. '9')+
+    ;
+
+NUM_REAL
+    : ('0' .. '9')+ (('.' ('0' .. '9')+ (EXPONENT)?)? | EXPONENT)
+    ;
+
+fragment EXPONENT
+    : ('E') ('+' | '-')? ('0' .. '9')+
     ;
