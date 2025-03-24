@@ -69,39 +69,6 @@ block
     )* compoundStatement
     ;
 
-classDeclaration
-    : TYPE identifier EQUAL CLASS (EXTENDS_ identifier)? 
-    ;
-
-classSection
-    : accessSpecifier?
-    ;
-
-accessSpecifier
-    : (PUBLIC | PRIVATE | PROTECTED) COLON
-    ;
-
-PUBLIC
-    : 'PUBLIC'
-    ;
-
-PRIVATE
-    : 'PRIVATE'
-    ;
-
-PROTECTED
-    : 'PROTECTED'
-    ;
-
-CLASS
-    : 'CLASS'
-    ;
-
-typeDefinitionWithClass
-    : identifier EQUAL (type_ | functionType | procedureType | classDeclaration) 
-    ;
-
-
 usesUnitsPart
     : USES identifierList SEMI
     ;
