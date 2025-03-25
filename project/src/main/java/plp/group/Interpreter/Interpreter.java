@@ -95,30 +95,49 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 Boolean result = RuntimeValue.requireType(lhs, Boolean.class) || RuntimeValue.requireType(visitSimpleExpression(ctx.simpleExpression()), Boolean.class);
                 yield new RuntimeValue.Primitive(result);
             }
-            // TODO: BELOW CURRENTLY ONLY SUPPORTS NUMERICAL OPERATIONS, ADD SUPPORT FOR CHARS AND STRINGS!
             case TerminalNode t when (
-                t.getSymbol().getType() == delphi.PLUS ||
+                t.getSymbol().getType() == delphi.PLUS  
+            ) -> {
+                RuntimeValue rhs = visitSimpleExpression(ctx.simpleExpression());
+                RuntimeValue.Primitive lhsPrimitive = RuntimeValue.requireType(lhs, RuntimeValue.Primitive.class);
+                RuntimeValue.Primitive rhsPrimitive = RuntimeValue.requireType(rhs, RuntimeValue.Primitive.class);
+
+                // The result of the operation will depend on the types passed in...
+                Object result = switch (lhsPrimitive.value()) {
+                    // Concatenation...
+                    case String left when rhsPrimitive.value() instanceof String right -> left + right;
+                    case String left when rhsPrimitive.value() instanceof Character right -> left + right.toString();
+                    case Character left when rhsPrimitive.value() instanceof String right -> left.toString() + right;
+                    case Character left when rhsPrimitive.value() instanceof Character right -> left.toString() + right.toString();
+                    // Numerical Addition...
+                    case BigInteger left when rhsPrimitive.value() instanceof BigInteger right -> left.add(right);
+                    case BigInteger left when rhsPrimitive.value() instanceof BigDecimal right -> new BigDecimal(left.toString()).add(right);
+                    case BigDecimal left when rhsPrimitive.value() instanceof BigInteger right -> left.add(new BigDecimal(right.toString()));
+                    case BigDecimal left when rhsPrimitive.value() instanceof BigDecimal right -> left.add(right);
+                    // Bad types passed in...
+                    default -> throw new RuntimeException("Unexpected types received for '" + ctx.additiveoperator().getText() + "' when attempting to evaluate 'simple expression'.");
+                };
+
+                yield new RuntimeValue.Primitive(result);
+            }
+            case TerminalNode t when (
                 t.getSymbol().getType() == delphi.MINUS
             ) -> {
                 RuntimeValue rhs = visitSimpleExpression(ctx.simpleExpression());
+                RuntimeValue.Primitive lhsPrimitive = RuntimeValue.requireType(lhs, RuntimeValue.Primitive.class);
+                RuntimeValue.Primitive rhsPrimitive = RuntimeValue.requireType(rhs, RuntimeValue.Primitive.class);
 
-                // If either one is not a number there is an issue
-                var lhsValue = RuntimeValue.requireType(lhs, Number.class);
-                var rhsValue = RuntimeValue.requireType(rhs, Number.class);
+                Object result = switch (lhsPrimitive.value()) {
+                    // Numerical Subtraction...
+                    case BigInteger left when rhsPrimitive.value() instanceof BigInteger right -> left.subtract(right);
+                    case BigInteger left when rhsPrimitive.value() instanceof BigDecimal right -> new BigDecimal(left.toString()).subtract(right);
+                    case BigDecimal left when rhsPrimitive.value() instanceof BigInteger right -> left.subtract(new BigDecimal(right.toString()));
+                    case BigDecimal left when rhsPrimitive.value() instanceof BigDecimal right -> left.subtract(right);
+                    // Bad types passed in...
+                    default -> throw new RuntimeException("Unexpected types received for '" + ctx.additiveoperator().getText() + "' when attempting to evaluate 'simple expression'.");
+                };
 
-                if (lhsValue instanceof BigDecimal || rhsValue instanceof BigDecimal) {
-                    yield switch (t.getSymbol().getType()) {
-                        case delphi.PLUS -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).add(new BigDecimal(rhsValue.toString())));
-                        case delphi.MINUS -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).subtract(new BigDecimal(rhsValue.toString())));
-                        default -> throw new RuntimeException("Unexpected symbol '" + t.getText() + "' when attempting to evaluate 'simple expression'."); // Should never happen
-                    };
-                } else {
-                    yield switch (t.getSymbol().getType()) {
-                        case delphi.PLUS -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).add(new BigInteger(rhsValue.toString())));
-                        case delphi.MINUS -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).subtract(new BigInteger(rhsValue.toString())));
-                        default -> throw new RuntimeException("Unexpected symbol '" + t.getText() + "' when attempting to evaluate 'simple expression'."); // Should never happen
-                    };
-                }
+                yield new RuntimeValue.Primitive(result);
             }
             default -> throw new RuntimeException("Unexpected item '" + ctx.additiveoperator().getText() + "' when attempting to evaluate 'simple expression'.");
         };
