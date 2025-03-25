@@ -10,7 +10,6 @@ import java.util.Optional;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 import plp.group.project.delphi;
-import plp.group.project.delphi.ActualParameterContext;
 import plp.group.project.delphiBaseVisitor;
 
 /**
@@ -19,14 +18,16 @@ import plp.group.project.delphiBaseVisitor;
 public class Interpreter extends delphiBaseVisitor<Object> {
     
     /**
-     * The scope of the interpreter as it is running. 
+     * The scope of the interpreter as it is running.
+     * 
+     * The interpreter starts in the global scope, and the parent of the global scope is the built in functions. 
      */
-    private Scope scope = new Scope(Optional.empty());
+    private Scope scope = new Scope(Optional.of(Environment.scope()));
 
     /*
      * TODO: 
-     *  1. Built in functions (write, writeln, readln).
-     *  2. Finish visitFactor & visitVariable.
+     *  1. Built in function definitions (read and readln).
+     *  2. visitVariable
      *  3. Statements (broad / biggest thing)
      *      3.5. Break/continue keywords.
      *  4. Function/Procedure Definitions.
@@ -226,11 +227,12 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public RuntimeValue visitFunctionDesignator(delphi.FunctionDesignatorContext ctx) {
-        RuntimeValue scopeValue = scope.lookup(ctx.identifier().getText()).orElseThrow(() -> new NoSuchElementException("Method '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'function designator'."));
+        List<RuntimeValue> parameters = visitParameterList(ctx.parameterList());
+
+        RuntimeValue scopeValue = scope.lookup(ctx.identifier().getText() + "/" + parameters.size()).orElseThrow(() -> new NoSuchElementException("Method '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'function designator'."));
         RuntimeValue.Method method = RuntimeValue.requireType(scopeValue, RuntimeValue.Method.class);
 
         // For each parameter in the parameter list we need to require the correct type...
-        List<RuntimeValue> parameters = visitParameterList(ctx.parameterList());
         if (parameters.size() != method.signature().parameterTypes().size()) {
             throw new RuntimeException("Expected " + method.signature().parameterTypes().size() + " arguments to '" + method.name() + "', but received " + parameters.size() + " when attempting to evaluate 'function designator'.");
         }
