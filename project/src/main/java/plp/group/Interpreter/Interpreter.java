@@ -2,6 +2,9 @@ package plp.group.Interpreter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -15,14 +18,16 @@ import plp.group.project.delphiBaseVisitor;
 public class Interpreter extends delphiBaseVisitor<Object> {
     
     /**
-     * The scope of the interpreter as it is running. 
+     * The scope of the interpreter as it is running.
+     * 
+     * The interpreter starts in the global scope, and the parent of the global scope is the built in functions. 
      */
-    private Scope scope = new Scope(Optional.empty());
+    private Scope scope = new Scope(Optional.of(Environment.scope()));
 
     /*
      * TODO: 
-     *  1. Built in functions (write, writeln, readln).
-     *  2. Finish visitFactor & visitConstant & visitVariable.
+     *  1. Built in function definitions (read and readln).
+     *  2. visitVariable
      *  3. Statements (broad / biggest thing)
      *      3.5. Break/continue keywords.
      *  4. Function/Procedure Definitions.
@@ -92,28 +97,48 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 yield new RuntimeValue.Primitive(result);
             }
             case TerminalNode t when (
-                t.getSymbol().getType() == delphi.PLUS ||
+                t.getSymbol().getType() == delphi.PLUS  
+            ) -> {
+                RuntimeValue rhs = visitSimpleExpression(ctx.simpleExpression());
+                RuntimeValue.Primitive lhsPrimitive = RuntimeValue.requireType(lhs, RuntimeValue.Primitive.class);
+                RuntimeValue.Primitive rhsPrimitive = RuntimeValue.requireType(rhs, RuntimeValue.Primitive.class);
+
+                // The result of the operation will depend on the types passed in...
+                Object result = switch (lhsPrimitive.value()) {
+                    // Concatenation...
+                    case String left when rhsPrimitive.value() instanceof String right -> left + right;
+                    case String left when rhsPrimitive.value() instanceof Character right -> left + right.toString();
+                    case Character left when rhsPrimitive.value() instanceof String right -> left.toString() + right;
+                    case Character left when rhsPrimitive.value() instanceof Character right -> left.toString() + right.toString();
+                    // Numerical Addition...
+                    case BigInteger left when rhsPrimitive.value() instanceof BigInteger right -> left.add(right);
+                    case BigInteger left when rhsPrimitive.value() instanceof BigDecimal right -> new BigDecimal(left.toString()).add(right);
+                    case BigDecimal left when rhsPrimitive.value() instanceof BigInteger right -> left.add(new BigDecimal(right.toString()));
+                    case BigDecimal left when rhsPrimitive.value() instanceof BigDecimal right -> left.add(right);
+                    // Bad types passed in...
+                    default -> throw new RuntimeException("Unexpected types received for '" + ctx.additiveoperator().getText() + "' when attempting to evaluate 'simple expression'.");
+                };
+
+                yield new RuntimeValue.Primitive(result);
+            }
+            case TerminalNode t when (
                 t.getSymbol().getType() == delphi.MINUS
             ) -> {
                 RuntimeValue rhs = visitSimpleExpression(ctx.simpleExpression());
+                RuntimeValue.Primitive lhsPrimitive = RuntimeValue.requireType(lhs, RuntimeValue.Primitive.class);
+                RuntimeValue.Primitive rhsPrimitive = RuntimeValue.requireType(rhs, RuntimeValue.Primitive.class);
 
-                // If either one is not a number there is an issue
-                var lhsValue = RuntimeValue.requireType(lhs, Number.class);
-                var rhsValue = RuntimeValue.requireType(rhs, Number.class);
+                Object result = switch (lhsPrimitive.value()) {
+                    // Numerical Subtraction...
+                    case BigInteger left when rhsPrimitive.value() instanceof BigInteger right -> left.subtract(right);
+                    case BigInteger left when rhsPrimitive.value() instanceof BigDecimal right -> new BigDecimal(left.toString()).subtract(right);
+                    case BigDecimal left when rhsPrimitive.value() instanceof BigInteger right -> left.subtract(new BigDecimal(right.toString()));
+                    case BigDecimal left when rhsPrimitive.value() instanceof BigDecimal right -> left.subtract(right);
+                    // Bad types passed in...
+                    default -> throw new RuntimeException("Unexpected types received for '" + ctx.additiveoperator().getText() + "' when attempting to evaluate 'simple expression'.");
+                };
 
-                if (lhsValue instanceof BigDecimal || rhsValue instanceof BigDecimal) {
-                    yield switch (t.getSymbol().getType()) {
-                        case delphi.PLUS -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).add(new BigDecimal(rhsValue.toString())));
-                        case delphi.MINUS -> new RuntimeValue.Primitive(new BigDecimal(lhsValue.toString()).subtract(new BigDecimal(rhsValue.toString())));
-                        default -> throw new RuntimeException("Unexpected symbol '" + t.getText() + "' when attempting to evaluate 'simple expression'."); // Should never happen
-                    };
-                } else {
-                    yield switch (t.getSymbol().getType()) {
-                        case delphi.PLUS -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).add(new BigInteger(rhsValue.toString())));
-                        case delphi.MINUS -> new RuntimeValue.Primitive(new BigInteger(lhsValue.toString()).subtract(new BigInteger(rhsValue.toString())));
-                        default -> throw new RuntimeException("Unexpected symbol '" + t.getText() + "' when attempting to evaluate 'simple expression'."); // Should never happen
-                    };
-                }
+                yield new RuntimeValue.Primitive(result);
             }
             default -> throw new RuntimeException("Unexpected item '" + ctx.additiveoperator().getText() + "' when attempting to evaluate 'simple expression'.");
         };
@@ -189,15 +214,47 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public RuntimeValue visitFactor(delphi.FactorContext ctx) {
         // We can tell what we are parsing based on the first child, so use a switch expression to return the proper thing.
         return switch (ctx.getChild(0)) {
-            // case delphi.VariableContext variableCtx -> null;
-            // case TerminalNode t when t.getSymbol().getType() == delphi.LPAREN -> null;
-            // case delphi.FunctionDesignatorContext functionDesignatorCtx -> null;
+            // case delphi.VariableContext variableCtx -> null; TODO: evaluate variables
+            case TerminalNode t when t.getSymbol().getType() == delphi.LPAREN -> visitExpression(ctx.expression());
+            case delphi.FunctionDesignatorContext functionDesignatorCtx -> visitFunctionDesignator(functionDesignatorCtx);
             case delphi.UnsignedConstantContext unsignedConstantCtx -> visitUnsignedConstant(unsignedConstantCtx);
-            // case delphi.Set_Context setContext -> null;
+            // case delphi.Set_Context setContext -> null; TODO: add set representation
             case TerminalNode t when t.getSymbol().getType() == delphi.NOT -> new RuntimeValue.Primitive(!RuntimeValue.requireType(visitFactor(ctx.factor()), Boolean.class));
             case delphi.Bool_Context boolCtx -> visitBool_(boolCtx);
             default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(0).getText() + "' when attempting to evaluate 'factor'.");
         };
+    }
+
+    @Override
+    public RuntimeValue visitFunctionDesignator(delphi.FunctionDesignatorContext ctx) {
+        List<RuntimeValue> parameters = visitParameterList(ctx.parameterList());
+
+        RuntimeValue scopeValue = scope.lookup(ctx.identifier().getText() + "/" + parameters.size()).orElseThrow(() -> new NoSuchElementException("Method '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'function designator'."));
+        RuntimeValue.Method method = RuntimeValue.requireType(scopeValue, RuntimeValue.Method.class);
+
+        // For each parameter in the parameter list we need to require the correct type...
+        if (parameters.size() != method.signature().parameterTypes().size()) {
+            throw new RuntimeException("Expected " + method.signature().parameterTypes().size() + " arguments to '" + method.name() + "', but received " + parameters.size() + " when attempting to evaluate 'function designator'.");
+        }
+        for (int i = 0; i < parameters.size(); i++) {
+            RuntimeValue.requireType(parameters.get(i), method.signature().parameterTypes().get(i));
+        }
+
+        // A procedure will return a RuntimeValue with null as the value.
+        return method.definition().invoke(parameters);
+    }
+
+    @Override
+    public List<RuntimeValue> visitParameterList(delphi.ParameterListContext ctx) {
+        List<RuntimeValue> parameters = new ArrayList<>();
+
+        for (delphi.ActualParameterContext parameter: ctx.actualParameter()) {
+            parameters.add(visitExpression(parameter.expression()));
+            // TODO: figure out how to deal with parameter width... What even is it??
+            // parameter.parameterwidth();
+        }
+
+        return parameters;
     }
 
     //#endregion Expressions
@@ -207,11 +264,17 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public RuntimeValue visitConstant(delphi.ConstantContext ctx) {
         return switch (ctx.getChild(0)) {
-            // case delphi.IdentifierContext identifierCtx -> null;
+            case delphi.IdentifierContext identifierCtx -> {
+                Optional<RuntimeValue> result = scope.lookup(identifierCtx.IDENT().getText());
+                yield result.orElseThrow(() -> new NoSuchElementException("Variable '" + identifierCtx.IDENT().getText() + "' is not present in scope when attempting to evaluate 'constant'."));
+            }
             case delphi.UnsignedNumberContext unsignedNumberCtx -> visitUnsignedNumber(unsignedNumberCtx);
             case delphi.SignContext signCtx -> {
                 RuntimeValue value = switch (ctx.getChild(1)) {
-                    // case delphi.IdentifierContext identifierCtx -> null;
+                    case delphi.IdentifierContext identifierCtx -> {
+                        Optional<RuntimeValue> result = scope.lookup(identifierCtx.IDENT().getText());
+                        yield result.orElseThrow(() -> new NoSuchElementException("Variable '" + identifierCtx.IDENT().getText() + "' is not present in scope when attempting to evaluate 'constant'."));
+                    }
                     case delphi.UnsignedNumberContext unsignedNumberCtx -> visitUnsignedNumber(unsignedNumberCtx);
                     default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(1).getText() + "' when attempting to evaluate 'constant'.");
                 };

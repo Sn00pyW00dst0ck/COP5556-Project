@@ -33,7 +33,7 @@ public sealed interface RuntimeValue {
 
         @FunctionalInterface
         interface MethodDefinition {
-            RuntimeValue invoke(List<RuntimeValue> arguments) throws Exception;
+            RuntimeValue invoke(List<RuntimeValue> arguments) throws RuntimeException;
         };
 
         @Override
