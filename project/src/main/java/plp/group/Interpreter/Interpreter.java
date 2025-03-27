@@ -89,8 +89,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         int start = RuntimeValue.requireType((RuntimeValue) visit(list.initialValue()), Integer.class);
         int end = RuntimeValue.requireType((RuntimeValue) visit(list.finalValue()), Integer.class);
         
-        boolean isTo = list.getChild(1).getText().equalsIgnoreCase("to");
-        
+        boolean isTo = isAscendingLoop(list);
         Scope oldScope = scope;
         scope = new Scope(Optional.of(oldScope));
         
