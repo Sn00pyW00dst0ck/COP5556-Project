@@ -27,24 +27,24 @@ public class Environment {
         scope.define("write/1", new RuntimeValue.Method(
             "write/1", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class), 
-                Void.class
-            ), 
+                List.of(new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
+            ),
             Environment::write
         ));
         scope.define("write/2", new RuntimeValue.Method(
             "write/2", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class, Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::write
         ));
         scope.define("write/3", new RuntimeValue.Method(
             "write/3", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class, Object.class, Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::write
         ));
@@ -52,28 +52,28 @@ public class Environment {
         scope.define("writeln/1", new RuntimeValue.Method(
             "writeln/1", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::writeln
         ));
         scope.define("writeln/2", new RuntimeValue.Method(
             "writeln/2", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class, Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::writeln
         ));
         scope.define("writeln/3", new RuntimeValue.Method(
             "writeln/3", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class, Object.class, Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::writeln
         ));
-
+        
         /*
          * TODO: read and readln here, they will be tough because they have to be variadic I think, unless we want to force only one variable. 
          * Also, references will be a thing to deal with and it will be tough...

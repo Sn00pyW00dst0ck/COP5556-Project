@@ -3,7 +3,9 @@ package plp.group.Interpreter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.HashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
@@ -36,6 +38,134 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      * 
      *  * Write unit tests!
      */
+
+    //#region Types
+
+    @Override
+    public RuntimeValue visitTypeDefinition(delphi.TypeDefinitionContext ctx) {
+        String typeName = ctx.identifier().getText();
+
+        RuntimeValue typeDefinition = switch (ctx.getChild(ctx.getChildCount() - 1)) {
+            case delphi.Type_Context typeContext -> visitType_(typeContext);
+            case delphi.FunctionTypeContext functionTypeContext -> visitFunctionType(functionTypeContext);
+            case delphi.ProcedureTypeContext procedureTypeContext -> visitProcedureType(procedureTypeContext);
+            case delphi.ClassTypeContext classTypeContext -> visitClassType(classTypeContext);
+            default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(ctx.getChildCount() - 1).getText() + "' when attempting to evaluate 'type definition'.");
+        };
+
+        // Add the new typeName to the scope with correct typeDefinition
+        scope.define(typeName, typeDefinition);
+
+        return new RuntimeValue.Primitive(null);
+    }
+
+    @Override
+    public RuntimeValue visitClassType(delphi.ClassTypeContext ctx) {
+        Scope classScope = new Scope(Optional.of(Environment.scope()));
+
+        // Visit the children and add things to the scope...
+
+        return  new RuntimeValue.ClassDefinition(
+            null,
+            classScope
+        );
+    }
+
+    /**
+     * Creates a RuntimeValue.Method with a null function definition and a null name...
+     */
+    @Override
+    public RuntimeValue visitFunctionType(delphi.FunctionTypeContext ctx) {
+        throw new UnsupportedOperationException("Operation not implemented");
+
+        // TODO: Get the parameter types...
+        // return new RuntimeValue.Method(
+        //     null,
+        //     new RuntimeValue.Method.MethodSignature(
+        //         List.of(),
+        //         visitResultType(ctx.resultType())
+        //     ),
+        //     null
+        // );
+    }
+
+    /**
+     * Creates a RuntimeValue.Method with a null function definition and a null name...
+     */
+    @Override
+    public RuntimeValue visitProcedureType(delphi.ProcedureTypeContext ctx) {
+        throw new UnsupportedOperationException("Operation not implemented");
+    }
+
+    @Override
+    public RuntimeValue visitFormalParameterList(delphi.FormalParameterListContext ctx) {
+        throw new UnsupportedOperationException("Operation not implemented");
+    }
+
+    /**
+     * Returns the result of visiting the result type's type identifier.
+     */
+    @Override
+    public RuntimeValue visitResultType(delphi.ResultTypeContext ctx) {
+        return visitTypeIdentifier(ctx.typeIdentifier());
+    }
+
+    /**
+     * Returns the 'default value' for primitive types, otherwise it returns the type definition/blueprint...
+     */
+    @Override
+    public RuntimeValue visitType_(delphi.Type_Context ctx) {
+        return switch (ctx.getChild(0)) {
+            case delphi.SimpleTypeContext simpleTypeContext -> visitSimpleType(simpleTypeContext);
+            // case delphi.StructuredTypeContext structuredTypeContext -> visitStructuredType(simpleTypeContext);
+            // case delphi.PointerTypeContext pointerTypeContext -> visitPointerType(simpleTypeContext);
+            default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(ctx.getChildCount() - 1).getText() + "' when attempting to evaluate 'type_'.");
+        };
+    }
+
+    @Override
+    public RuntimeValue visitSimpleType(delphi.SimpleTypeContext ctx) {
+        return switch (ctx.getChild(0)) {
+            case delphi.ScalarTypeContext scalarTypeContext -> visitScalarType(scalarTypeContext);
+            // TODO: subrange type
+            case delphi.TypeIdentifierContext typeIdentifierContext -> visitTypeIdentifier(typeIdentifierContext);
+            // TODO: string type
+            default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(ctx.getChildCount() - 1).getText() + "' when attempting to evaluate 'simple type'.");
+        };
+    }
+
+    /* Scalar Type AKA Enumeration */
+    @Override
+    public RuntimeValue visitScalarType(delphi.ScalarTypeContext ctx) {
+        // Looks weird, but looping over all identifiers in the identifier list..
+        Map<String, Integer> optionsMap = new HashMap<String, Integer>();
+        for (int i = 0; i < ctx.identifierList().identifier().size(); i++) {
+            optionsMap.put(ctx.identifierList().identifier().get(i).getText(), i);
+        }
+
+        // Create a new Enumeration RuntimeValue and return it.
+        return new RuntimeValue.Enumeration(null, optionsMap);
+    }
+
+    /**
+     * Visits the type identifier. Looks it up in the scope if it is an identifier.
+     * If it is one of the built in types it returns default value for that type.
+     */
+    @Override
+    public RuntimeValue visitTypeIdentifier(delphi.TypeIdentifierContext ctx) {
+        return switch (ctx.getChild(0)) {
+            case delphi.IdentifierContext identifier -> scope.lookup(identifier.getText()).orElseThrow(() -> new NoSuchElementException("Type Identifier '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'type identifier'."));
+            // NOTE: arbitrary choices for the primitive default values...
+            case TerminalNode t when(t.getSymbol().getType() == delphi.CHAR) -> new RuntimeValue.Primitive((char)'a');
+            case TerminalNode t when(t.getSymbol().getType() == delphi.STRING) -> new RuntimeValue.Primitive("");
+            case TerminalNode t when(t.getSymbol().getType() == delphi.BOOLEAN) -> new RuntimeValue.Primitive(true);
+            case TerminalNode t when(t.getSymbol().getType() == delphi.INTEGER) -> new RuntimeValue.Primitive(new BigInteger("0"));
+            case TerminalNode t when(t.getSymbol().getType() == delphi.REAL) -> new RuntimeValue.Primitive(new BigDecimal("0.0"));
+            default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(ctx.getChildCount() - 1).getText() + "' when attempting to evaluate 'type identifier'.");
+        };
+    }
+
+    //#endregion Types
 
     //#region Statements
 
@@ -214,7 +344,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public RuntimeValue visitFactor(delphi.FactorContext ctx) {
         // We can tell what we are parsing based on the first child, so use a switch expression to return the proper thing.
         return switch (ctx.getChild(0)) {
-            // case delphi.VariableContext variableCtx -> null; TODO: evaluate variables
+            case delphi.VariableContext variableCtx -> null;//  TODO: evaluate variables
             case TerminalNode t when t.getSymbol().getType() == delphi.LPAREN -> visitExpression(ctx.expression());
             case delphi.FunctionDesignatorContext functionDesignatorCtx -> visitFunctionDesignator(functionDesignatorCtx);
             case delphi.UnsignedConstantContext unsignedConstantCtx -> visitUnsignedConstant(unsignedConstantCtx);
@@ -237,7 +367,11 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             throw new RuntimeException("Expected " + method.signature().parameterTypes().size() + " arguments to '" + method.name() + "', but received " + parameters.size() + " when attempting to evaluate 'function designator'.");
         }
         for (int i = 0; i < parameters.size(); i++) {
-            RuntimeValue.requireType(parameters.get(i), method.signature().parameterTypes().get(i));
+            RuntimeValue.requireType(parameters.get(i), method.signature().parameterTypes().get(i).getClass());
+            // If a primitive, one level deeper to check type...
+            if (parameters.get(i) instanceof RuntimeValue.Primitive && method.signature().parameterTypes().get(i) instanceof RuntimeValue.Primitive expectedPrimitive) {
+                RuntimeValue.requireType(parameters.get(i), expectedPrimitive.value().getClass());
+            }
         }
 
         // A procedure will return a RuntimeValue with null as the value.
@@ -247,13 +381,11 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public List<RuntimeValue> visitParameterList(delphi.ParameterListContext ctx) {
         List<RuntimeValue> parameters = new ArrayList<>();
-
         for (delphi.ActualParameterContext parameter: ctx.actualParameter()) {
             parameters.add(visitExpression(parameter.expression()));
             // TODO: figure out how to deal with parameter width... What even is it??
             // parameter.parameterwidth();
         }
-
         return parameters;
     }
 
