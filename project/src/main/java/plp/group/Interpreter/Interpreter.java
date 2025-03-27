@@ -4,6 +4,7 @@ import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
 import java.util.HashMap;
+import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
@@ -95,14 +96,14 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                         visibilityScope.define(fieldCtx.identifier().getText(), visitType_(fieldCtx.type_()));
                     case delphi.ClassProcedureDeclarationContext procedureCtx -> {
                         String procedureName = procedureCtx.identifier().getText();
-                        List<RuntimeValue> parameterTypes = visitFormalParameterList(procedureCtx.formalParameterList());
+                        LinkedHashMap<String, RuntimeValue> parameterTypes = visitFormalParameterList(procedureCtx.formalParameterList());
 
                         visibilityScope.define(
                             procedureName + "/" + parameterTypes.size(), 
                             new RuntimeValue.Method(
                                 procedureName + "/" + parameterTypes.size(), 
                                 new RuntimeValue.Method.MethodSignature(
-                                    parameterTypes, 
+                                    new ArrayList<RuntimeValue>(parameterTypes.values()),
                                     new RuntimeValue.Primitive(null)
                                 ), 
                                 null
@@ -111,7 +112,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     }
                     case delphi.ClassFunctionDeclarationContext functionCtx -> {
                         String functionName = functionCtx.identifier().getText();
-                        List<RuntimeValue> parameterTypes = visitFormalParameterList(functionCtx.formalParameterList());
+                        LinkedHashMap<String, RuntimeValue> parameterTypes = visitFormalParameterList(functionCtx.formalParameterList());
                         RuntimeValue returnType = visitResultType(functionCtx.resultType());
 
                         visibilityScope.define(
@@ -119,7 +120,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                             new RuntimeValue.Method(
                                 functionName + "/" + parameterTypes.size(), 
                                 new RuntimeValue.Method.MethodSignature(
-                                    parameterTypes, 
+                                    new ArrayList<RuntimeValue>(parameterTypes.values()),
                                     returnType
                                 ), 
                                 null
@@ -129,7 +130,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     // TODO: should we store constructor and destructor separately...
                     case delphi.ConstructorDeclarationContext constructorCtx -> {
                         String constructorName = constructorCtx.identifier().getText();
-                        List<RuntimeValue> parameterTypes = List.of();
+                        LinkedHashMap<String, RuntimeValue> parameterTypes = new LinkedHashMap<>();
                         
                         if (constructorCtx.formalParameterList() != null) {
                             parameterTypes = visitFormalParameterList(constructorCtx.formalParameterList());
@@ -140,7 +141,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                             new RuntimeValue.Method(
                                 constructorName + "/" + parameterTypes.size(), 
                                 new RuntimeValue.Method.MethodSignature(
-                                    parameterTypes, 
+                                    new ArrayList<RuntimeValue>(parameterTypes.values()),
                                     new RuntimeValue.Primitive(null)
                                 ), 
                                 null
@@ -202,8 +203,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      * Returns the type of each argument in the order it appears as a list of RuntimeValue
      */
     @Override
-    public List<RuntimeValue> visitFormalParameterList(delphi.FormalParameterListContext ctx) {
-        List<RuntimeValue> parameterTypes = new ArrayList<RuntimeValue>();
+    public LinkedHashMap<String, RuntimeValue> visitFormalParameterList(delphi.FormalParameterListContext ctx) {
+        LinkedHashMap<String, RuntimeValue> parameterTypes = new LinkedHashMap<String, RuntimeValue>();
 
         // Handle each of the sections...
         for (delphi.FormalParameterSectionContext section: ctx.formalParameterSection()) {
@@ -216,8 +217,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     RuntimeValue type = visitTypeIdentifier(parameterGroupCtx.typeIdentifier());
 
                     // For every identifier push the type
-                    for (delphi.IdentifierContext _ : parameterGroupCtx.identifierList().identifier()) {
-                        parameterTypes.add(type);
+                    for (delphi.IdentifierContext identifier : parameterGroupCtx.identifierList().identifier()) {
+                        parameterTypes.put(identifier.getText(), type);
                     }
                 }
                 case TerminalNode t when (t.getSymbol().getType() == delphi.VAR) -> {
@@ -300,6 +301,75 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     //#endregion Types
+
+    //#region Implementations
+
+    /**
+     * Visits the implementation (definition) of a procedure and adds it to the scope.
+     * 
+     * Returns a RuntimeValue.Primitive(null)
+     */
+    @Override
+    public RuntimeValue visitProcedureImplementation(delphi.ProcedureImplementationContext ctx) {
+        String procedureName = ctx.identifier().getText();
+        LinkedHashMap<String, RuntimeValue> parameters = (ctx.formalParameterList() == null) ? new LinkedHashMap<>() : visitFormalParameterList(ctx.formalParameterList());
+
+        scope.define(
+            procedureName + "/" + parameters.size(),
+            new RuntimeValue.Method(
+                procedureName + "/" + parameters.size(),
+                new RuntimeValue.Method.MethodSignature(
+                    new ArrayList<RuntimeValue>(parameters.values()),
+                    new RuntimeValue.Primitive(null)
+                ),
+                (args) -> {
+                    // Setup new scope.
+                    Scope originalScope = scope;
+                    Scope functionScope = new Scope(Optional.of(scope));
+
+                    // Add parameter values to the scope. 
+                    int currentParameter = 0;
+                    for (Map.Entry<String, RuntimeValue> parameter : parameters.entrySet()) {
+                        // Require proper type for current parameter.
+                        RuntimeValue.requireType(args.get(currentParameter), parameter.getValue().getClass());
+                        if (parameter.getValue() instanceof RuntimeValue.Primitive primitiveType) {
+                            RuntimeValue.requireType(args.get(currentParameter), primitiveType.value().getClass());
+                        }
+                        // Add current parameter to the scope. 
+                        functionScope.define(parameter.getKey(), args.get(currentParameter));
+                        currentParameter++;
+                    }
+
+                    try {
+                        visitBlock(ctx.block());
+                    } catch (RuntimeException e) {
+                        // Handle exceptions here...
+                    } finally {
+                        scope = originalScope;
+                    }
+                    return new RuntimeValue.Primitive(null);
+                }
+            )
+        );
+
+        return new RuntimeValue.Primitive(null);
+    }
+
+    /**
+     * Similar to the above, except for a function which can have a returned value. 
+     */
+    @Override
+    public RuntimeValue visitFunctionImplementation(delphi.FunctionImplementationContext ctx) {
+        String procedureName = ctx.identifier().getText();
+        LinkedHashMap<String, RuntimeValue> parameters = (ctx.formalParameterList() == null) ? new LinkedHashMap<>() : visitFormalParameterList(ctx.formalParameterList());
+        RuntimeValue returnType = visitResultType(ctx.resultType());
+        
+        // Should be nearly identical to above, but handle return statements differently...
+        
+        return new RuntimeValue.Primitive(null);
+    }
+
+    //#endregion Implementations
 
     //#region Statements
 
