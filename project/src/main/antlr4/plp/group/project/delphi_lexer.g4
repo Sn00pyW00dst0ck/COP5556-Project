@@ -351,3 +351,11 @@ NUM_REAL
 fragment EXPONENT
     : ('E') ('+' | '-')? ('0' .. '9')+
     ;
+
+BREAK
+    : 'break'
+    ;
+
+CONTINUE
+    : 'continue'
+    ;

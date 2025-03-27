@@ -17,6 +17,26 @@ import plp.group.project.delphiBaseVisitor;
  */
 public class Interpreter extends delphiBaseVisitor<Object> {
     
+    @Override
+    public Object visitBreakStatement(delphi.BreakStatementContext ctx) {
+        throw new BreakException();
+    }
+
+    @Override
+    public Object visitContinueStatement(delphi.ContinueStatementContext ctx) {
+        throw new ContinueException();
+    }
+
+    //custom exceptions here
+    public static class BreakException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+    }
+
+    public static class ContinueException extends RuntimeException {
+        private static final long serialVersionUID = 1L;
+    }
+
+    
     /**
      * The scope of the interpreter as it is running.
      * 
@@ -38,6 +58,64 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      */
 
     //#region Statements
+
+    @Override
+    public Object visitWhileStatement(delphi.WhileStatementContext ctx) {
+        while (RuntimeValue.requireType((RuntimeValue) visit(ctx.expression()), Boolean.class)) {
+            // Create new scope for each loop iteration (static scoping inside loop body)
+            Scope oldScope = scope;
+            scope = new Scope(Optional.of(oldScope));
+            
+            try {
+                try {
+                    visit(ctx.statement());
+                } catch (ContinueException e) {
+                    // skip to next iteration
+                }
+            } catch (BreakException e) {
+                break;
+            } finally {
+                scope = oldScope;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Object visitForStatement(delphi.ForStatementContext ctx) {
+        String varName = ctx.identifier().getText();
+        delphi.ForListContext list = ctx.forList();
+        
+        int start = RuntimeValue.requireType((RuntimeValue) visit(list.initialValue()), Integer.class);
+        int end = RuntimeValue.requireType((RuntimeValue) visit(list.finalValue()), Integer.class);
+        
+        boolean isTo = list.getChild(1).getText().equalsIgnoreCase("to");
+        
+        Scope oldScope = scope;
+        scope = new Scope(Optional.of(oldScope));
+        
+        try {
+            for (int i = start; isTo ? i <= end : i >= end; i += isTo ? 1 : -1) {
+                // If the variable exists already, update it; otherwise, define it
+                if (scope.lookup(varName).isPresent()) {
+                    scope.assign(varName, new RuntimeValue.Primitive(i));
+                } else {
+                    scope.define(varName, new RuntimeValue.Primitive(i));
+                }
+    
+                try {
+                    visit(ctx.statement());
+                } catch (ContinueException e) {
+                    continue;
+                } catch (BreakException e) {
+                    break;
+                }
+            }
+        } finally {
+            scope = oldScope;
+        }
+        return null;
+    }
 
     //#endregion Statements
 

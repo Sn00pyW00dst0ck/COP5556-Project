@@ -364,6 +364,16 @@ classFunctionImplementation
 statement
     : label COLON unlabelledStatement
     | unlabelledStatement
+    | breakStatement
+    | continueStatement
+    ;
+
+breakStatement
+    : BREAK SEMI
+    ;
+
+continueStatement
+    : CONTINUE SEMI
     ;
 
 unlabelledStatement
