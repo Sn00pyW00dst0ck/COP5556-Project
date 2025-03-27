@@ -15,7 +15,7 @@ jobs:
     - uses: actions/setup-java@v4
       with:
         distribution: 'oracle'
-        java-version: 22
+        java-version: 24
         cache: 'maven'
         cache-dependency-path: './project/pom.xml'
     - name: Build with Maven
