@@ -63,7 +63,9 @@ public sealed interface RuntimeValue {
      */
     record ClassDefinition(
         String typeName, 
-        Scope scope
+        Scope privateScope, 
+        Scope protectedScope,
+        Scope publicScope
     ) implements RuntimeValue {};
 
     /**
@@ -72,7 +74,9 @@ public sealed interface RuntimeValue {
      */
     record ClassInstance(
         ClassDefinition definition,
-        Scope scope
+        Scope publicScope,
+        Scope privateScope, 
+        Scope protectedScope
     ) implements RuntimeValue {};
 
     /**

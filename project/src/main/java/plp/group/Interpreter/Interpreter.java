@@ -13,6 +13,7 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 import plp.group.project.delphi;
 import plp.group.project.delphiBaseVisitor;
+import plp.group.project.delphi.ClassMemberDeclarationContext;
 
 /**
  * The interpreter that walks the tree and does the actual calculations/running of the program.
@@ -49,7 +50,16 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             case delphi.Type_Context typeContext -> visitType_(typeContext);
             case delphi.FunctionTypeContext functionTypeContext -> visitFunctionType(functionTypeContext);
             case delphi.ProcedureTypeContext procedureTypeContext -> visitProcedureType(procedureTypeContext);
-            case delphi.ClassTypeContext classTypeContext -> visitClassType(classTypeContext);
+            case delphi.ClassTypeContext classTypeContext -> {
+                RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(visitClassType(classTypeContext), RuntimeValue.ClassDefinition.class);
+                // Copy over the scopes we found into the ClassDefinition with the proper name.
+                yield new RuntimeValue.ClassDefinition(
+                    typeName, 
+                    classDefinition.privateScope(), 
+                    classDefinition.protectedScope(), 
+                    classDefinition.publicScope()
+                );
+            }
             default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(ctx.getChildCount() - 1).getText() + "' when attempting to evaluate 'type definition'.");
         };
 
@@ -61,13 +71,104 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public RuntimeValue visitClassType(delphi.ClassTypeContext ctx) {
-        Scope classScope = new Scope(Optional.of(Environment.scope()));
+        // Because of the different visibility sections we have to have three separate scopes.
+        // This complicates visiting visibility sections and their children, so I do it all here.
+        // Using the 'parent' of scopes to make sure that lookup within private scope can gurantee checking public scope too.
+        Scope publicScope = new Scope(Optional.of(Environment.scope()));
+        Scope protectedScope = new Scope(Optional.of(publicScope));
+        Scope privateScope = new Scope(Optional.of(protectedScope));
 
         // Visit the children and add things to the scope...
+        for (delphi.VisibilitySectionContext sectionCtx : ctx.visibilitySection()) {
+            // Updating currentScope will update the correct scope above! 
+            Scope visibilityScope = switch (sectionCtx.getChild(0)) {
+                case TerminalNode t when(t.getSymbol().getType() == delphi.PRIVATE) -> privateScope;
+                case TerminalNode t when(t.getSymbol().getType() == delphi.PROTECTED) -> protectedScope;
+                case TerminalNode t when(t.getSymbol().getType() == delphi.PUBLIC) -> publicScope;
+                default -> throw new RuntimeException("Unexpected visibility '" + ctx.getChild(ctx.getChildCount() - 1).getText() + "' when attempting to evaluate 'class type'.");
+            };
 
-        return  new RuntimeValue.ClassDefinition(
+            // For each class member, we add it to the visibilityScope...
+            for (ClassMemberDeclarationContext memberCtx : sectionCtx.classMemberDeclaration()) {
+                switch (memberCtx.getChild(0)) {
+                    case delphi.ClassFieldDeclarationContext fieldCtx -> 
+                        visibilityScope.define(fieldCtx.identifier().getText(), visitType_(fieldCtx.type_()));
+                    case delphi.ClassProcedureDeclarationContext procedureCtx -> {
+                        String procedureName = procedureCtx.identifier().getText();
+                        List<RuntimeValue> parameterTypes = visitFormalParameterList(procedureCtx.formalParameterList());
+
+                        visibilityScope.define(
+                            procedureName + "/" + parameterTypes.size(), 
+                            new RuntimeValue.Method(
+                                procedureName + "/" + parameterTypes.size(), 
+                                new RuntimeValue.Method.MethodSignature(
+                                    parameterTypes, 
+                                    new RuntimeValue.Primitive(null)
+                                ), 
+                                null
+                            )
+                        );
+                    }
+                    case delphi.ClassFunctionDeclarationContext functionCtx -> {
+                        String functionName = functionCtx.identifier().getText();
+                        List<RuntimeValue> parameterTypes = visitFormalParameterList(functionCtx.formalParameterList());
+                        RuntimeValue returnType = visitResultType(functionCtx.resultType());
+
+                        visibilityScope.define(
+                            functionName + "/" + parameterTypes.size(), 
+                            new RuntimeValue.Method(
+                                functionName + "/" + parameterTypes.size(), 
+                                new RuntimeValue.Method.MethodSignature(
+                                    parameterTypes, 
+                                    returnType
+                                ), 
+                                null
+                            )
+                        );
+                    }
+                    // TODO: should we store constructor and destructor separately...
+                    case delphi.ConstructorDeclarationContext constructorCtx -> {
+                        String constructorName = constructorCtx.identifier().getText();
+                        List<RuntimeValue> parameterTypes = List.of();
+                        
+                        if (constructorCtx.formalParameterList() != null) {
+                            parameterTypes = visitFormalParameterList(constructorCtx.formalParameterList());
+                        }
+                        
+                        visibilityScope.define(
+                            constructorName + "/" + parameterTypes.size(), 
+                            new RuntimeValue.Method(
+                                constructorName + "/" + parameterTypes.size(), 
+                                new RuntimeValue.Method.MethodSignature(
+                                    parameterTypes, 
+                                    new RuntimeValue.Primitive(null)
+                                ), 
+                                null
+                            )
+                        );
+                    }
+                    case delphi.DestructorDeclarationContext destructorCtx -> 
+                        visibilityScope.define(
+                            destructorCtx.identifier().getText() + "/0", 
+                            new RuntimeValue.Method(
+                                destructorCtx.identifier().getText() + "/0",
+                                new RuntimeValue.Method.MethodSignature(
+                                    List.of(), 
+                                    new RuntimeValue.Primitive(null)
+                                ),
+                                null
+                            )
+                        );
+                    default -> throw new RuntimeException("Unexpected item '" + memberCtx.getChild(0).getText() + "' when attempting to evaluate member within 'class type'.");
+                }
+            }
+        }
+        
+        return new RuntimeValue.ClassDefinition(
             null,
-            classScope
+            privateScope,
+            protectedScope,
+            publicScope
         );
     }
 
@@ -97,9 +198,42 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         throw new UnsupportedOperationException("Operation not implemented");
     }
 
+    /**
+     * Returns the type of each argument in the order it appears as a list of RuntimeValue
+     */
     @Override
-    public RuntimeValue visitFormalParameterList(delphi.FormalParameterListContext ctx) {
-        throw new UnsupportedOperationException("Operation not implemented");
+    public List<RuntimeValue> visitFormalParameterList(delphi.FormalParameterListContext ctx) {
+        List<RuntimeValue> parameterTypes = new ArrayList<RuntimeValue>();
+
+        // Handle each of the sections...
+        for (delphi.FormalParameterSectionContext section: ctx.formalParameterSection()) {
+            if (section.getChild(0) == null) {
+                continue;
+            }
+
+            switch (section.getChild(0)) {
+                case delphi.ParameterGroupContext parameterGroupCtx -> {
+                    RuntimeValue type = visitTypeIdentifier(parameterGroupCtx.typeIdentifier());
+
+                    // For every identifier push the type
+                    for (delphi.IdentifierContext _ : parameterGroupCtx.identifierList().identifier()) {
+                        parameterTypes.add(type);
+                    }
+                }
+                case TerminalNode t when (t.getSymbol().getType() == delphi.VAR) -> {
+                    // TODO: These are pass by reference...
+                }
+                case TerminalNode t when (t.getSymbol().getType() == delphi.FUNCTION) -> {
+                    // TODO: These are weird...
+                }
+                case TerminalNode t when (t.getSymbol().getType() == delphi.PROCEDURE) -> {
+                    // TODO: These are weird...
+                }
+                default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(0).getText() + "' when attempting to evaluate 'formal parameter list'.");
+            }
+        }
+
+        return parameterTypes;
     }
 
     /**
