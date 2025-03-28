@@ -428,7 +428,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
 
-        /**
+    /**
      * Visits the implementation (definition) of a procedure and adds it to the scope.
      * 
      * Returns a RuntimeValue.Primitive(null)
@@ -560,8 +560,106 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return new RuntimeValue.Primitive(null);
     }
 
+    @Override
+    public RuntimeValue visitConstructorImplementation(delphi.ConstructorImplementationContext ctx) {
+        String className = ctx.identifier(0).getText();
+        String functionName = ctx.identifier(1).getText();
+        LinkedHashMap<String, RuntimeValue> parameters = (ctx.formalParameterList() == null) ? new LinkedHashMap<>() : visitFormalParameterList(ctx.formalParameterList());
 
-    // TODO: Variations for classes are special. Need to look up the method to modify in the class scope and update it there...
+        RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(scope.lookup(className).orElseThrow(() -> new NoSuchElementException("There is no class '" + className + "' defined in scope when attempting to define '" + functionName + "/" + parameters.size() + "'.")), RuntimeValue.ClassDefinition.class);
+
+        // Lets get the old method reference
+        RuntimeValue.Method oldMethod = RuntimeValue.requireType(
+            classDefinition.publicScope().lookup(functionName + "/" + (parameters.size() + 1)).orElseThrow(() -> new NoSuchElementException("'" + functionName + "/" + parameters.size() + "' not defined when parsing class function implementation.")),
+            RuntimeValue.Method.class
+        );
+
+        classDefinition.publicScope().assign(
+            oldMethod.name(),
+            new RuntimeValue.Method(
+                oldMethod.name(), 
+                oldMethod.signature(), 
+                (args) -> {
+                    // Setup new scope.
+                    Scope originalScope = scope;
+                    Scope functionScope = new Scope(Optional.of(scope));
+                    /*
+                     * Add parameter values to the scope. 
+                     * NOTE: first parameter is always a RuntimeValue.ClassInstance object, so it may need to be parsed independently or created independently...
+                     */
+                    int currentParameter = 0;
+                    for (Map.Entry<String, RuntimeValue> parameter : parameters.entrySet()) {
+                        // Require proper type for current parameter.
+                        RuntimeValue.requireType(args.get(currentParameter), parameter.getValue().getClass());
+                        if (parameter.getValue() instanceof RuntimeValue.Primitive primitiveType) {
+                            RuntimeValue.requireType(args.get(currentParameter), primitiveType.value().getClass());
+                        }
+                        // Add current parameter to the scope. 
+                        functionScope.define(parameter.getKey(), args.get(currentParameter));
+                        currentParameter++;
+                    }
+
+                    try {
+                        scope = functionScope;
+                        visitBlock(ctx.block());
+                    } catch (Return e) {
+                        // Handle exceptions here...
+                    } finally {
+                        scope = originalScope;
+                    }
+                    return new RuntimeValue.Primitive(null);
+                }
+            )
+        );
+        
+        return new RuntimeValue.Primitive(null);
+    }
+
+    @Override
+    public RuntimeValue visitDestructorImplementation(delphi.DestructorImplementationContext ctx) {
+        String className = ctx.identifier(0).getText();
+        String destructorName = ctx.identifier(1).getText();
+
+        RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(scope.lookup(className).orElseThrow(() -> new NoSuchElementException("There is no class '" + className + "' defined in scope when attempting to define '" + destructorName + "/1'.")), RuntimeValue.ClassDefinition.class);
+
+        // Lets get the old method reference
+        RuntimeValue.Method oldMethod = RuntimeValue.requireType(
+            classDefinition.publicScope().lookup(destructorName + "/1").orElseThrow(() -> new NoSuchElementException("'" + destructorName + "/1' not defined when parsing class destructor implementation.")),
+            RuntimeValue.Method.class
+        );
+
+        classDefinition.publicScope().assign(
+            oldMethod.name(),
+            new RuntimeValue.Method(
+                oldMethod.name(),
+                oldMethod.signature(),
+                (args) -> {
+                    // Setup new scope.
+                    Scope originalScope = scope;
+                    Scope functionScope = new Scope(Optional.of(scope));
+
+                    // Assert the instance to destroy ("this") is a class instance, add it to scope.
+                    RuntimeValue.requireType(args.get(0), RuntimeValue.ClassInstance.class);
+                    functionScope.define("this", args.get(0));
+
+                    try {
+                        scope = functionScope;
+                        visitBlock(ctx.block());
+                    } catch (Return e) {
+                        // Handle exceptions here...
+                    } finally {
+                        scope = originalScope;
+                    }
+                    return new RuntimeValue.Primitive(null);
+                }
+            )
+        );
+
+        return new RuntimeValue.Primitive(null);
+    }
+
+
+    // TODO: Class constructor and destructors are weird.
 
     //#endregion Implementations
 
