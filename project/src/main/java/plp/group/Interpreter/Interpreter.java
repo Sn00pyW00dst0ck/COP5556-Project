@@ -98,6 +98,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     case delphi.ClassProcedureDeclarationContext procedureCtx -> {
                         String procedureName = procedureCtx.identifier().getText();
                         LinkedHashMap<String, RuntimeValue> parameterTypes = visitFormalParameterList(procedureCtx.formalParameterList());
+                        parameterTypes.putFirst("this", new RuntimeValue.ClassInstance(null, null, null, null));
 
                         visibilityScope.define(
                             procedureName + "/" + parameterTypes.size(), 
@@ -114,6 +115,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     case delphi.ClassFunctionDeclarationContext functionCtx -> {
                         String functionName = functionCtx.identifier().getText();
                         LinkedHashMap<String, RuntimeValue> parameterTypes = visitFormalParameterList(functionCtx.formalParameterList());
+                        parameterTypes.putFirst("this", new RuntimeValue.ClassInstance(null, null, null, null));
                         RuntimeValue returnType = visitResultType(functionCtx.resultType());
 
                         visibilityScope.define(
@@ -132,7 +134,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     case delphi.ConstructorDeclarationContext constructorCtx -> {
                         String constructorName = constructorCtx.identifier().getText();
                         LinkedHashMap<String, RuntimeValue> parameterTypes = new LinkedHashMap<>();
-                        
+                        parameterTypes.putFirst("this", new RuntimeValue.ClassInstance(null, null, null, null));
+
                         if (constructorCtx.formalParameterList() != null) {
                             parameterTypes = visitFormalParameterList(constructorCtx.formalParameterList());
                         }
@@ -149,18 +152,22 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                             )
                         );
                     }
-                    case delphi.DestructorDeclarationContext destructorCtx -> 
+                    case delphi.DestructorDeclarationContext destructorCtx -> {
+                        LinkedHashMap<String, RuntimeValue> parameterTypes = new LinkedHashMap<>();
+                        parameterTypes.putFirst("this", new RuntimeValue.ClassInstance(null, null, null, null));
+
                         visibilityScope.define(
-                            destructorCtx.identifier().getText() + "/0", 
+                            destructorCtx.identifier().getText() + "/" + parameterTypes.size(), 
                             new RuntimeValue.Method(
-                                destructorCtx.identifier().getText() + "/0",
+                                destructorCtx.identifier().getText() + "/" + parameterTypes.size(),
                                 new RuntimeValue.Method.MethodSignature(
-                                    List.of(), 
+                                    new ArrayList<RuntimeValue>(parameterTypes.values()),
                                     new RuntimeValue.Primitive(null)
                                 ),
                                 null
                             )
                         );
+                    }
                     default -> throw new RuntimeException("Unexpected item '" + memberCtx.getChild(0).getText() + "' when attempting to evaluate member within 'class type'.");
                 }
             }
@@ -326,7 +333,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 (args) -> {
                     // Setup new scope.
                     Scope originalScope = scope;
-                    Scope functionScope = new Scope(Optional.of(scope));
+                    Scope procedureScope = new Scope(Optional.of(scope));
 
                     // Add parameter values to the scope. 
                     int currentParameter = 0;
@@ -337,11 +344,12 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                             RuntimeValue.requireType(args.get(currentParameter), primitiveType.value().getClass());
                         }
                         // Add current parameter to the scope. 
-                        functionScope.define(parameter.getKey(), args.get(currentParameter));
+                        procedureScope.define(parameter.getKey(), args.get(currentParameter));
                         currentParameter++;
                     }
 
                     try {
+                        scope = procedureScope;
                         visitBlock(ctx.block());
                     } catch (Return e) {
                         // Handle exceptions here...
@@ -418,6 +426,140 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         return new RuntimeValue.Primitive(null);
     }
+
+
+        /**
+     * Visits the implementation (definition) of a procedure and adds it to the scope.
+     * 
+     * Returns a RuntimeValue.Primitive(null)
+     */
+    @Override
+    public RuntimeValue visitClassProcedureImplementation(delphi.ClassProcedureImplementationContext ctx) {
+        String className = ctx.identifier(0).getText();
+        String procedureName = ctx.identifier(1).getText();
+        LinkedHashMap<String, RuntimeValue> parameters = (ctx.formalParameterList() == null) ? new LinkedHashMap<>() : visitFormalParameterList(ctx.formalParameterList());
+
+        RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(scope.lookup(className).orElseThrow(() -> new NoSuchElementException("There is no class '" + className + "' defined in scope when attempting to define '" + procedureName + "/" + parameters.size() + "'.")), RuntimeValue.ClassDefinition.class);
+
+        // Lets get the old method reference
+        RuntimeValue.Method oldMethod = RuntimeValue.requireType(
+            classDefinition.publicScope().lookup(procedureName + "/" + (parameters.size() + 1)).orElseThrow(() -> new NoSuchElementException("'" + procedureName + "/" + parameters.size() + "' not defined when parsing class procedure implementation.")),
+            RuntimeValue.Method.class
+        );
+
+        // Add the updated RuntimeValue.Method with the definition here...
+        classDefinition.publicScope().assign(
+            oldMethod.name(), 
+            new RuntimeValue.Method(
+                oldMethod.name(),
+                oldMethod.signature(),
+                (args) -> {
+                    // Setup new scope.
+                    Scope originalScope = scope;
+                    Scope procedureScope = new Scope(Optional.of(scope));
+
+                    /*
+                     * Add parameter values to the scope. 
+                     * NOTE: first parameter is always a RuntimeValue.ClassInstance object, so it may need to be parsed independently or created independently...
+                     */
+                    int currentParameter = 0;
+                    for (Map.Entry<String, RuntimeValue> parameter : parameters.entrySet()) {
+                        // Require proper type for current parameter.
+                        RuntimeValue.requireType(args.get(currentParameter), parameter.getValue().getClass());
+                        if (parameter.getValue() instanceof RuntimeValue.Primitive primitiveType) {
+                            RuntimeValue.requireType(args.get(currentParameter), primitiveType.value().getClass());
+                        }
+                        // Add current parameter to the scope. 
+                        procedureScope.define(parameter.getKey(), args.get(currentParameter));
+                        currentParameter++;
+                    }
+
+                    try {
+                        scope = procedureScope;
+                        visitBlock(ctx.block());
+                    } catch (Return e) {
+                        // Handle exceptions here...
+                    } finally {
+                        scope = originalScope;
+                    }
+
+                    return new RuntimeValue.Primitive(null);
+                }
+            )
+        );
+
+        return new RuntimeValue.Primitive(null);
+    }
+
+    @Override
+    public RuntimeValue visitClassFunctionImplementation(delphi.ClassFunctionImplementationContext ctx) {
+        String className = ctx.identifier(0).getText();
+        String functionName = ctx.identifier(1).getText();
+        LinkedHashMap<String, RuntimeValue> parameters = (ctx.formalParameterList() == null) ? new LinkedHashMap<>() : visitFormalParameterList(ctx.formalParameterList());
+        RuntimeValue returnType = visitResultType(ctx.resultType());
+
+        RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(scope.lookup(className).orElseThrow(() -> new NoSuchElementException("There is no class '" + className + "' defined in scope when attempting to define '" + functionName + "/" + parameters.size() + "'.")), RuntimeValue.ClassDefinition.class);
+
+        // Lets get the old method reference
+        RuntimeValue.Method oldMethod = RuntimeValue.requireType(
+            classDefinition.publicScope().lookup(functionName + "/" + (parameters.size() + 1)).orElseThrow(() -> new NoSuchElementException("'" + functionName + "/" + parameters.size() + "' not defined when parsing class function implementation.")),
+            RuntimeValue.Method.class
+        );
+
+        // Add the updated RuntimeValue.Method with the definition here...
+        classDefinition.publicScope().assign(
+            oldMethod.name(), 
+            new RuntimeValue.Method(
+                oldMethod.name(),
+                oldMethod.signature(),
+                (args) -> {
+                    // Setup new scope.
+                    Scope originalScope = scope;
+                    Scope functionScope = new Scope(Optional.of(scope));
+
+                    /*
+                     * Add parameter values to the scope. 
+                     * NOTE: first parameter is always a RuntimeValue.ClassInstance object, so it may need to be parsed independently or created independently...
+                     */
+                    int currentParameter = 0;
+                    for (Map.Entry<String, RuntimeValue> parameter : parameters.entrySet()) {
+                        // Require proper type for current parameter.
+                        RuntimeValue.requireType(args.get(currentParameter), parameter.getValue().getClass());
+                        if (parameter.getValue() instanceof RuntimeValue.Primitive primitiveType) {
+                            RuntimeValue.requireType(args.get(currentParameter), primitiveType.value().getClass());
+                        }
+                        // Add current parameter to the scope. 
+                        functionScope.define(parameter.getKey(), args.get(currentParameter));
+                        currentParameter++;
+                    }
+
+                    // Add the 'result' variable to the scope. 
+                    functionScope.define("result", returnType);
+
+                    try {
+                        scope = functionScope;
+                        visitBlock(ctx.block());
+                    } catch (Return e) {
+                        // Handle exceptions here...
+                    } finally {
+                        // Require result to be correct type...
+                        var result = functionScope.lookup("result").orElseThrow(() -> new NoSuchElementException("'result' variable was not defined at the end of evaluating '" + functionName + "/" + parameters.size() + "'."));
+                        RuntimeValue.requireType(result, returnType.getClass());
+                        if (returnType instanceof RuntimeValue.Primitive returnTypePrimitive) {
+                            RuntimeValue.requireType(result, returnTypePrimitive.value().getClass());
+                        }
+
+                        scope = originalScope;
+                    }
+
+                    return functionScope.lookup("result").orElseThrow(() -> new NoSuchElementException("'result' variable was not defined at the end of evaluating '" + functionName + "/" + parameters.size() + "'."));
+                }
+            )
+        );
+
+        return new RuntimeValue.Primitive(null);
+    }
+
 
     // TODO: Variations for classes are special. Need to look up the method to modify in the class scope and update it there...
 
