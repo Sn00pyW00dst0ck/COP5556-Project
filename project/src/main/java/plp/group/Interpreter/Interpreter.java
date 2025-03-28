@@ -658,9 +658,6 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return new RuntimeValue.Primitive(null);
     }
 
-
-    // TODO: Class constructor and destructors are weird.
-
     //#endregion Implementations
 
     //#region Statements
