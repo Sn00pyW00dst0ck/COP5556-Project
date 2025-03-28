@@ -12,6 +12,7 @@ import java.util.Optional;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 
+import plp.group.Interpreter.ControlFlowException.Return;
 import plp.group.project.delphi;
 import plp.group.project.delphiBaseVisitor;
 import plp.group.project.delphi.ClassMemberDeclarationContext;
@@ -342,7 +343,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
                     try {
                         visitBlock(ctx.block());
-                    } catch (RuntimeException e) {
+                    } catch (Return e) {
                         // Handle exceptions here...
                     } finally {
                         scope = originalScope;
@@ -357,17 +358,68 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     /**
      * Similar to the above, except for a function which can have a returned value. 
+     * Defining the function itself returns RuntimeValue.Primitive(null), executing it can return 'anything'.
      */
     @Override
     public RuntimeValue visitFunctionImplementation(delphi.FunctionImplementationContext ctx) {
-        String procedureName = ctx.identifier().getText();
+        String functionName = ctx.identifier().getText();
         LinkedHashMap<String, RuntimeValue> parameters = (ctx.formalParameterList() == null) ? new LinkedHashMap<>() : visitFormalParameterList(ctx.formalParameterList());
         RuntimeValue returnType = visitResultType(ctx.resultType());
         
-        // Should be nearly identical to above, but handle return statements differently...
-        
+        scope.define(
+            functionName + "/" + parameters.size(),
+            new RuntimeValue.Method(
+                functionName + "/" + parameters.size(),
+                new RuntimeValue.Method.MethodSignature(
+                    new ArrayList<RuntimeValue>(parameters.values()),
+                    returnType
+                ),
+                (args) -> {
+                    // Setup new scope.
+                    Scope originalScope = scope;
+                    Scope functionScope = new Scope(Optional.of(scope));
+
+                    // Add parameter values to the scope. 
+                    int currentParameter = 0;
+                    for (Map.Entry<String, RuntimeValue> parameter : parameters.entrySet()) {
+                        // Require proper type for current parameter.
+                        RuntimeValue.requireType(args.get(currentParameter), parameter.getValue().getClass());
+                        if (parameter.getValue() instanceof RuntimeValue.Primitive primitiveType) {
+                            RuntimeValue.requireType(args.get(currentParameter), primitiveType.value().getClass());
+                        }
+                        // Add current parameter to the scope. 
+                        functionScope.define(parameter.getKey(), args.get(currentParameter));
+                        currentParameter++;
+                    }
+
+                    // Add the 'result' variable to the scope. 
+                    functionScope.define("result", returnType);
+
+                    try {
+                        scope = functionScope;
+                        visitBlock(ctx.block());
+                    } catch (Return e) {
+                        // Handle exceptions here...
+                    } finally {
+                        // Require result to be correct type...
+                        var result = functionScope.lookup("result").orElseThrow(() -> new NoSuchElementException("'result' variable was not defined at the end of evaluating '" + functionName + "/" + parameters.size() + "'."));
+                        RuntimeValue.requireType(result, returnType.getClass());
+                        if (returnType instanceof RuntimeValue.Primitive returnTypePrimitive) {
+                            RuntimeValue.requireType(result, returnTypePrimitive.value().getClass());
+                        }
+
+                        // Reset the scope...
+                        scope = originalScope;
+                    }
+                    return functionScope.lookup("result").orElseThrow(() -> new NoSuchElementException("'result' variable was not defined at the end of evaluating '" + functionName + "/" + parameters.size() + "'."));
+                }
+            )
+        );
+
         return new RuntimeValue.Primitive(null);
     }
+
+    // TODO: Variations for classes are special. Need to look up the method to modify in the class scope and update it there...
 
     //#endregion Implementations
 
