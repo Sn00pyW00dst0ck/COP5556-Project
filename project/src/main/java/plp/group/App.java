@@ -7,6 +7,7 @@ import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
 import plp.group.Interpreter.Interpreter;
+import plp.group.Optimizer.Optimizer;
 import plp.group.project.delphi;
 import plp.group.project.delphi_lexer;
 
@@ -68,8 +69,12 @@ public class App {
             var parser = new delphi(tokens);
             var tree = parser.program();
 
+            String optimized = (new Optimizer()).visit(tree);
+            System.out.println(optimized);
+            var tree2 = new delphi(new CommonTokenStream(new delphi_lexer(CharStreams.fromString(optimized)))).program();
+
             // Open a GUI window with the parse tree.
-            var frame = Trees.inspect(tree, parser);
+            var frame = Trees.inspect(tree2, parser);
             frame.get().setSize(600, 800);
         } catch (Exception e) {
             e.printStackTrace();
