@@ -49,23 +49,60 @@ public class Optimizer extends delphiBaseVisitor<String> {
 
     //#region Expressions
 
-    // TODO: override the comparisons within 'expression' to evaluate further...
-    // TODO: unit test...
-
+    @SuppressWarnings({ "unchecked", "rawtypes" })
     @Override
     public String visitExpression(delphi.ExpressionContext ctx) {
         String lhs = visit(ctx.simpleExpression()).trim();
         String op = (ctx.relationaloperator() != null) ? visit(ctx.relationaloperator()).trim().toLowerCase() : "";
         String rhs = (ctx.expression() != null) ? visit(ctx.expression()).trim() : "";
 
-        
-
         try {
-            // TODO: figure out a good way to convert the lhs and rhs to the same type... (DONE WITH requireType)
+            Comparable lhsValue = null;
+            Comparable rhsValue = null;
+
+            try {
+                lhsValue = requireType(lhs, Boolean.class);
+                rhsValue = requireType(rhs, Boolean.class);
+            } catch (Exception e) {}
+
+            try {
+                lhsValue = requireType(lhs, BigInteger.class);
+                rhsValue = requireType(rhs, BigInteger.class);
+            } catch (Exception e) {}
+
+            try {
+                lhsValue = requireType(lhs, BigDecimal.class);
+                rhsValue = requireType(rhs, BigDecimal.class);
+            } catch (Exception e) {}
+
+            try {
+                lhsValue = requireType(lhs, String.class);
+                rhsValue = requireType(rhs, String.class);
+            } catch (Exception e) {}
+
+            try {
+                lhsValue = requireType(lhs, Character.class);
+                rhsValue = requireType(rhs, Character.class);
+            } catch (Exception e) {}
 
             return switch (op) {
-                case "o" -> {
-                    yield "FOLD";
+                case "=" -> {
+                    yield Boolean.valueOf(lhsValue.compareTo(rhsValue) == 0).toString();
+                }
+                case "<>" -> {
+                    yield Boolean.valueOf(lhsValue.compareTo(rhsValue) != 0).toString();
+                }
+                case "<" -> {
+                    yield Boolean.valueOf(lhsValue.compareTo(rhsValue) < 0).toString();
+                }
+                case "<=" -> {
+                    yield Boolean.valueOf(lhsValue.compareTo(rhsValue) <= 0).toString();
+                }
+                case ">" -> {
+                    yield Boolean.valueOf(lhsValue.compareTo(rhsValue) > 0).toString();
+                }
+                case ">=" -> {
+                    yield Boolean.valueOf(lhsValue.compareTo(rhsValue) >= 0).toString();
                 }
                 default -> throw new RuntimeException("Unexpected operator: " + op);
             };
