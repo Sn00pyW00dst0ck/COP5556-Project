@@ -1,6 +1,5 @@
 package plp.group;
 
-import java.util.Arrays;
 import java.util.Scanner;
 
 import org.antlr.v4.gui.Trees;
@@ -53,7 +52,7 @@ public class App {
         try {
             // Get the parse tree for the file we enter in command line.
             var lexer = new delphi_lexer(
-                    CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream(programFileName)));
+                    CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream("programs/" + programFileName)));
             var tokens = new CommonTokenStream(lexer);
             var parser = new delphi(tokens);
             var tree = parser.program();
@@ -75,7 +74,7 @@ public class App {
         try {
             // Get the parse tree for the file we enter in command line.
             var lexer = new delphi_lexer(
-                    CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream(programFileName)));
+                    CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream("programs/" + programFileName)));
             var tokens = new CommonTokenStream(lexer);
             var parser = new delphi(tokens);
             var tree = parser.program();
