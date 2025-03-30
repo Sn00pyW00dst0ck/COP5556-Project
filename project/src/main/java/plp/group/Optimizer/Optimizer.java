@@ -53,6 +53,28 @@ public class Optimizer extends delphiBaseVisitor<String> {
     // TODO: unit test...
 
     @Override
+    public String visitExpression(delphi.ExpressionContext ctx) {
+        String lhs = visit(ctx.simpleExpression()).trim();
+        String op = (ctx.relationaloperator() != null) ? visit(ctx.relationaloperator()).trim().toLowerCase() : "";
+        String rhs = (ctx.expression() != null) ? visit(ctx.expression()).trim() : "";
+
+        
+
+        try {
+            // TODO: figure out a good way to convert the lhs and rhs to the same type... (DONE WITH requireType)
+
+            return switch (op) {
+                case "o" -> {
+                    yield "FOLD";
+                }
+                default -> throw new RuntimeException("Unexpected operator: " + op);
+            };
+        } catch (Exception e) {
+            return visitChildren(ctx);
+        }
+    }
+
+    @Override
     public String visitSimpleExpression(delphi.SimpleExpressionContext ctx) {
         String lhs = visit(ctx.term()).trim();
         String op = (ctx.additiveoperator() != null) ? visit(ctx.additiveoperator()).trim().toLowerCase() : "";
@@ -62,69 +84,63 @@ public class Optimizer extends delphiBaseVisitor<String> {
         try {
             return switch (op) {
                 case "+" -> {
-                    // Attempt to evaluate as concatenation (character cast is tricky)
+                    // Attempt to evaluate as concatenation (there are 4 cases becuase string and character)
                     try {
-                        if (lhs.charAt(0) != '\'' && lhs.charAt(lhs.length() - 1) != '\'') {
-                            if (!lhs.toLowerCase().replaceAll("\\s+", "").startsWith("chr(")) {
-                                throw new RuntimeException("Can't evaluate as concatenation!");
-                            }
-                            lhs = Character.valueOf((char) new BigInteger(lhs.replaceAll("[^0-9]", "")).intValue()).toString();
-                        } else {
-                            lhs = lhs.substring(1, lhs.length() - 1);
-                        }
-                        if (rhs.charAt(0) != '\'' && rhs.charAt(rhs.length() - 1) != '\'') {
-                            if (!rhs.toLowerCase().replaceAll("\\s+", "").startsWith("chr(")) {
-                                throw new RuntimeException("Can't evaluate as concatenation!");
-                            }
-                            rhs = Character.valueOf((char) new BigInteger(rhs.replaceAll("[^0-9]", "")).intValue()).toString();
-                        } else {
-                            rhs = rhs.substring(1, rhs.length() - 1);
-                        }
-                        yield "'" + (lhs + rhs) + "'";
+                        String result = requireType(lhs, String.class) + requireType(rhs, String.class);
+                        yield "'" + result + "'";
                     } catch (Exception e) {}
+
+                    try {
+                        String result = requireType(lhs, String.class) + requireType(rhs, Character.class).toString();
+                        yield "'" + result + "'";
+                    } catch (Exception e) {}
+
+                    try {
+                        String result = requireType(lhs, Character.class).toString() + requireType(rhs, String.class).toString();
+                        yield "'" + result + "'";
+                    } catch (Exception e) {}   
+
+                    try {
+                        String result = requireType(lhs, Character.class).toString() + requireType(rhs, Character.class).toString();
+                        yield "'" + result + "'";
+                    } catch (Exception e) {}   
 
                     // Attempt to evaluate as integers
                     try {
-                        yield (new BigInteger(lhs)).add(new BigInteger(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigInteger result = requireType(lhs, BigInteger.class).add(requireType(rhs, BigInteger.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
 
                     // Attempt to evaluate as decimals
                     try {
-                        yield (new BigDecimal(lhs)).add(new BigDecimal(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigDecimal result = requireType(lhs, BigDecimal.class).add(requireType(rhs, BigDecimal.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
 
+                    // If ALL fail, then we can't do it...
                     throw new RuntimeException("Can't evaluate, fallback!");
                 }
                 case "-" -> {
                     // Attempt to evaluate as integers
                     try {
-                        yield (new BigInteger(lhs)).subtract(new BigInteger(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigInteger result = requireType(lhs, BigInteger.class).subtract(requireType(rhs, BigInteger.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
 
                     // Attempt to evaluate as decimals
                     try {
-                        yield (new BigDecimal(lhs)).subtract(new BigDecimal(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigDecimal result = requireType(lhs, BigDecimal.class).subtract(requireType(rhs, BigDecimal.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
 
-                    // If both fail, then we really failed...
+                    // If both fail, then we can't do it...
                     throw new RuntimeException("Can't evaluate as numbers, fallback!");
                 }
                 case "or" -> {
-                    lhs = lhs.toLowerCase();
-                    rhs = rhs.toLowerCase();
-
-                    // Here we evaluate two booleans if possible and then replace the result...
-                    if (!lhs.equals("true") && !lhs.equals("false")) {
-                        throw new RuntimeException("Can't cast to bool, fallback!");
-                    }
-
-                    if (!rhs.equals("true") && !rhs.equals("false")) {
-                        throw new RuntimeException("Can't cast to bool, fallback!");
-                    }
-
-                    yield Boolean.valueOf(Boolean.valueOf(lhs) || Boolean.valueOf(rhs)).toString();
+                    Boolean value = requireType(lhs.toLowerCase(), Boolean.class) || requireType(rhs.toLowerCase(), Boolean.class);
+                    yield value.toString();
                 }
-                default -> lhs;
+                default -> throw new RuntimeException("Unexpected operator: " + op);
             };
         } catch (Exception e) {
             return visitChildren(ctx);
@@ -143,74 +159,72 @@ public class Optimizer extends delphiBaseVisitor<String> {
                 case "*" -> {
                     // Attempt to evaluate as integers
                     try {
-                        yield (new BigInteger(lhs)).multiply(new BigInteger(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigInteger result = requireType(lhs, BigInteger.class).multiply(requireType(rhs, BigInteger.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
 
                     // Attempt to evaluate as decimals
                     try {
-                        yield (new BigDecimal(lhs)).multiply(new BigDecimal(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigDecimal result = requireType(lhs, BigDecimal.class).multiply(requireType(rhs, BigDecimal.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
 
-                    // If both fail, then we really failed...
+                    // If both fail, then we can't do it...
                     throw new RuntimeException("Can't evaluate as numbers, fallback!");
                 }
                 case "/" -> {
                     // Attempt to evaluate as integers
                     try {
-                        yield (new BigInteger(lhs)).divide(new BigInteger(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigInteger result = requireType(lhs, BigInteger.class).divide(requireType(rhs, BigInteger.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
 
                     // Attempt to evaluate as decimals
                     try {
-                        yield (new BigDecimal(lhs)).divide(new BigDecimal(rhs)).toString();
-                    } catch (NumberFormatException e) {}
-                    
-                    // If both fail, then we really failed...
+                        BigDecimal result = requireType(lhs, BigDecimal.class).divide(requireType(rhs, BigDecimal.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
+
+                    // If both fail, then we can't do it...
                     throw new RuntimeException("Can't evaluate as numbers, fallback!");
                 }
                 case "div" -> {
                     // Attempt to evaluate as integers
                     try {
-                        yield (new BigInteger(lhs)).divide(new BigInteger(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigInteger result = requireType(lhs, BigInteger.class).divide(requireType(rhs, BigInteger.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
 
                     // Attempt to evaluate as decimals
                     try {
-                        yield (new BigDecimal(lhs)).divide(new BigDecimal(rhs)).toString();
-                    } catch (NumberFormatException e) {}
-                    
-                    // If both fail, then we really failed...
+                        BigDecimal result = requireType(lhs, BigDecimal.class).divide(requireType(rhs, BigDecimal.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
+
+                    // If both fail, then we can't do it...
                     throw new RuntimeException("Can't evaluate as numbers, fallback!");
                 }
                 case "mod" -> {
                     // Attempt to evaluate as integers
                     try {
-                        yield (new BigInteger(lhs)).remainder(new BigInteger(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigInteger result = requireType(lhs, BigInteger.class).remainder(requireType(rhs, BigInteger.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
 
                     // Attempt to evaluate as decimals
                     try {
-                        yield (new BigDecimal(lhs)).remainder(new BigDecimal(rhs)).toString();
-                    } catch (NumberFormatException e) {}
+                        BigDecimal result = requireType(lhs, BigDecimal.class).remainder(requireType(rhs, BigDecimal.class));
+                        yield result.toString();
+                    } catch (Exception e) {}
                     
-                    // If both fail, then we really failed...
+                    // If both fail, then we can't do it..
                     throw new RuntimeException("Can't evaluate as numbers, fallback!");
                 }
                 case "and" -> {
-                    lhs = lhs.toLowerCase();
-                    rhs = rhs.toLowerCase();
-
-                    // Here we evaluate two booleans if possible and then replace the result...
-                    if (!lhs.equals("true") && !lhs.equals("false")) {
-                        throw new RuntimeException("Can't cast to bool, fallback!");
-                    }
-
-                    if (!rhs.equals("true") && !rhs.equals("false")) {
-                        throw new RuntimeException("Can't cast to bool, fallback!");
-                    }
-                    yield Boolean.valueOf(Boolean.valueOf(lhs) && Boolean.valueOf(rhs)).toString();
+                    Boolean value = requireType(lhs.toLowerCase(), Boolean.class) && requireType(rhs.toLowerCase(), Boolean.class);
+                    yield value.toString();
                 }
-                default -> lhs;
+                default -> throw new RuntimeException("Unexpected operator: " + op);
             };
         } catch (Exception e) {
             return visitChildren(ctx);
@@ -220,13 +234,9 @@ public class Optimizer extends delphiBaseVisitor<String> {
     @Override
     public String visitFactor(delphi.FactorContext ctx) {
         try {
-            if (ctx.NOT() != null) {
-                String value = visit(ctx.factor()).trim().toLowerCase();
-                if (!value.equals("true") && !value.equals("false")) {
-                    throw new RuntimeException("Can't cast to bool, fallback!");
-                }
-    
-                return Boolean.valueOf(!Boolean.valueOf(value)).toString();
+            if (ctx.NOT() != null) {                
+                Boolean result = !requireType(visit(ctx.factor()).trim().toLowerCase(), Boolean.class);
+                return result.toString();
             }
 
             throw new RuntimeException("Can't constant fold, fallback!");
@@ -236,5 +246,48 @@ public class Optimizer extends delphiBaseVisitor<String> {
     }
 
     //#endregion Expressions
+
+    //#region Helpers
+
+    /**
+     * Given an instance of a string, force it to the given type. 
+     * 
+     * @param <T> 
+     * @param value the value to cast
+     * @param type the type to cast to (one of delphi's primitive types)
+     * @return the value as the specific type, if the Delphi rules allow the type cast...
+     */
+    private static <T> T requireType(String value, Class<T> type) {
+        if (value == null || value == "") {
+            throw new RuntimeException("Unsupported type: " + type.getName());
+        }
+
+        return switch (type.getSimpleName()) {
+            case "Boolean" -> {
+                if (!value.equals("true") && !value.equals("false")) {
+                    throw new RuntimeException(value + " is not a " + type.getSimpleName());
+                }
+                yield type.cast(Boolean.valueOf(value));
+            }
+            case "BigInteger" -> type.cast(new BigInteger(value));
+            case "BigDecimal" -> type.cast(new BigDecimal(value));
+            case "Character" -> {
+                if (!value.toLowerCase().replaceAll("\\s+", "").startsWith("chr(")) {
+                    throw new RuntimeException(value + "is not a " + type.getSimpleName());
+                }
+                yield type.cast(Character.valueOf((char) new BigInteger(value.replaceAll("[^0-9]", "")).intValue()));
+            }
+            case "String" -> {
+                if (value.charAt(0) != '\'' && value.charAt(value.length() - 1) != '\'') {
+                    throw new RuntimeException(value + " is not a " + type.getSimpleName());
+                }
+                yield type.cast(value.substring(1, value.length() - 1));
+            }
+
+            default -> throw new IllegalArgumentException("Unsupported type: " + type.getName());
+        };
+    }
+
+    //#endregion Helpers
 
 }
