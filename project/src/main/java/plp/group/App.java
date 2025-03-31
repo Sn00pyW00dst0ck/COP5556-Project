@@ -1,6 +1,9 @@
 package plp.group;
 
-import java.util.Scanner;
+import java.io.IOException;
+
+import org.jline.reader.*;
+import org.jline.terminal.*;
 
 import org.antlr.v4.gui.Trees;
 import org.antlr.v4.runtime.CharStreams;
@@ -17,33 +20,36 @@ import plp.group.project.delphi_lexer;
  *
  */
 public class App {
-    public static void main(String[] args) {
-        try (Scanner scanner = new Scanner(System.in)) {
-            displayHelpMenu();
-            while (true) {
-                System.out.println("Enter your command to perform.");
-                System.out.print("> ");
+    public static void main(String[] args) throws IOException {
+        Terminal terminal = TerminalBuilder.terminal();
+        LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
 
-                String[] input = scanner.nextLine().split(" ");
-                String command = input[0];
-                String argument = (input.length > 2 && "-o".equals(input[1])) ? input[2] : (input.length > 1 ? input[1] : null);
+        String prompt = "cmd> ";
+        String[] line;
 
-                switch (command) {
+        displayHelpMenu();
+        while (true) {
+            try {
+                line = reader.readLine(prompt).split(" ");
+                String programFile = (line.length > 2 && "-o".equals(line[1])) ? line[2] : (line.length > 1 ? line[1] : null);
+
+                switch (line[0]) {
                     case "exit":
                         return;
                     case "eval":
-                        interpretProgram(argument, "-o".equals(input[1]));
+                        interpretProgram(programFile, "-o".equals(line[1]));
                         break;
                     case "tree":
-                        displayParseTree(argument, "-o".equals(input[1]));
+                        displayParseTree(programFile, "-o".equals(line[1]));
                         break;
                     case "help":
                         displayHelpMenu();
                         break;
                     default:
                         System.out.println("Bad command, try again. ");
-                        break;
                 }
+            } catch (Exception e) {
+                break;
             }
         }
     }
@@ -83,7 +89,6 @@ public class App {
             if (optimize) {
                 String optimized = (new Optimizer()).visit(tree);
                 tree = new delphi(new CommonTokenStream(new delphi_lexer(CharStreams.fromString(optimized)))).program();
-                System.out.println(optimized);
             }
 
             // Open a GUI window with the parse tree.
