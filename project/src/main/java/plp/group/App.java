@@ -83,6 +83,7 @@ public class App {
             if (optimize) {
                 String optimized = (new Optimizer()).visit(tree);
                 tree = new delphi(new CommonTokenStream(new delphi_lexer(CharStreams.fromString(optimized)))).program();
+                System.out.println(optimized);
             }
 
             // Open a GUI window with the parse tree.
@@ -108,7 +109,7 @@ public class App {
         System.out.println("help");
         System.out.println("\tDisplays this help menu.\n");
         System.out.println("tree <program_file>");
-        System.out.println("\tDisplays the parsed tree for the program_file in a GUI window.");
+        System.out.println("\tDisplays the parsed tree for the program_file in a GUI window.\n");
         System.out.println("tree -o <program_file>");
         System.out.println("\tDisplays the parsed tree for the program_file after optimizations are applied in a GUI window.");
         System.out.println("--------------------");

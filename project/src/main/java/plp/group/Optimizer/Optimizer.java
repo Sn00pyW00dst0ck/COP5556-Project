@@ -268,6 +268,20 @@ public class Optimizer extends delphiBaseVisitor<String> {
         }
     }
 
+    /**
+     * Signed factor override to prevent a space between sign and the factor.
+     */
+    @Override
+    public String visitSignedFactor(delphi.SignedFactorContext ctx) {
+        String sign = "";
+        if (ctx.MINUS() != null) { 
+            sign += ctx.MINUS().getText();
+        } else if (ctx.PLUS() != null) {
+            sign += ctx.PLUS().getText();
+        }
+        return sign + visit(ctx.factor());
+    }
+
     @Override
     public String visitFactor(delphi.FactorContext ctx) {
         try {
@@ -298,6 +312,12 @@ public class Optimizer extends delphiBaseVisitor<String> {
         if (value == null || value == "") {
             throw new RuntimeException("Unsupported type: " + type.getName());
         }
+
+        // Handle case of the value being wrapped in parenthesis, we want to ignore those characters...
+        while (value.startsWith("(") && value.endsWith(")")) {
+            value = value.substring(1, value.length() - 1).trim();
+        }
+        
 
         return switch (type.getSimpleName()) {
             case "Boolean" -> {
