@@ -52,7 +52,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public Object visitWhileStatement(delphi.WhileStatementContext ctx) {
         Scope oldScope = scope;
-        
+
         while (RuntimeValue.requireType((RuntimeValue) visit(ctx.expression()), Boolean.class)) {
             // Create new scope for each loop iteration (static scoping inside loop body)
             scope = new Scope(Optional.of(oldScope));
@@ -78,7 +78,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         BigInteger start = RuntimeValue.requireType((RuntimeValue) visit(list.initialValue()), BigInteger.class);
         BigInteger end = RuntimeValue.requireType((RuntimeValue) visit(list.finalValue()), BigInteger.class);
         
-        boolean isTo = isAscendingLoop(list);
+        boolean isTo = list.getChild(1).getText().equalsIgnoreCase("to");
+        
         Scope oldScope = scope;
         scope = new Scope(Optional.of(oldScope));
         
