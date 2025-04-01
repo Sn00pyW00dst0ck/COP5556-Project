@@ -79,6 +79,26 @@ public class Environment {
          * Also, references will be a thing to deal with and it will be tough...
          */
 
+        // https://www.freepascal.org/docs-html/rtl/system/break.html
+        scope.define("break/0", new RuntimeValue.Method(
+            "break/0",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(), 
+                Void.class
+            ),
+            Environment::Break)
+        );
+
+        // https://www.freepascal.org/docs-html/rtl/system/continue.html
+        scope.define("continue/0", new RuntimeValue.Method(
+            "continue/0",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(), 
+                Void.class
+            ),
+            Environment::Continue)
+        );
+
         return scope;
     }
 
@@ -108,4 +128,19 @@ public class Environment {
     }
 
     // TODO: read and readln here...
+
+
+    /**
+     * Throws break exception to signify ending the loop context.
+     */
+    private static RuntimeValue Break(List<RuntimeValue> arguments) {
+        throw new BreakException();
+    }
+
+    /**
+     * Throws continue exception to signify jump to next loop iteration.
+     */
+    private static RuntimeValue Continue(List<RuntimeValue> arguments) {
+        throw new ContinueException();
+    }
 }
