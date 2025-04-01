@@ -373,8 +373,8 @@ unlabelledStatement
 
 simpleStatement
     : assignmentStatement
-    | procedureStatement
     | gotoStatement
+    | procedureStatement
     | emptyStatement_
     ;
 

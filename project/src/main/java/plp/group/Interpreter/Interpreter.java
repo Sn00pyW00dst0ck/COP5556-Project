@@ -15,13 +15,15 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 import plp.group.project.delphi;
 import plp.group.project.delphiBaseVisitor;
 import plp.group.project.delphi.ClassMemberDeclarationContext;
-import plp.group.Interpreter.ControlFlowExceptions.Return;
+import plp.group.Interpreter.ControlFlowExceptions.BreakException;
+import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
+import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
 
 /**
  * The interpreter that walks the tree and does the actual calculations/running of the program.
  */
 public class Interpreter extends delphiBaseVisitor<Object> {
-    
+
     /**
      * The scope of the interpreter as it is running.
      * 
@@ -351,7 +353,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = procedureScope;
                         visitBlock(ctx.block());
-                    } catch (Return e) {
+                    } catch (ReturnException e) {
                         // Handle exceptions here...
                     } finally {
                         scope = originalScope;
@@ -406,7 +408,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = functionScope;
                         visitBlock(ctx.block());
-                    } catch (Return e) {
+                    } catch (ReturnException e) {
                         // Handle exceptions here...
                     } finally {
                         // Require result to be correct type...
@@ -477,7 +479,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = procedureScope;
                         visitBlock(ctx.block());
-                    } catch (Return e) {
+                    } catch (ReturnException e) {
                         // Handle exceptions here...
                     } finally {
                         scope = originalScope;
@@ -539,7 +541,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = functionScope;
                         visitBlock(ctx.block());
-                    } catch (Return e) {
+                    } catch (ReturnException e) {
                         // Handle exceptions here...
                     } finally {
                         // Require result to be correct type...
@@ -602,7 +604,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = functionScope;
                         visitBlock(ctx.block());
-                    } catch (Return e) {
+                    } catch (ReturnException e) {
                         // Handle exceptions here...
                     } finally {
                         scope = originalScope;
@@ -645,7 +647,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = functionScope;
                         visitBlock(ctx.block());
-                    } catch (Return e) {
+                    } catch (ReturnException e) {
                         // Handle exceptions here...
                     } finally {
                         scope = originalScope;
@@ -661,6 +663,67 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     //#endregion Implementations
 
     //#region Statements
+
+    // TODO: if statement
+    // TODO: procedure and function calls
+    // TODO: goto statement (very difficult leave til last)
+
+    @Override
+    public Object visitWhileStatement(delphi.WhileStatementContext ctx) {
+        Scope oldScope = scope;
+
+        while (RuntimeValue.requireType((RuntimeValue) visit(ctx.expression()), Boolean.class)) {
+            // Create new scope for each loop iteration (static scoping inside loop body)
+            scope = new Scope(Optional.of(oldScope));
+            
+            try {
+                visit(ctx.statement());
+            } catch (ContinueException e) {
+                // skip to next iteration
+            } catch (BreakException e) {
+                break;
+            } finally {
+                scope = oldScope;
+            }
+        }
+        return null;
+    }
+
+    @Override
+    public Object visitForStatement(delphi.ForStatementContext ctx) {
+        String varName = ctx.identifier().getText();
+        delphi.ForListContext list = ctx.forList();
+        
+        BigInteger start = RuntimeValue.requireType((RuntimeValue) visit(list.initialValue()), BigInteger.class);
+        BigInteger end = RuntimeValue.requireType((RuntimeValue) visit(list.finalValue()), BigInteger.class);
+        
+        boolean isTo = list.getChild(1).getText().equalsIgnoreCase("to");
+        
+        Scope oldScope = scope;
+        scope = new Scope(Optional.of(oldScope));
+        
+        try {
+            for (BigInteger i = start; isTo ? i.compareTo(end) <= 0 : i.compareTo(end) >= 0; i = i.add(isTo ? BigInteger.ONE : BigInteger.ONE.negate())) {
+                // If the variable exists already, update it; otherwise, define it
+                if (scope.lookup(varName).isPresent()) {
+                    scope.assign(varName, new RuntimeValue.Primitive(i));
+                } else {
+                    scope.define(varName, new RuntimeValue.Primitive(i));
+                }
+    
+                try {
+                    visit(ctx.statement());
+                } catch (ContinueException e) {
+                    continue;
+                } catch (BreakException e) {
+                    break;
+                }
+            }
+        } finally {
+            scope = oldScope;
+        }
+        return null;
+    }
 
     //#endregion Statements
 
@@ -837,7 +900,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public RuntimeValue visitFactor(delphi.FactorContext ctx) {
         // We can tell what we are parsing based on the first child, so use a switch expression to return the proper thing.
         return switch (ctx.getChild(0)) {
-            case delphi.VariableContext variableCtx -> null;//  TODO: evaluate variables
+            case delphi.VariableContext variableCtx -> visitVariable(variableCtx);
             case TerminalNode t when t.getSymbol().getType() == delphi.LPAREN -> visitExpression(ctx.expression());
             case delphi.FunctionDesignatorContext functionDesignatorCtx -> visitFunctionDesignator(functionDesignatorCtx);
             case delphi.UnsignedConstantContext unsignedConstantCtx -> visitUnsignedConstant(unsignedConstantCtx);
@@ -880,6 +943,16 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             // parameter.parameterwidth();
         }
         return parameters;
+    }
+
+    /**
+     * TODO: THIS IS NEEDS TO BE FINISHED EVENTUALLY!
+     */
+    @Override
+    public RuntimeValue visitVariable(delphi.VariableContext ctx) {
+        var primary = ctx.primary().identifier().IDENT().getText();
+        // TODO: HANDLE MEMBER ACCESS HERE!!!
+        return scope.lookup(primary).orElseThrow(() -> new NoSuchElementException(""));
     }
 
     //#endregion Expressions

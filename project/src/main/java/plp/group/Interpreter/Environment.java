@@ -3,7 +3,9 @@ package plp.group.Interpreter;
 import java.util.List;
 import java.util.Optional;
 
-import plp.group.Interpreter.ControlFlowExceptions.Return;
+import plp.group.Interpreter.ControlFlowExceptions.BreakException;
+import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
+import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
 
 /**
  * Defines all of the built in functions to the language which the interpreter supports.
@@ -89,6 +91,26 @@ public class Environment {
             ), 
             Environment::exit)
         );
+        
+        // https://www.freepascal.org/docs-html/rtl/system/break.html
+        scope.define("Break/0", new RuntimeValue.Method(
+            "Break/0",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(), 
+                new RuntimeValue.Primitive(null)
+            ),
+            Environment::Break)
+        );
+
+        // https://www.freepascal.org/docs-html/rtl/system/continue.html
+        scope.define("Continue/0", new RuntimeValue.Method(
+            "Continue/0",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(), 
+                new RuntimeValue.Primitive(null)
+            ),
+            Environment::Continue)
+        );
 
         return scope;
     }
@@ -128,6 +150,20 @@ public class Environment {
      * @return nothing, always throws a Return exception. 
      */
     private static RuntimeValue exit(List<RuntimeValue> arguments) {
-        throw new Return();
+        throw new ReturnException();
+    }
+
+    /**
+     * Throws break exception to signify ending the loop context.
+     */
+    private static RuntimeValue Break(List<RuntimeValue> arguments) {
+        throw new BreakException();
+    }
+
+    /**
+     * Throws continue exception to signify jump to next loop iteration.
+     */
+    private static RuntimeValue Continue(List<RuntimeValue> arguments) {
+        throw new ContinueException();
     }
 }
