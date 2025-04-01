@@ -16,27 +16,7 @@ import plp.group.project.delphiBaseVisitor;
  * The interpreter that walks the tree and does the actual calculations/running of the program.
  */
 public class Interpreter extends delphiBaseVisitor<Object> {
-    
-    @Override
-    public Object visitBreakStatement(delphi.BreakStatementContext ctx) {
-        throw new BreakException();
-    }
 
-    @Override
-    public Object visitContinueStatement(delphi.ContinueStatementContext ctx) {
-        throw new ContinueException();
-    }
-
-    //custom exceptions here
-    public static class BreakException extends RuntimeException {
-        private static final long serialVersionUID = 1L;
-    }
-
-    public static class ContinueException extends RuntimeException {
-        private static final long serialVersionUID = 1L;
-    }
-
-    
     /**
      * The scope of the interpreter as it is running.
      * 
@@ -60,18 +40,27 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     //#region Statements
 
     @Override
+    public Object visitBreakStatement(delphi.BreakStatementContext ctx) {
+        throw new BreakException();
+    }
+
+    @Override
+    public Object visitContinueStatement(delphi.ContinueStatementContext ctx) {
+        throw new ContinueException();
+    }
+
+    @Override
     public Object visitWhileStatement(delphi.WhileStatementContext ctx) {
+        Scope oldScope = scope;
+        
         while (RuntimeValue.requireType((RuntimeValue) visit(ctx.expression()), Boolean.class)) {
             // Create new scope for each loop iteration (static scoping inside loop body)
-            Scope oldScope = scope;
             scope = new Scope(Optional.of(oldScope));
             
             try {
-                try {
-                    visit(ctx.statement());
-                } catch (ContinueException e) {
-                    // skip to next iteration
-                }
+                visit(ctx.statement());
+            } catch (ContinueException e) {
+                // skip to next iteration
             } catch (BreakException e) {
                 break;
             } finally {
@@ -86,15 +75,15 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         String varName = ctx.identifier().getText();
         delphi.ForListContext list = ctx.forList();
         
-        int start = RuntimeValue.requireType((RuntimeValue) visit(list.initialValue()), Integer.class);
-        int end = RuntimeValue.requireType((RuntimeValue) visit(list.finalValue()), Integer.class);
+        BigInteger start = RuntimeValue.requireType((RuntimeValue) visit(list.initialValue()), BigInteger.class);
+        BigInteger end = RuntimeValue.requireType((RuntimeValue) visit(list.finalValue()), BigInteger.class);
         
         boolean isTo = isAscendingLoop(list);
         Scope oldScope = scope;
         scope = new Scope(Optional.of(oldScope));
         
         try {
-            for (int i = start; isTo ? i <= end : i >= end; i += isTo ? 1 : -1) {
+            for (BigInteger i = start; isTo ? i.compareTo(end) <= 0 : i.compareTo(end) >= 0; i = i.add(isTo ? BigInteger.ONE : BigInteger.ONE.negate())) {
                 // If the variable exists already, update it; otherwise, define it
                 if (scope.lookup(varName).isPresent()) {
                     scope.assign(varName, new RuntimeValue.Primitive(i));
