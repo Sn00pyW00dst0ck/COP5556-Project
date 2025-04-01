@@ -16,7 +16,7 @@ begin
 
 	writeln (true < false);
 	writeln (false <= true);
-		
+	
 	writeln (CHR(63) < CHR(65));
 	writeln (CHR(63) = CHR(65));
 	writeln (CHR(63) <> CHR(65));
