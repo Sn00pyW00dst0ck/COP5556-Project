@@ -3,6 +3,10 @@ package plp.group.Interpreter;
 import java.util.List;
 import java.util.Optional;
 
+import plp.group.Interpreter.ControlFlowExceptions.BreakException;
+import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
+import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
+
 /**
  * Defines all of the built in functions to the language which the interpreter supports.
  * 
@@ -27,24 +31,24 @@ public class Environment {
         scope.define("write/1", new RuntimeValue.Method(
             "write/1", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class), 
-                Void.class
-            ), 
+                List.of(new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
+            ),
             Environment::write
         ));
         scope.define("write/2", new RuntimeValue.Method(
             "write/2", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class, Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::write
         ));
         scope.define("write/3", new RuntimeValue.Method(
             "write/3", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class, Object.class, Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::write
         ));
@@ -52,49 +56,58 @@ public class Environment {
         scope.define("writeln/1", new RuntimeValue.Method(
             "writeln/1", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::writeln
         ));
         scope.define("writeln/2", new RuntimeValue.Method(
             "writeln/2", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class, Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::writeln
         ));
         scope.define("writeln/3", new RuntimeValue.Method(
             "writeln/3", 
             new RuntimeValue.Method.MethodSignature(
-                List.of(Object.class, Object.class, Object.class), 
-                Void.class
+                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
+                new RuntimeValue.Primitive(null)
             ), 
             Environment::writeln
         ));
-
+        
         /*
          * TODO: read and readln here, they will be tough because they have to be variadic I think, unless we want to force only one variable. 
          * Also, references will be a thing to deal with and it will be tough...
          */
 
-        // https://www.freepascal.org/docs-html/rtl/system/break.html
-        scope.define("break/0", new RuntimeValue.Method(
-            "break/0",
+        scope.define("Exit/0", new RuntimeValue.Method(
+            "Exit/0", 
             new RuntimeValue.Method.MethodSignature(
                 List.of(), 
-                Void.class
+                new RuntimeValue.Primitive(null)
+            ), 
+            Environment::exit)
+        );
+        
+        // https://www.freepascal.org/docs-html/rtl/system/break.html
+        scope.define("Break/0", new RuntimeValue.Method(
+            "Break/0",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(), 
+                new RuntimeValue.Primitive(null)
             ),
             Environment::Break)
         );
 
         // https://www.freepascal.org/docs-html/rtl/system/continue.html
-        scope.define("continue/0", new RuntimeValue.Method(
-            "continue/0",
+        scope.define("Continue/0", new RuntimeValue.Method(
+            "Continue/0",
             new RuntimeValue.Method.MethodSignature(
                 List.of(), 
-                Void.class
+                new RuntimeValue.Primitive(null)
             ),
             Environment::Continue)
         );
@@ -129,6 +142,16 @@ public class Environment {
 
     // TODO: read and readln here...
 
+    /**
+     * The 'Exit()' procedure built into delphi will immediately stop execution of a function, or otherwise exit the program. 
+     * We throw a Return control flow exception to show this behavior. 
+     * 
+     * @param arguments should be an empty list
+     * @return nothing, always throws a Return exception. 
+     */
+    private static RuntimeValue exit(List<RuntimeValue> arguments) {
+        throw new ReturnException();
+    }
 
     /**
      * Throws break exception to signify ending the loop context.

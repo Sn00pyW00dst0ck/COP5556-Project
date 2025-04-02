@@ -6,13 +6,13 @@ var
 begin
   sum := 0;
 
-  // Test FOR loop
+  { Test FOR loop }
   for i := 1 to 5 do
     sum := sum + i;
 
   writeln('Sum after FOR loop (1 to 5): ', sum);
 
-  // Test WHILE loop
+  { Test WHILE loop }
   i := 1;
   sum := 0;
 

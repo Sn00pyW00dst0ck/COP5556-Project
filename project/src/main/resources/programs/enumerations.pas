@@ -6,7 +6,7 @@ type
 
 var
 	col : TColors;
-   
+
 begin
 	col := GREEN;
 	writeln (col);

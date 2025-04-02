@@ -47,7 +47,7 @@ public class RuntimeValueTest {
     void testMethodInvocation() {
         RuntimeValue.Method sumMethod = new RuntimeValue.Method(
             "sum",
-            new RuntimeValue.Method.MethodSignature(List.of(BigInteger.class, BigInteger.class), BigInteger.class),
+            new RuntimeValue.Method.MethodSignature(List.of(new RuntimeValue.Primitive(new BigInteger("0")), new RuntimeValue.Primitive(new BigInteger("0"))), new RuntimeValue.Primitive(new BigInteger("0"))),
             args -> {
                 var first = (BigInteger) ((RuntimeValue.Primitive) args.get(0)).value();
                 var second = (BigInteger) ((RuntimeValue.Primitive) args.get(1)).value();
@@ -75,7 +75,7 @@ public class RuntimeValueTest {
     void testMethodEquality() {
         RuntimeValue.Method methodA = new RuntimeValue.Method(
             "testMethodA",
-            new RuntimeValue.Method.MethodSignature(List.of(), String.class),
+            new RuntimeValue.Method.MethodSignature(List.of(), new RuntimeValue.Primitive("")),
             _ -> {
                 return new RuntimeValue.Primitive("String");
             }
@@ -84,7 +84,7 @@ public class RuntimeValueTest {
         // Same as methodA, for testing equality
         RuntimeValue.Method methodB = new RuntimeValue.Method(
             "testMethodA",
-            new RuntimeValue.Method.MethodSignature(List.of(), String.class),
+            new RuntimeValue.Method.MethodSignature(List.of(), new RuntimeValue.Primitive("")),
             _ -> {
                 return new RuntimeValue.Primitive("String");
             }
@@ -93,7 +93,7 @@ public class RuntimeValueTest {
         // Different from method A and B.
         RuntimeValue.Method methodC = new RuntimeValue.Method(
             "testMethodC",
-            new RuntimeValue.Method.MethodSignature(List.of(BigInteger.class, BigInteger.class), BigInteger.class),
+            new RuntimeValue.Method.MethodSignature(List.of(new RuntimeValue.Primitive(new BigInteger("0")), new RuntimeValue.Primitive(new BigInteger("0"))), new RuntimeValue.Primitive(new BigInteger("0"))),
             _ -> {
                 return new RuntimeValue.Primitive(new BigInteger("95"));
             }
@@ -102,7 +102,7 @@ public class RuntimeValueTest {
         // Same name as methods A and B, but different signature
         RuntimeValue.Method methodD = new RuntimeValue.Method(
             "testMethodA",
-            new RuntimeValue.Method.MethodSignature(List.of(String.class, String.class), String.class),
+            new RuntimeValue.Method.MethodSignature(List.of(new RuntimeValue.Primitive(""), new RuntimeValue.Primitive("")), new RuntimeValue.Primitive("")),
             _ -> {
                 return new RuntimeValue.Primitive(new BigInteger("String"));
             }
@@ -111,7 +111,7 @@ public class RuntimeValueTest {
         // Same as methodC, except for different return type
         RuntimeValue.Method methodE = new RuntimeValue.Method(
             "testMethodC",
-            new RuntimeValue.Method.MethodSignature(List.of(BigInteger.class, BigInteger.class), Void.class),
+            new RuntimeValue.Method.MethodSignature(List.of(new RuntimeValue.Primitive(new BigInteger("0")), new RuntimeValue.Primitive(new BigInteger("0"))), new RuntimeValue.Primitive(null)),
             _ -> {
                 return new RuntimeValue.Primitive("Output");
             }
@@ -144,7 +144,7 @@ public class RuntimeValueTest {
     void testMethodToString() {
         RuntimeValue.Method method = new RuntimeValue.Method(
             "print", 
-            new RuntimeValue.Method.MethodSignature(List.of(), Void.class),
+            new RuntimeValue.Method.MethodSignature(List.of(), new RuntimeValue.Primitive(null)),
             _ -> {
                 return new RuntimeValue.Primitive("Printed");
             }
