@@ -1,5 +1,7 @@
 package plp.group.Interpreter;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -96,6 +98,12 @@ public sealed interface RuntimeValue {
             return (T) value;
         } else {
             var primitive = requireType(value, RuntimeValue.Primitive.class);
+
+            // If it is a BigInteger allow auto convert to BigDecimal
+            if (type.equals(BigDecimal.class) && primitive.value() instanceof BigInteger bigInteger) {
+                return (T) new BigDecimal(bigInteger);
+            }
+
             if (!type.isInstance(primitive.value())) {
                 var received = primitive.value() != null ? primitive.value().getClass() : null;
                 throw new RuntimeException("Expected value to be of type " + type + ", received " + received + ".");
