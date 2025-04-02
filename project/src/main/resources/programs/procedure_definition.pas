@@ -12,7 +12,9 @@ begin
     c := a + b;
 
     writeln('Winthin the procedure display');
-    writeln('value of a = ', a , ' b =  ',  b, ' and c = ', c);
+    write('value of a = ', a);
+    write(' b = ',  b);
+    writeln(' and c = ', c);
 end;
 
 procedure parameter_display(x, y: integer);
@@ -24,7 +26,9 @@ begin
     c := a + b;
 
     writeln('Winthin the procedure parameter_display');
-    writeln('value of a = ', a , ' b =  ',  b, ' and c = ', c);
+    write('value of a = ', a);
+    write(' b = ',  b);
+    writeln(' and c = ', c);
 end;
 
 procedure SumByRef(a, b, c : integer; var m : integer);
@@ -38,7 +42,9 @@ begin
     c:= a + b;
 
     writeln('Winthin the program');
-    writeln('value of a = ', a , ' b =  ',  b, ' and c = ', c);
+    write('value of a = ', a);
+    write(' b = ',  b);
+    writeln(' and c = ', c);
     display();
     parameter_display(15, 45);
 
