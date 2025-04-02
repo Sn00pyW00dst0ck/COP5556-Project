@@ -1,5 +1,8 @@
 package plp.group.Interpreter;
 
+import java.math.BigDecimal;
+import java.math.BigInteger;
+import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
@@ -16,7 +19,36 @@ public sealed interface RuntimeValue {
      */
     record Primitive(
         @Nullable Object value
-    ) implements RuntimeValue {};
+    ) implements RuntimeValue {
+        public String getPrintString() {
+            return switch (value) {
+                case Boolean bool -> bool.toString().toUpperCase();
+                case String string -> string;
+                case Character character -> character.toString();
+                case BigInteger integer -> integer.toString();
+                case BigDecimal decimal -> {
+                    DecimalFormat singlePrecision = new DecimalFormat(" 0.000000000E00;-0.000000000E00");
+                    DecimalFormat doublePrecision = new DecimalFormat(" 0.0000000000000000E000;-0.0000000000000000E000");
+
+                    String result = "";
+                    if (decimal.abs().compareTo(new BigDecimal("1.18e-38")) >= 0 || decimal.abs().compareTo(new BigDecimal("3.40e+38")) <= 0) {
+                        result = singlePrecision.format(decimal);
+                    } else if (decimal.abs().compareTo(new BigDecimal("2.23e-308")) >= 0 || decimal.abs().compareTo(new BigDecimal("1.79e+308")) <= 0) {
+                        result = doublePrecision.format(decimal);
+                    } else {
+                        throw new ArithmeticException("Overflow for DoubleType " + decimal + " when printing primitive");
+                    }
+
+                    // Last formatting pass.
+                    if (!result.contains("E-")) {
+                        result = result.replace("E", "E+");
+                    }
+                    yield result.toString();
+                }
+                default -> throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
+            };
+        }
+    };
 
     /**
      * Represents a function or procedure. 
@@ -45,6 +77,10 @@ public sealed interface RuntimeValue {
             // Ensure same name and signature for equality
             return name.equals(method.name) && Objects.equals(signature, method.signature);
         }
+
+        public String getPrintString() {
+            throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
+        }
     };
 
     // Some sort of REFERENCE implementation here... Reference to another RuntimeValue? Then how to tell apart References to different things when comparing?
@@ -55,7 +91,11 @@ public sealed interface RuntimeValue {
     record Enumeration(
         @Nullable String value,
         Map<String, Integer> options
-    ) implements RuntimeValue {};
+    ) implements RuntimeValue {
+        public String getPrintString() {
+            throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
+        }
+    };
 
     /**
      * Represents the definition of a class. 
@@ -66,7 +106,11 @@ public sealed interface RuntimeValue {
         Scope privateScope, 
         Scope protectedScope,
         Scope publicScope
-    ) implements RuntimeValue {};
+    ) implements RuntimeValue {
+        public String getPrintString() {
+            throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
+        }
+    };
 
     /**
      * Creates a new instance of a class (aka an object).
@@ -77,7 +121,11 @@ public sealed interface RuntimeValue {
         Scope publicScope,
         Scope privateScope, 
         Scope protectedScope
-    ) implements RuntimeValue {};
+    ) implements RuntimeValue {
+        public String getPrintString() {
+            throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
+        }
+    };
 
     /**
      * Use requireType to convert a RuntimeValue into an instance of a requested class.
@@ -103,5 +151,7 @@ public sealed interface RuntimeValue {
             return (T) primitive.value();
         }
     }
+
+    public abstract String getPrintString();
 
 }

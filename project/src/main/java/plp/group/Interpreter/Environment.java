@@ -122,7 +122,7 @@ public class Environment {
      */
     private static RuntimeValue write(List<RuntimeValue> arguments) {
         for (RuntimeValue arg : arguments) {
-            System.out.print(arg.toString()); // TODO: This will probably need to be updated to print things in more proper formats (mostly decimals and other special types)
+            System.out.print(arg.getPrintString());
         }
         return new RuntimeValue.Primitive(null);
     }
