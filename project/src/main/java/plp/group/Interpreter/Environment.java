@@ -53,6 +53,14 @@ public class Environment {
             Environment::write
         ));
 
+        scope.define("writeln/0", new RuntimeValue.Method(
+            "writeln/0", 
+            new RuntimeValue.Method.MethodSignature(
+                List.of(),
+                new RuntimeValue.Primitive(null)
+            ), 
+            Environment::writeln
+        ));
         scope.define("writeln/1", new RuntimeValue.Method(
             "writeln/1", 
             new RuntimeValue.Method.MethodSignature(

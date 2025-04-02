@@ -51,6 +51,18 @@ public sealed interface RuntimeValue {
     };
 
     /**
+     * Represents a variable.
+     */
+    record Variable(
+        String name, 
+        RuntimeValue value
+    ) implements RuntimeValue {
+        public String getPrintString() {
+            return value.getPrintString();
+        }
+    };
+
+    /**
      * Represents a function or procedure. 
      */
     record Method(

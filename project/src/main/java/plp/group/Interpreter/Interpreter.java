@@ -312,6 +312,21 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     //#endregion Types
 
+    //#region Variable Declaration
+
+    @Override
+    public RuntimeValue visitVariableDeclaration(delphi.VariableDeclarationContext ctx) {
+        RuntimeValue typeDefault = visitType_(ctx.type_());
+
+        for (var identifier : ctx.identifierList().identifier()) {
+            scope.define(identifier.getText(), new RuntimeValue.Variable(identifier.getText(), typeDefault));
+        }
+
+        return new RuntimeValue.Primitive(null);
+    }
+
+    //#endregion Variable Declaration
+
     //#region Implementations
 
     /**
@@ -669,6 +684,20 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     // TODO: goto statement (very difficult leave til last)
 
     @Override
+    public RuntimeValue visitAssignmentStatement(delphi.AssignmentStatementContext ctx) {
+        // Get the variable from the scope...
+        RuntimeValue.Variable variable = RuntimeValue.requireType(visitVariable(ctx.variable()), RuntimeValue.Variable.class);
+        RuntimeValue newValue = visitExpression(ctx.expression());
+
+        // Require the type of the new value to be same as variable's type
+        RuntimeValue.requireType(newValue, variable.value().getClass());
+        // TODO: might need more checks than above to handle special cases...
+
+        scope.assign(variable.name(), new RuntimeValue.Variable(variable.name(), newValue));
+        return new RuntimeValue.Primitive(null);
+    }
+
+    @Override
     public RuntimeValue visitProcedureStatement(delphi.ProcedureStatementContext ctx) {
         List<RuntimeValue> parameters = visitParameterList(ctx.parameterList());
         String procedureName = ctx.identifier().IDENT().getText() + "/" + parameters.size();
@@ -708,6 +737,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         String varName = ctx.identifier().getText();
         delphi.ForListContext list = ctx.forList();
         
+        // TODO: update for working with more things, characters, enums, etc.
         BigInteger start = RuntimeValue.requireType((RuntimeValue) visit(list.initialValue()), BigInteger.class);
         BigInteger end = RuntimeValue.requireType((RuntimeValue) visit(list.finalValue()), BigInteger.class);
         
@@ -717,13 +747,10 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         scope = new Scope(Optional.of(oldScope));
         
         try {
+            scope.define(varName, new RuntimeValue.Variable(varName, new RuntimeValue.Primitive(start)));
+            
             for (BigInteger i = start; isTo ? i.compareTo(end) <= 0 : i.compareTo(end) >= 0; i = i.add(isTo ? BigInteger.ONE : BigInteger.ONE.negate())) {
-                // If the variable exists already, update it; otherwise, define it
-                if (scope.lookup(varName).isPresent()) {
-                    scope.assign(varName, new RuntimeValue.Primitive(i));
-                } else {
-                    scope.define(varName, new RuntimeValue.Primitive(i));
-                }
+                scope.assign(varName, new RuntimeValue.Variable(varName, new RuntimeValue.Primitive(i)));    
     
                 try {
                     visit(ctx.statement());
@@ -914,7 +941,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public RuntimeValue visitFactor(delphi.FactorContext ctx) {
         // We can tell what we are parsing based on the first child, so use a switch expression to return the proper thing.
         return switch (ctx.getChild(0)) {
-            case delphi.VariableContext variableCtx -> visitVariable(variableCtx);
+            // TODO: variable parsing might require a bit more nuance to handle complex variable types, but is working for primitive values...
+            case delphi.VariableContext variableCtx -> RuntimeValue.requireType(visitVariable(variableCtx), RuntimeValue.Variable.class).value();
             case TerminalNode t when t.getSymbol().getType() == delphi.LPAREN -> visitExpression(ctx.expression());
             case delphi.FunctionDesignatorContext functionDesignatorCtx -> visitFunctionDesignator(functionDesignatorCtx);
             case delphi.UnsignedConstantContext unsignedConstantCtx -> visitUnsignedConstant(unsignedConstantCtx);
