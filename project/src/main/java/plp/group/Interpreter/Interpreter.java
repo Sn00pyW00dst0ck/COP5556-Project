@@ -669,6 +669,20 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     // TODO: goto statement (very difficult leave til last)
 
     @Override
+    public RuntimeValue visitProcedureStatement(delphi.ProcedureStatementContext ctx) {
+        List<RuntimeValue> parameters = visitParameterList(ctx.parameterList());
+        String procedureName = ctx.identifier().IDENT().getText() + "/" + parameters.size();
+
+        RuntimeValue.Method procedure = RuntimeValue.requireType(
+            scope.lookup(procedureName).orElseThrow(() -> new NoSuchElementException("Method '" + procedureName + "' is not present in scope when attempting to evaluate 'procedure statement'.")), 
+            RuntimeValue.Method.class
+        );
+
+        procedure.definition().invoke(parameters);
+        return new RuntimeValue.Primitive(null);
+    }
+
+    @Override
     public Object visitWhileStatement(delphi.WhileStatementContext ctx) {
         Scope oldScope = scope;
 
@@ -686,7 +700,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 scope = oldScope;
             }
         }
-        return null;
+        return new RuntimeValue.Primitive(null);
     }
 
     @Override
@@ -722,7 +736,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         } finally {
             scope = oldScope;
         }
-        return null;
+        return new RuntimeValue.Primitive(null);
     }
 
     //#endregion Statements
@@ -952,7 +966,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public RuntimeValue visitVariable(delphi.VariableContext ctx) {
         var primary = ctx.primary().identifier().IDENT().getText();
         // TODO: HANDLE MEMBER ACCESS HERE!!!
-        return scope.lookup(primary).orElseThrow(() -> new NoSuchElementException(""));
+        return scope.lookup(primary).orElseThrow(() -> new NoSuchElementException(primary + " is not defined in scope!"));
     }
 
     //#endregion Expressions
