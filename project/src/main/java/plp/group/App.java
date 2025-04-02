@@ -4,7 +4,7 @@ import java.io.IOException;
 
 import org.jline.reader.*;
 import org.jline.terminal.*;
-
+import org.jline.utils.InfoCmp.Capability;
 import org.antlr.v4.gui.Trees;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -34,6 +34,10 @@ public class App {
                 String programFile = (line.length > 2 && "-o".equals(line[1])) ? line[2] : (line.length > 1 ? line[1] : null);
 
                 switch (line[0]) {
+                    case "clear":
+                        terminal.puts(Capability.clear_screen);
+                        terminal.flush();
+                        break;                    
                     case "exit":
                         return;
                     case "eval":
@@ -105,6 +109,8 @@ public class App {
     private static void displayHelpMenu() {
         System.out.println("Help Menu:");
         System.out.println("--------------------");
+        System.out.println("clear");
+        System.out.println("\tClears the screen.\n");
         System.out.println("exit");
         System.out.println("\tQuits the program.\n");
         System.out.println("eval <program_file>");
