@@ -1,7 +1,6 @@
 package plp.group.Interpreter;
 
 import java.util.List;
-import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import plp.group.Interpreter.ControlFlowExceptions.BreakException;
@@ -153,6 +152,34 @@ public class Environment {
             (methodScope) -> writeln(methodScope, 3)
         ));
 
+        scope.define("Exit/0", new RuntimeValue.Method(
+            "Exit/0",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(),
+                null
+            ),
+            (Scope _) -> { throw new ReturnException(); }
+        ));
+
+        scope.define("Break/0", new RuntimeValue.Method(
+            "Break/0",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(),
+                null
+            ),
+            (Scope _) -> { throw new BreakException(); }
+        ));
+
+        scope.define("Continue/0", new RuntimeValue.Method(
+            "Continue/0",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(),
+                null
+            ),
+            (Scope _) -> { throw new ContinueException(); }
+        ));
+
+
         return scope;
     }
 
@@ -181,28 +208,4 @@ public class Environment {
 
     // TODO: read and readln here...
 
-    /**
-     * The 'Exit()' procedure built into delphi will immediately stop execution of a function, or otherwise exit the program. 
-     * We throw a Return control flow exception to show this behavior. 
-     * 
-     * @param arguments should be an empty list
-     * @return nothing, always throws a Return exception. 
-     */
-    private static void exit(List<RuntimeValue> arguments) {
-        throw new ReturnException();
-    }
-
-    /**
-     * Throws break exception to signify ending the loop context.
-     */
-    private static void Break(List<RuntimeValue> arguments) {
-        throw new BreakException();
-    }
-
-    /**
-     * Throws continue exception to signify jump to next loop iteration.
-     */
-    private static void Continue(List<RuntimeValue> arguments) {
-        throw new ContinueException();
-    }
 }
