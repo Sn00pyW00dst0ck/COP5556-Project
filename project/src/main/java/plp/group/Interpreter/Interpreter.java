@@ -359,12 +359,45 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 procedureName + "/" + parameters.size(),
                 new RuntimeValue.Method.MethodSignature(
                     parameters,
-                    new RuntimeValue.Primitive(null)
+                    null
                 ),
                 (procedureScope) -> {
                     Scope originalScope = scope;
                     try {
                         scope = procedureScope;
+                        visitBlock(ctx.block());
+                    } finally {
+                        scope = originalScope;
+                    }
+                }
+            )
+        );
+
+        return new RuntimeValue.Primitive(null);
+    }
+
+        /**
+     * Visits the implementation (definition) of a procedure and adds it to the scope.
+     * 
+     * Returns a RuntimeValue.Primitive(null)
+     */
+    @Override
+    public RuntimeValue visitFunctionImplementation(delphi.FunctionImplementationContext ctx) {
+        String functionName = ctx.identifier().getText();
+        List<RuntimeValue.Method.MethodParameter> parameters = (ctx.formalParameterList() == null) ? new ArrayList<>() : visitFormalParameterList(ctx.formalParameterList());
+
+        scope.define(
+            functionName + "/" + parameters.size(),
+            new RuntimeValue.Method(
+                functionName + "/" + parameters.size(),
+                new RuntimeValue.Method.MethodSignature(
+                    parameters,
+                    visitResultType(ctx.resultType())
+                ),
+                (functionScope) -> {
+                    Scope originalScope = scope;
+                    try {
+                        scope = functionScope;
                         visitBlock(ctx.block());
                     } finally {
                         scope = originalScope;

@@ -114,7 +114,7 @@ public sealed interface RuntimeValue {
                 RuntimeValue.Variable arg = arguments.get(i);
 
                 // Ensure the type matches up...
-                requireType(arg.value(), param.type.getClass());
+                requireType(arg.value(), param.type().getClass());
 
                 // Add to scope properly...
                 if (param.isReference()) {
@@ -124,14 +124,19 @@ public sealed interface RuntimeValue {
                 }
             }
 
+            // If a function we set the result variable...
             if (signature().returnType() != null) {
-                methodScope.define("result", signature().returnType());
+                methodScope.define("result", new RuntimeValue.Variable("result", signature().returnType()));
             }
             
-            definition().invoke(methodScope);
+            // Evaluate, if a return exception is thrown catch it but nothing special has to happen.
+            try {
+                definition().invoke(methodScope);
+            } catch (ReturnException r) {}
 
+            // If a function, return the value of the result variable...
             if (signature().returnType() != null) {
-                return methodScope.lookup("result").get();
+                return requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).value();
             }
 
             return new RuntimeValue.Primitive(null);
