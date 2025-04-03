@@ -1,13 +1,18 @@
 package plp.group.Interpreter;
 
+import java.lang.reflect.Parameter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
+import java.util.Optional;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
+
+import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
+import plp.group.Interpreter.RuntimeValue.Method.MethodDefinition;
 
 /**
  * Represents a value calculated during the runtime of the program. 
@@ -71,15 +76,66 @@ public sealed interface RuntimeValue {
         MethodDefinition definition
     ) implements RuntimeValue {
 
+        public record MethodParameter(
+            String name,
+            RuntimeValue type,
+            boolean isReference // If true, argument should be wrapped in a Reference
+            // TODO: boolean for isVariadic...
+        ) {};
+
         public record MethodSignature(
-            List<RuntimeValue> parameterTypes, // TODO: might have to expand to figure out how to do pass by reference, etc.
-            RuntimeValue returnType // Use RuntimeValue.Primitive(null) for no return value.
+            List<MethodParameter> parameters, // TODO: might have to expand to figure out how to do pass by reference, etc.
+            @Nullable RuntimeValue returnType // Use RuntimeValue.Primitive(null) for no return value.
         ) {};
 
         @FunctionalInterface
         interface MethodDefinition {
-            RuntimeValue invoke(List<RuntimeValue> arguments) throws RuntimeException;
+            void invoke(Scope callFrame) throws RuntimeException;
         };
+
+        /**
+         * Invoke the method to execute its code with given parameters from a given stack. 
+         * 
+         * @param callerScope the scope that the method was called from. It is the parent scope of the method call.
+         * @param arguments the parameters to the method. 
+         * @return the result of the function, or null if a procedure.
+         * @throws RuntimeException if something goes wrong
+         */
+        public RuntimeValue invoke(Scope callerScope, List<RuntimeValue.Variable> arguments) throws RuntimeException {
+            if (arguments.size() != signature.parameters().size()) {
+                throw new RuntimeException("Incorrect number of arguments.");
+            }
+
+            Scope methodScope = new Scope(Optional.of(callerScope));
+
+            // Pass arguments properly...
+            for (int i = 0; i < arguments.size(); i++) {
+                MethodParameter param = signature.parameters().get(i);
+                RuntimeValue.Variable arg = arguments.get(i);
+
+                // Ensure the type matches up...
+                requireType(arg.value(), param.type.getClass());
+
+                // Add to scope properly...
+                if (param.isReference()) {
+                    methodScope.define(param.name(), arg); // TODO: update this!!!
+                } else {
+                    methodScope.define(param.name(), arg);
+                }
+            }
+
+            if (signature().returnType() != null) {
+                methodScope.define("result", signature().returnType());
+            }
+            
+            definition().invoke(methodScope);
+
+            if (signature().returnType() != null) {
+                return methodScope.lookup("result").get();
+            }
+
+            return new RuntimeValue.Primitive(null);
+        }
 
         @Override
         public boolean equals(Object obj) {

@@ -11,7 +11,7 @@ begin
     b := 20;
     c := a + b;
 
-    writeln('Winthin the procedure display');
+    writeln('Within the procedure display');
     write('value of a = ', a);
     write(' b = ',  b);
     writeln(' and c = ', c);
@@ -25,7 +25,7 @@ begin
     b := y;
     c := a + b;
 
-    writeln('Winthin the procedure parameter_display');
+    writeln('Within the procedure parameter_display');
     write('value of a = ', a);
     write(' b = ',  b);
     writeln(' and c = ', c);
@@ -41,7 +41,7 @@ begin
     b:= 200;
     c:= a + b;
 
-    writeln('Winthin the program');
+    writeln('Within the program');
     write('value of a = ', a);
     write(' b = ',  b);
     writeln(' and c = ', c);

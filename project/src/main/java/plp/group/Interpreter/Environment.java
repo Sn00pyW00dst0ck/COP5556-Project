@@ -1,6 +1,7 @@
 package plp.group.Interpreter;
 
 import java.util.List;
+import java.util.NoSuchElementException;
 import java.util.Optional;
 
 import plp.group.Interpreter.ControlFlowExceptions.BreakException;
@@ -29,96 +30,128 @@ public class Environment {
         // Source: https://www.freepascal.org/docs-html/rtl/system/writeln.html
 
         scope.define("write/1", new RuntimeValue.Method(
-            "write/1", 
+            "write/1",
             new RuntimeValue.Method.MethodSignature(
-                List.of(new RuntimeValue.Primitive(new Object())),
-                new RuntimeValue.Primitive(null)
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "param1",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    )
+                ),
+                null
             ),
-            Environment::write
+            (methodScope) -> write(methodScope, 1)
         ));
         scope.define("write/2", new RuntimeValue.Method(
-            "write/2", 
+            "write/2",
             new RuntimeValue.Method.MethodSignature(
-                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
-                new RuntimeValue.Primitive(null)
-            ), 
-            Environment::write
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "param1",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    ),
+                    new RuntimeValue.Method.MethodParameter(
+                        "param2",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    )
+                ),
+                null
+            ),
+            (methodScope) -> write(methodScope, 2)
         ));
         scope.define("write/3", new RuntimeValue.Method(
-            "write/3", 
+            "write/3",
             new RuntimeValue.Method.MethodSignature(
-                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
-                new RuntimeValue.Primitive(null)
-            ), 
-            Environment::write
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "param1",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    ),
+                    new RuntimeValue.Method.MethodParameter(
+                        "param2",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    ),
+                    new RuntimeValue.Method.MethodParameter(
+                        "param3",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    )
+                ),
+                null
+            ),
+            (methodScope) -> write(methodScope, 3)
         ));
 
         scope.define("writeln/0", new RuntimeValue.Method(
-            "writeln/0", 
+            "writeln/0",
             new RuntimeValue.Method.MethodSignature(
                 List.of(),
-                new RuntimeValue.Primitive(null)
-            ), 
-            Environment::writeln
+                null
+            ),
+            (methodScope) -> writeln(methodScope, 0)
         ));
         scope.define("writeln/1", new RuntimeValue.Method(
-            "writeln/1", 
+            "writeln/1",
             new RuntimeValue.Method.MethodSignature(
-                List.of(new RuntimeValue.Primitive(new Object())),
-                new RuntimeValue.Primitive(null)
-            ), 
-            Environment::writeln
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "param1",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    )
+                ),
+                null
+            ),
+            (methodScope) -> writeln(methodScope, 1)
         ));
         scope.define("writeln/2", new RuntimeValue.Method(
-            "writeln/2", 
+            "writeln/2",
             new RuntimeValue.Method.MethodSignature(
-                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
-                new RuntimeValue.Primitive(null)
-            ), 
-            Environment::writeln
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "param1",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    ),
+                    new RuntimeValue.Method.MethodParameter(
+                        "param2",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    )
+                ),
+                null
+            ),
+            (methodScope) -> writeln(methodScope, 2)
         ));
         scope.define("writeln/3", new RuntimeValue.Method(
-            "writeln/3", 
+            "writeln/3",
             new RuntimeValue.Method.MethodSignature(
-                List.of(new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object()), new RuntimeValue.Primitive(new Object())),
-                new RuntimeValue.Primitive(null)
-            ), 
-            Environment::writeln
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "param1",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    ),
+                    new RuntimeValue.Method.MethodParameter(
+                        "param2",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    ),
+                    new RuntimeValue.Method.MethodParameter(
+                        "param3",
+                        new RuntimeValue.Primitive(new Object()),
+                        false
+                    )
+                ),
+                null
+            ),
+            (methodScope) -> writeln(methodScope, 3)
         ));
-        
-        /*
-         * TODO: read and readln here, they will be tough because they have to be variadic I think, unless we want to force only one variable. 
-         * Also, references will be a thing to deal with and it will be tough...
-         */
-
-        scope.define("Exit/0", new RuntimeValue.Method(
-            "Exit/0", 
-            new RuntimeValue.Method.MethodSignature(
-                List.of(), 
-                new RuntimeValue.Primitive(null)
-            ), 
-            Environment::exit)
-        );
-        
-        // https://www.freepascal.org/docs-html/rtl/system/break.html
-        scope.define("Break/0", new RuntimeValue.Method(
-            "Break/0",
-            new RuntimeValue.Method.MethodSignature(
-                List.of(), 
-                new RuntimeValue.Primitive(null)
-            ),
-            Environment::Break)
-        );
-
-        // https://www.freepascal.org/docs-html/rtl/system/continue.html
-        scope.define("Continue/0", new RuntimeValue.Method(
-            "Continue/0",
-            new RuntimeValue.Method.MethodSignature(
-                List.of(), 
-                new RuntimeValue.Primitive(null)
-            ),
-            Environment::Continue)
-        );
 
         return scope;
     }
@@ -128,11 +161,10 @@ public class Environment {
      * 
      * @return a RuntimeValue.Primitive() with value null. 
      */
-    private static RuntimeValue write(List<RuntimeValue> arguments) {
-        for (RuntimeValue arg : arguments) {
-            System.out.print(arg.getPrintString());
+    private static void write(Scope methodScope, int numParams) {
+        for (int i = 1; i <= numParams; i++) {
+            System.out.print(methodScope.lookup("param" + i).get().getPrintString());
         }
-        return new RuntimeValue.Primitive(null);
     }
 
     /**
@@ -142,10 +174,9 @@ public class Environment {
      * 
      * @return a RuntimeValue.Primitive() with value null. 
      */
-    private static RuntimeValue writeln(List<RuntimeValue> arguments) {
-        var result = write(arguments);
+    private static void writeln(Scope methodScope, int numParams) {
+        write(methodScope, numParams);
         System.out.println();
-        return result;
     }
 
     // TODO: read and readln here...
@@ -157,21 +188,21 @@ public class Environment {
      * @param arguments should be an empty list
      * @return nothing, always throws a Return exception. 
      */
-    private static RuntimeValue exit(List<RuntimeValue> arguments) {
+    private static void exit(List<RuntimeValue> arguments) {
         throw new ReturnException();
     }
 
     /**
      * Throws break exception to signify ending the loop context.
      */
-    private static RuntimeValue Break(List<RuntimeValue> arguments) {
+    private static void Break(List<RuntimeValue> arguments) {
         throw new BreakException();
     }
 
     /**
      * Throws continue exception to signify jump to next loop iteration.
      */
-    private static RuntimeValue Continue(List<RuntimeValue> arguments) {
+    private static void Continue(List<RuntimeValue> arguments) {
         throw new ContinueException();
     }
 }

@@ -383,19 +383,12 @@ assignmentStatement
     ;
 
 variable
-    : primary (memberAccess)?
-    ;
-
-primary
-    : AT? identifier 
-    ;
-
-memberAccess
-    : DOT variable
-    | LPAREN parameterList RPAREN (DOT variable)?
-    | LBRACK expression (COMMA expression)* RBRACK
-    | LBRACK2 expression (COMMA expression)* RBRACK2
-    | POINTER
+    : (AT identifier | identifier) (
+        LBRACK expression (COMMA expression)* RBRACK
+        | LBRACK2 expression (COMMA expression)* RBRACK2
+        | DOT identifier
+        | POINTER
+    )*
     ;
 
 expression
