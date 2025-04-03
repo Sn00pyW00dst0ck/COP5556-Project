@@ -2,10 +2,12 @@ package plp.group.Interpreter;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.MathContext;
 import java.math.RoundingMode;
 import java.util.List;
 import java.util.Optional;
 
+import ch.obermuhlner.math.big.BigDecimalMath;
 import plp.group.Interpreter.ControlFlowExceptions.BreakException;
 import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
 import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
@@ -115,6 +117,73 @@ public class Environment {
             Environment::Continue)
         );
 
+        // Following added based on this: https://www.dcs.ed.ac.uk/home/SUNWspro/3.0/pascal/lang_ref/ref_builtin.doc.html
+        // The only ones from that table not added are ones with multiple signatures.
+
+        // https://www.freepascal.org/docs-html/rtl/system/arctan.html
+        scope.define("arctan/1", new RuntimeValue.Method(
+            "arctan/1",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(new RuntimeValue.Primitive(new BigDecimal("0.0"))), 
+                new RuntimeValue.Primitive(new BigDecimal("0.0"))
+            ),
+            (List<RuntimeValue> arguments) -> {
+                BigDecimal num = RuntimeValue.requireType(arguments.get(0), BigDecimal.class);
+                return new RuntimeValue.Primitive(BigDecimalMath.atan(num, new MathContext(20)));
+            })
+        );
+
+        scope.define("chr/1", new RuntimeValue.Method(
+            "chr/1",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(new RuntimeValue.Primitive(new BigInteger("0"))), 
+                new RuntimeValue.Primitive(Character.valueOf('a'))
+            ),
+            (List<RuntimeValue> arguments) -> {
+                BigInteger num = RuntimeValue.requireType(arguments.get(0), BigInteger.class);
+                return new RuntimeValue.Primitive((char) num.intValue());
+            })
+        );
+
+        // https://www.freepascal.org/docs-html/rtl/system/cos.html
+        scope.define("cos/1", new RuntimeValue.Method(
+            "cos/1",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(new RuntimeValue.Primitive(new BigDecimal("0.0"))), 
+                new RuntimeValue.Primitive(new BigDecimal("0.0"))
+            ),
+            (List<RuntimeValue> arguments) -> {
+                BigDecimal num = RuntimeValue.requireType(arguments.get(0), BigDecimal.class);
+                return new RuntimeValue.Primitive(BigDecimalMath.cos(num, new MathContext(20)));
+            })
+        );
+
+        // https://www.freepascal.org/docs-html/rtl/system/exp.html
+        scope.define("exp/1", new RuntimeValue.Method(
+            "exp/1",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(new RuntimeValue.Primitive(new BigDecimal("0.0"))), 
+                new RuntimeValue.Primitive(new BigDecimal("0.0"))
+            ),
+            (List<RuntimeValue> arguments) -> {
+                BigDecimal num = RuntimeValue.requireType(arguments.get(0), BigDecimal.class);
+                return new RuntimeValue.Primitive(BigDecimalMath.exp(num, new MathContext(20)));
+            })
+        );
+
+        // https://www.freepascal.org/docs-html/rtl/system/ln.html
+        scope.define("ln/1", new RuntimeValue.Method(
+            "ln/1",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(new RuntimeValue.Primitive(new BigDecimal("0.0"))), 
+                new RuntimeValue.Primitive(new BigDecimal("0.0"))
+            ),
+            (List<RuntimeValue> arguments) -> {
+                BigDecimal num = RuntimeValue.requireType(arguments.get(0), BigDecimal.class);
+                return new RuntimeValue.Primitive(BigDecimalMath.log(num, new MathContext(20)));
+            })
+        );
+
         // https://www.dcs.ed.ac.uk/home/SUNWspro/3.0/pascal/lang_ref/ref_builtin.doc.html
         scope.define("odd/1", new RuntimeValue.Method(
             "odd/1",
@@ -125,6 +194,18 @@ public class Environment {
             (List<RuntimeValue> arguments) -> {
                 BigInteger num = RuntimeValue.requireType(arguments.get(0), BigInteger.class);
                 return new RuntimeValue.Primitive(Boolean.valueOf(!num.testBit(0)));
+            })
+        );
+
+        // https://www.freepascal.org/docs-html/rtl/system/pi.html
+        scope.define("pi/0", new RuntimeValue.Method(
+            "pi/0",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(),
+                new RuntimeValue.Primitive(new BigDecimal("0.0"))
+            ),
+            (List<RuntimeValue> _) -> {
+                return new RuntimeValue.Primitive(BigDecimalMath.pi(new MathContext(20)).setScale(20));
             })
         );
 
@@ -141,16 +222,16 @@ public class Environment {
             })
         );
 
-        // https://www.freepascal.org/docs-html/rtl/system/trunc.html
-        scope.define("trunc/1", new RuntimeValue.Method(
-            "trunc/1",
+        // https://www.freepascal.org/docs-html/rtl/system/sin.html
+        scope.define("sin/1", new RuntimeValue.Method(
+            "sin/1",
             new RuntimeValue.Method.MethodSignature(
                 List.of(new RuntimeValue.Primitive(new BigDecimal("0.0"))), 
-                new RuntimeValue.Primitive(new BigInteger("0"))
+                new RuntimeValue.Primitive(new BigDecimal("0.0"))
             ),
             (List<RuntimeValue> arguments) -> {
                 BigDecimal num = RuntimeValue.requireType(arguments.get(0), BigDecimal.class);
-                return new RuntimeValue.Primitive(num.toBigIntegerExact());
+                return new RuntimeValue.Primitive(BigDecimalMath.sin(num, new MathContext(20)));
             })
         );
 
@@ -163,11 +244,22 @@ public class Environment {
             ),
             (List<RuntimeValue> arguments) -> {
                 BigDecimal num = RuntimeValue.requireType(arguments.get(0), BigDecimal.class);
-                return new RuntimeValue.Primitive(num.sqrt(null));
+                return new RuntimeValue.Primitive(BigDecimalMath.sqrt(num, new MathContext(20)));
             })
         );
-
-        // TODO: trigonometric functions for BigDecimal in java are very hard, might need a library to do built in sin, cos, pi, etc...
+        
+        // https://www.freepascal.org/docs-html/rtl/system/trunc.html
+        scope.define("trunc/1", new RuntimeValue.Method(
+            "trunc/1",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(new RuntimeValue.Primitive(new BigDecimal("0.0"))), 
+                new RuntimeValue.Primitive(new BigInteger("0"))
+            ),
+            (List<RuntimeValue> arguments) -> {
+                BigDecimal num = RuntimeValue.requireType(arguments.get(0), BigDecimal.class);
+                return new RuntimeValue.Primitive(num.toBigIntegerExact());
+            })
+        );
 
         return scope;
     }
