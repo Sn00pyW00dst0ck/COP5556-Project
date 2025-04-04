@@ -147,6 +147,47 @@ public class RuntimeValueTest {
             assertEquals(new RuntimeValue.Primitive(new BigInteger("-7")), result.value());
         });
     }
+
+    @Test
+    void testMethodInvocationWithVariadicParameter() {
+        RuntimeValue.Method sumMethod = new RuntimeValue.Method(
+            "sum", 
+            new RuntimeValue.Method.MethodSignature(
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "Arguments", 
+                        new RuntimeValue.Primitive(new BigInteger("0")), 
+                        false, 
+                        true
+                    )
+                ),
+                new RuntimeValue.Primitive(new BigInteger("0"))
+            ), 
+            (Scope methodScope) -> {
+                BigInteger totalSum = new BigInteger("0");
+
+                var args = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("Arguments").get(), RuntimeValue.Variable.class).value(), RuntimeValue.Array.class);
+
+                for (int i = 0; i < args.size(); i++) {
+                    totalSum = totalSum.add(RuntimeValue.requireType(RuntimeValue.requireType(args.get(i), RuntimeValue.Variable.class).value(), BigInteger.class));
+                }
+
+                RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(new RuntimeValue.Primitive(totalSum));
+                System.out.println("");
+            }
+        );
+
+        var a = new RuntimeValue.Variable("a", new RuntimeValue.Primitive(new BigInteger("5")));
+        var b = new RuntimeValue.Variable("b", new RuntimeValue.Primitive(new BigInteger("-12")));
+        var c = new RuntimeValue.Variable("c", new RuntimeValue.Primitive(new BigInteger("36")));
+        var d = new RuntimeValue.Variable("d", new RuntimeValue.Primitive(new BigInteger("120")));
+        var e = new RuntimeValue.Variable("e", new RuntimeValue.Primitive(new BigInteger("-21")));
+        List<RuntimeValue> parameters1 = List.of(a, b, c, d, e);
+
+        assertDoesNotThrow(() -> {
+            assertEquals(new RuntimeValue.Primitive(new BigInteger("128")), sumMethod.invoke(new Scope(Optional.empty()), parameters1));
+        });
+    }
     
     @Test
     void testMethodToString() {

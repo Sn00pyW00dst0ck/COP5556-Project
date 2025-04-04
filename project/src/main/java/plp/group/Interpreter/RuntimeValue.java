@@ -171,7 +171,7 @@ public sealed interface RuntimeValue {
          * @throws RuntimeException if something goes wrong
          */
         public RuntimeValue invoke(Scope callerScope, List<RuntimeValue> arguments) throws RuntimeException {
-            if (arguments.size() != signature.parameters().size()) {
+            if (arguments.size() != signature.parameters().size() && !signature().parameters().getLast().isVariadic()) {
                 throw new RuntimeException("Incorrect number of arguments.");
             }
 
