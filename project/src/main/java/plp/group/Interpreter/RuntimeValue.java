@@ -187,7 +187,15 @@ public sealed interface RuntimeValue {
                     List<RuntimeValue> varargs = new ArrayList<>();
                     for (int j = i; j < arguments.size(); j++) {
                         arg = arguments.get(j);
-                        varargs.add(arg); // TODO: handle reference...
+                        if (param.isReference()) {
+                            RuntimeValue.Reference reference = requireType(arg, RuntimeValue.Reference.class);
+                            requireType(reference.getValue(), param.type().getClass());
+                            varargs.add(reference);
+                        } else {
+                            RuntimeValue.Variable variable = requireType(arg, RuntimeValue.Variable.class);
+                            requireType(variable.value(), param.type().getClass());
+                            varargs.add(new Variable(variable.name(), variable.value()));
+                        }
                     }
                     methodScope.define(param.name(), new Variable(param.name(), new RuntimeValue.Array(varargs)));
                     break; // variadic should be last argument.

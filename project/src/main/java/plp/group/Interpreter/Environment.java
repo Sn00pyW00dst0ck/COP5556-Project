@@ -174,7 +174,7 @@ public class Environment {
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
                         "Arguments", 
-                        new RuntimeValue.Array(List.of()), // arguments is an array
+                        new RuntimeValue.Primitive(new Object()), // arguments is an array because variadic, but this is the type of the things in the array...
                         true,
                         true
                     )
@@ -189,7 +189,7 @@ public class Environment {
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
                         "Arguments", 
-                        new RuntimeValue.Array(List.of()), // arguments is an array
+                        new RuntimeValue.Primitive(new Object()), // arguments is an array because variadic, but this is the type of the things in the array...
                         true,
                         true
                     )
