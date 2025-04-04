@@ -20,9 +20,12 @@ import plp.group.project.delphi_lexer;
  *
  */
 public class App {
+
+    private static Terminal terminal;
+    private static LineReader reader;
     public static void main(String[] args) throws IOException {
-        Terminal terminal = TerminalBuilder.terminal();
-        LineReader reader = LineReaderBuilder.builder().terminal(terminal).build();
+        terminal = TerminalBuilder.terminal();
+        reader = LineReaderBuilder.builder().terminal(terminal).build();
 
         String prompt = "cmd> ";
         String[] line;
@@ -73,7 +76,7 @@ public class App {
                 tree = new delphi(new CommonTokenStream(new delphi_lexer(CharStreams.fromString(optimized)))).program();
             }
 
-            var interpreter = new Interpreter();
+            var interpreter = new Interpreter(reader);
             interpreter.visit(tree);
         } catch (Exception e) {
             e.printStackTrace();

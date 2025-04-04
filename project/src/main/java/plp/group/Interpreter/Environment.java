@@ -1,7 +1,19 @@
 package plp.group.Interpreter;
 
+import java.io.BufferedReader;
+import java.io.IOException;
+import java.io.InputStreamReader;
+import java.math.BigInteger;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
+
+import javax.management.RuntimeErrorException;
+
+import org.jline.reader.LineReader;
+import org.jline.reader.LineReaderBuilder;
+import org.jline.terminal.Terminal;
+import org.jline.terminal.TerminalBuilder;
 
 import plp.group.Interpreter.ControlFlowExceptions.BreakException;
 import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
@@ -35,6 +47,7 @@ public class Environment {
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     )
                 ),
@@ -49,11 +62,13 @@ public class Environment {
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param2",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     )
                 ),
@@ -68,16 +83,19 @@ public class Environment {
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param2",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param3",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     )
                 ),
@@ -101,6 +119,7 @@ public class Environment {
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     )
                 ),
@@ -115,11 +134,13 @@ public class Environment {
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param2",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     )
                 ),
@@ -134,22 +155,57 @@ public class Environment {
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param2",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param3",
                         new RuntimeValue.Primitive(new Object()),
+                        false,
                         false
                     )
                 ),
                 null
             ),
             (methodScope) -> writeln(methodScope, 3)
+        ));
+
+        // TODO: FIGURE OUT VARIADIC ARG NAMING CONVENTION! 
+        scope.define("read", new RuntimeValue.Method(
+            "read",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "Arguments", 
+                        new RuntimeValue.Array(List.of()), // arguments is an array
+                        true,
+                        true
+                    )
+                ),
+                null
+            ),
+            Environment::read
+        ));
+        scope.define("readln/1", new RuntimeValue.Method(
+            "readln",
+            new RuntimeValue.Method.MethodSignature(
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "Arguments", 
+                        new RuntimeValue.Array(List.of()), // arguments is an array
+                        true,
+                        true
+                    )
+                ),
+                null
+            ),
+            Environment::readln
         ));
 
         scope.define("Exit/0", new RuntimeValue.Method(
@@ -206,6 +262,44 @@ public class Environment {
         System.out.println();
     }
 
-    // TODO: read and readln here...
+    // IMPORTANT! Below reader needs to be set before executing any code with read or readln... 
+    private static LineReader reader;
+    public static void setReader(LineReader reader) { Environment.reader = reader; }
+    private static List<String> tokenBuffer = new ArrayList<>();
+
+    /**
+     * Helper method which reads a full line and converts it into tokens if the tokenBuffer is empty.
+     */
+    private static void ensureTokenBuffer() {
+        if (tokenBuffer.isEmpty()) {
+            String line = reader.readLine("");
+            tokenBuffer.addAll(List.of(line.trim().split("\\s+")));
+        }
+    }
+
+    /**
+     * Place tokens one at a time into the variables given.
+     * @param methodScope the scope available to the function call.
+     */
+    private static void read(Scope methodScope) {
+        ensureTokenBuffer();
+        
+        RuntimeValue.Array arguments = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("Arguments").get(), RuntimeValue.Variable.class).value(), RuntimeValue.Array.class);
+
+        for (int i = 0; i < arguments.size(); i++) {
+            String token = tokenBuffer.remove(0);
+            // TODO: smarter type parsing for types below! 
+            RuntimeValue.requireType(arguments.get(i), RuntimeValue.Reference.class).setValue(new RuntimeValue.Primitive(new BigInteger(token)));
+        }
+    }
+
+    /**
+     * Like read, but gurantees empty buffer at end of call.
+     * @param methodScope the scope available to the function call.
+     */
+    private static void readln(Scope methodScope) {
+        read(methodScope);
+        tokenBuffer.clear();
+    }
 
 }

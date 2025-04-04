@@ -1,20 +1,18 @@
 package plp.group.Interpreter;
 
-import static plp.group.Interpreter.RuntimeValue.requireType;
-
-import java.lang.reflect.Parameter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Map;
 import java.util.Objects;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
 import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
-import plp.group.Interpreter.RuntimeValue.Method.MethodDefinition;
 
 /**
  * Represents a value calculated during the runtime of the program. 
@@ -87,6 +85,38 @@ public sealed interface RuntimeValue {
     };
 
     /**
+     * Represents an array (used for variadic argument)
+     */
+    record Array(
+        List<RuntimeValue> elements
+    ) implements RuntimeValue {
+
+        public RuntimeValue get(int index) {
+            return elements().get(index);
+        }
+        
+        public void setValue(int index, RuntimeValue newValue) {
+            if (elements.get(index) instanceof RuntimeValue.Reference ref) {
+                ref.setValue(newValue);
+            } else if (elements.get(index) instanceof RuntimeValue.Variable var) {
+                var.setValue(newValue);
+            } else {
+                elements.set(index, newValue);
+            }
+        }
+
+        public int size() {
+            return elements().size();
+        }
+
+        public String getPrintString() {
+            return elements().stream()
+                .map(RuntimeValue::getPrintString)
+                .collect(Collectors.joining(", ", "[", "]"));
+        }
+    }
+
+    /**
      * Represents a reference to another variable. When this updates, that variable's value should update too.
      */
     record Reference(
@@ -118,12 +148,12 @@ public sealed interface RuntimeValue {
         public record MethodParameter(
             String name,
             RuntimeValue type,
-            boolean isReference // If true, argument should be wrapped in a Reference
-            // TODO: boolean for isVariadic...
+            boolean isReference, // If true, argument should be wrapped in a Reference
+            boolean isVariadic
         ) {};
 
         public record MethodSignature(
-            List<MethodParameter> parameters, // TODO: might have to expand to figure out how to do pass by reference, etc.
+            List<MethodParameter> parameters,
             @Nullable RuntimeValue returnType // Use null to signify no return
         ) {};
 
@@ -152,6 +182,16 @@ public sealed interface RuntimeValue {
                 MethodParameter param = signature.parameters().get(i);
                 RuntimeValue arg = arguments.get(i);
 
+                // If parameter is variadic, pack the rest of the arguments into an Array in the scope.
+                if (param.isVariadic()) {
+                    List<RuntimeValue> varargs = new ArrayList<>();
+                    for (int j = i; j < arguments.size(); j++) {
+                        arg = arguments.get(j);
+                        varargs.add(arg); // TODO: handle reference...
+                    }
+                    methodScope.define(param.name(), new Variable(param.name(), new RuntimeValue.Array(varargs)));
+                    break; // variadic should be last argument.
+                }
 
                 // Check type and add to scope properly...
                 if (param.isReference()) {

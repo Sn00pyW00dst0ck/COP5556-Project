@@ -12,16 +12,14 @@ import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
 
-import javax.naming.Reference;
-
 import org.antlr.v4.runtime.tree.TerminalNode;
+import org.jline.reader.LineReader;
 
 import plp.group.project.delphi;
 import plp.group.project.delphiBaseVisitor;
 import plp.group.project.delphi.ClassMemberDeclarationContext;
 import plp.group.Interpreter.ControlFlowExceptions.BreakException;
 import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
-import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
 
 /**
  * The interpreter that walks the tree and does the actual calculations/running of the program.
@@ -33,7 +31,12 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      * 
      * The interpreter starts in the global scope, and the parent of the global scope is the built in functions. 
      */
-    private Scope scope = new Scope(Optional.of(Environment.scope()));
+    private Scope scope;
+
+    public Interpreter(LineReader input) {
+        Environment.setReader(input);
+        scope = new Scope(Optional.of(Environment.scope()));
+    }
 
     /*
      * TODO: 
@@ -108,6 +111,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                             new RuntimeValue.Method.MethodParameter(
                                 "Self",
                                 new RuntimeValue.ClassInstance(null, null, null, null),
+                                false,
                                 false
                             )
                         );
@@ -132,6 +136,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                             new RuntimeValue.Method.MethodParameter(
                                 "Self",
                                 new RuntimeValue.ClassInstance(null, null, null, null),
+                                false,
                                 false
                             )
                         );
@@ -156,6 +161,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                             new RuntimeValue.Method.MethodParameter(
                                 constructorName,
                                 new RuntimeValue.ClassInstance(null, null, null, null),
+                                false,
                                 false
                             )
                         );
@@ -179,6 +185,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                             new RuntimeValue.Method.MethodParameter(
                                 "Self",
                                 new RuntimeValue.ClassInstance(null, null, null, null),
+                                false,
                                 false
                             )
                         );
@@ -247,6 +254,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                         parameters.add(new RuntimeValue.Method.MethodParameter(
                             identifier.getText(),
                             type,
+                            false,
                             false
                         ));
                     }
@@ -259,7 +267,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                         parameters.add(new RuntimeValue.Method.MethodParameter(
                             identifier.getText(),
                             type,
-                            true
+                            true,
+                            false
                         ));
                     }
                 }
@@ -436,6 +445,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             new RuntimeValue.Method.MethodParameter(
                 "Self",
                 new RuntimeValue.ClassInstance(classDefinition, null, null, null),
+                false,
                 false
             )
         );
@@ -481,6 +491,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             new RuntimeValue.Method.MethodParameter(
                 "Self",
                 new RuntimeValue.ClassInstance(classDefinition, null, null, null),
+                false,
                 false
             )
         );
@@ -526,6 +537,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             new RuntimeValue.Method.MethodParameter(
                 "Self",
                 new RuntimeValue.ClassInstance(classDefinition, null, null, null),
+                false,
                 false
             )
         );
@@ -570,6 +582,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             new RuntimeValue.Method.MethodParameter(
                 "Self",
                 new RuntimeValue.ClassInstance(classDefinition, null, null, null),
+                false,
                 false
             )
         );
