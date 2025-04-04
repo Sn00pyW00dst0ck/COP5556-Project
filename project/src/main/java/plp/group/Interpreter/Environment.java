@@ -25,7 +25,7 @@ public class Environment {
     public static Scope scope() {
         Scope scope = new Scope(Optional.empty());
 
-        // Write and Writeln can take 0, 1, or 2 arguments, so this is more accurate than what we did for P1 with variable args... 
+        // Write and Writeln can take 1, 2, or 3 arguments, so this is more accurate than what we did for P1 with variable args... 
         // Source: https://www.freepascal.org/docs-html/rtl/system/writeln.html
 
         scope.define("write/1", new RuntimeValue.Method(

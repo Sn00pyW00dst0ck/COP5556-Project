@@ -1,5 +1,7 @@
 package plp.group.Interpreter;
 
+import static plp.group.Interpreter.RuntimeValue.requireType;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -9,6 +11,8 @@ import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+
+import javax.naming.Reference;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 
@@ -419,21 +423,27 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public RuntimeValue visitAssignmentStatement(delphi.AssignmentStatementContext ctx) {
-        // Get the variable from the scope...
-        RuntimeValue.Variable variable = RuntimeValue.requireType(visitVariable(ctx.variable()), RuntimeValue.Variable.class);
+        RuntimeValue receiver = visitVariable(ctx.variable());
         RuntimeValue newValue = visitExpression(ctx.expression());
 
-        // Require the type of the new value to be same as variable's type
-        RuntimeValue.requireType(newValue, variable.value().getClass());
-        // TODO: might need more checks than above to handle special cases...
+        switch (receiver) {
+            case RuntimeValue.Variable variable ->  {
+                RuntimeValue.requireType(newValue, variable.value().getClass());
+                variable.setValue(newValue);
+            }
+            case RuntimeValue.Reference reference -> {
+                RuntimeValue.requireType(newValue, reference.getValue().getClass());
+                reference.setValue(newValue);
+            }
+            default -> throw new RuntimeException("Unexpected type of receiver when evaluating 'assignment statement'.");
+        }
 
-        scope.assign(variable.name(), new RuntimeValue.Variable(variable.name(), newValue));
         return new RuntimeValue.Primitive(null);
     }
 
     @Override
     public RuntimeValue visitProcedureStatement(delphi.ProcedureStatementContext ctx) {
-        List<RuntimeValue> parameterValues = visitParameterList(ctx.parameterList());
+        LinkedHashMap<String, RuntimeValue> parameterValues = visitParameterList(ctx.parameterList());
 
         String procedureName = ctx.identifier().IDENT().getText() + "/" + parameterValues.size();
         RuntimeValue.Method procedure = RuntimeValue.requireType(
@@ -441,13 +451,22 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             RuntimeValue.Method.class
         );
 
-        // Turn parameters to be variables
-        List<RuntimeValue.Variable> parameters = new ArrayList<>();
-        for (int i = 0; i < parameterValues.size(); i++) {
-            parameters.add(new RuntimeValue.Variable(
-                procedure.signature().parameters().get(i).name(), 
-                parameterValues.get(i)
-            ));
+        // Turn parameters to be variables valid for the procedure call...
+        List<RuntimeValue> parameters = new ArrayList<>();
+        int i = 0;
+        for (var parameter : parameterValues.entrySet()) {
+            if (procedure.signature().parameters().get(i).isReference()) {
+                parameters.add(new RuntimeValue.Reference(
+                    procedure.signature().parameters().get(i).name(), 
+                    requireType(scope.lookup(parameter.getKey()).get(), RuntimeValue.Variable.class)
+                ));
+            } else {
+                parameters.add(new RuntimeValue.Variable(
+                    procedure.signature().parameters().get(i).name(), 
+                    parameter.getValue()
+                ));
+            }
+            i++;
         }
 
         procedure.invoke(scope, parameters);
@@ -698,28 +717,37 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public RuntimeValue visitFunctionDesignator(delphi.FunctionDesignatorContext ctx) {
-        List<RuntimeValue> parameterValues = visitParameterList(ctx.parameterList());
+        LinkedHashMap<String, RuntimeValue> parameterValues = visitParameterList(ctx.parameterList());
 
         RuntimeValue scopeValue = scope.lookup(ctx.identifier().getText() + "/" + parameterValues.size()).orElseThrow(() -> new NoSuchElementException("Method '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'function designator'."));
         RuntimeValue.Method function = RuntimeValue.requireType(scopeValue, RuntimeValue.Method.class);
 
-        // Turn parameters to be variables
-        List<RuntimeValue.Variable> parameters = new ArrayList<>();
-        for (int i = 0; i < parameterValues.size(); i++) {
-            parameters.add(new RuntimeValue.Variable(
-                function.signature().parameters().get(i).name(), 
-                parameterValues.get(i)
-            ));
+        // Turn parameters to be variables valid for the function call...
+        List<RuntimeValue> parameters = new ArrayList<>();
+        int i = 0;
+        for (var parameter : parameterValues.entrySet()) {
+            if (function.signature().parameters().get(i).isReference()) {
+                parameters.add(new RuntimeValue.Reference(
+                    function.signature().parameters().get(i).name(), 
+                    requireType(scope.lookup(parameter.getKey()).get(), RuntimeValue.Variable.class)
+                ));
+            } else {
+                parameters.add(new RuntimeValue.Variable(
+                    function.signature().parameters().get(i).name(), 
+                    parameter.getValue()
+                ));
+            }
+            i++;
         }
 
         return function.invoke(scope, parameters);
     }
 
     @Override
-    public List<RuntimeValue> visitParameterList(delphi.ParameterListContext ctx) {
-        List<RuntimeValue> parameters = new ArrayList<>();
+    public LinkedHashMap<String, RuntimeValue> visitParameterList(delphi.ParameterListContext ctx) {
+        LinkedHashMap<String, RuntimeValue> parameters = new LinkedHashMap<String, RuntimeValue>();
         for (delphi.ActualParameterContext parameter: ctx.actualParameter()) {
-            parameters.add(visitExpression(parameter.expression()));
+            parameters.put(parameter.getText(), visitExpression(parameter.expression()));
             // TODO: figure out how to deal with parameter width... What even is it??
             // parameter.parameterwidth();
         }
@@ -728,13 +756,21 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     /**
      * TODO: THIS IS NEEDS TO BE FINISHED EVENTUALLY!
+     * 
+     * If the variable is a normal variable it is returned normally. 
+     * If it is a reference, then the variable the reference is referring to is returned.
      */
     @Override
     public RuntimeValue visitVariable(delphi.VariableContext ctx) {
-        String primaryVarName = ctx.identifier(0).IDENT().getText();
-        // var primary = ctx.primary().identifier().IDENT().getText();
+        String primaryVarName = ctx.identifier().IDENT().getText();
         // TODO: HANDLE MEMBER ACCESS HERE!!!
-        return scope.lookup(primaryVarName).orElseThrow(() -> new NoSuchElementException(primaryVarName + " is not defined in scope!"));
+        RuntimeValue foundInScope = scope.lookup(primaryVarName).orElseThrow(() -> new NoSuchElementException(primaryVarName + " is not defined in scope!"));
+        
+        return switch (foundInScope) {
+            case RuntimeValue.Variable variable -> { yield variable; }
+            case RuntimeValue.Reference reference -> { yield reference.variable(); }
+            default -> throw new RuntimeException("Unexpected type of variable '" + primaryVarName + "' when evaluating 'variable'.");
+        };
     }
 
 

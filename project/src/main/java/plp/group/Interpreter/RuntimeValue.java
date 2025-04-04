@@ -1,5 +1,7 @@
 package plp.group.Interpreter;
 
+import static plp.group.Interpreter.RuntimeValue.requireType;
+
 import java.lang.reflect.Parameter;
 import java.math.BigDecimal;
 import java.math.BigInteger;
@@ -58,12 +60,49 @@ public sealed interface RuntimeValue {
     /**
      * Represents a variable.
      */
-    record Variable(
-        String name, 
-        RuntimeValue value
-    ) implements RuntimeValue {
+    public final class Variable implements RuntimeValue {
+        private final String name;
+        private RuntimeValue value;
+
+        public Variable(String name, RuntimeValue value) {
+            this.name = name;
+            this.value = value;
+        }
+
+        public String name() {
+            return this.name;
+        }
+    
+        public RuntimeValue value() {
+            return this.value;
+        }
+    
+        public void setValue(RuntimeValue newValue) {
+            this.value = newValue;
+        }
+
         public String getPrintString() {
-            return value.getPrintString();
+            return this.value.getPrintString();
+        }
+    };
+
+    /**
+     * Represents a reference to another variable. When this updates, that variable's value should update too.
+     */
+    record Reference(
+        String name, 
+        RuntimeValue.Variable variable
+    ) implements RuntimeValue {
+        public void setValue(RuntimeValue newValue) {
+            variable.setValue(newValue);
+        }
+
+        public RuntimeValue getValue() {
+            return variable.value();
+        }
+
+        public String getPrintString() {
+            return variable.getPrintString();
         }
     };
 
@@ -85,7 +124,7 @@ public sealed interface RuntimeValue {
 
         public record MethodSignature(
             List<MethodParameter> parameters, // TODO: might have to expand to figure out how to do pass by reference, etc.
-            @Nullable RuntimeValue returnType // Use RuntimeValue.Primitive(null) for no return value.
+            @Nullable RuntimeValue returnType // Use null to signify no return
         ) {};
 
         @FunctionalInterface
@@ -101,7 +140,7 @@ public sealed interface RuntimeValue {
          * @return the result of the function, or null if a procedure.
          * @throws RuntimeException if something goes wrong
          */
-        public RuntimeValue invoke(Scope callerScope, List<RuntimeValue.Variable> arguments) throws RuntimeException {
+        public RuntimeValue invoke(Scope callerScope, List<RuntimeValue> arguments) throws RuntimeException {
             if (arguments.size() != signature.parameters().size()) {
                 throw new RuntimeException("Incorrect number of arguments.");
             }
@@ -111,16 +150,18 @@ public sealed interface RuntimeValue {
             // Pass arguments properly...
             for (int i = 0; i < arguments.size(); i++) {
                 MethodParameter param = signature.parameters().get(i);
-                RuntimeValue.Variable arg = arguments.get(i);
+                RuntimeValue arg = arguments.get(i);
 
-                // Ensure the type matches up...
-                requireType(arg.value(), param.type().getClass());
 
-                // Add to scope properly...
+                // Check type and add to scope properly...
                 if (param.isReference()) {
-                    methodScope.define(param.name(), arg); // TODO: update this!!!
+                    RuntimeValue.Reference reference = requireType(arg, RuntimeValue.Reference.class);
+                    requireType(reference.getValue(), param.type().getClass());
+                    methodScope.define(param.name(), reference);
                 } else {
-                    methodScope.define(param.name(), arg);
+                    RuntimeValue.Variable variable = requireType(arg, RuntimeValue.Variable.class);
+                    requireType(variable.value(), param.type().getClass());
+                    methodScope.define(param.name(), variable);
                 }
             }
 

@@ -383,12 +383,14 @@ assignmentStatement
     ;
 
 variable
-    : (AT identifier | identifier) (
-        LBRACK expression (COMMA expression)* RBRACK
-        | LBRACK2 expression (COMMA expression)* RBRACK2
-        | DOT identifier
-        | POINTER
-    )*
+    : (AT identifier | identifier) postFixPart*
+    ;
+
+postFixPart
+    : DOT identifier (LPAREN parameterList RPAREN)?
+    | LBRACK expression (COMMA expression)* RBRACK
+    | LBRACK2 expression (COMMA expression)* RBRACK2
+    | POINTER
     ;
 
 expression
