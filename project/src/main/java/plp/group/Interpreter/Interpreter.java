@@ -58,16 +58,16 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             case delphi.Type_Context typeContext -> visitType_(typeContext);
             case delphi.FunctionTypeContext functionTypeContext -> visitFunctionType(functionTypeContext);
             case delphi.ProcedureTypeContext procedureTypeContext -> visitProcedureType(procedureTypeContext);
-            // case delphi.ClassTypeContext classTypeContext -> {
-            //     RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(visitClassType(classTypeContext), RuntimeValue.ClassDefinition.class);
-            //     // Copy over the scopes we found into the ClassDefinition with the proper name.
-            //     yield new RuntimeValue.ClassDefinition(
-            //         typeName, 
-            //         classDefinition.privateScope(), 
-            //         classDefinition.protectedScope(), 
-            //         classDefinition.publicScope()
-            //     );
-            // }
+            case delphi.ClassTypeContext classTypeContext -> {
+                RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(visitClassType(classTypeContext), RuntimeValue.ClassDefinition.class);
+                // Copy over the scopes we found into the ClassDefinition with the proper name.
+                yield new RuntimeValue.ClassDefinition(
+                    typeName, 
+                    classDefinition.privateScope(), 
+                    classDefinition.protectedScope(), 
+                    classDefinition.publicScope()
+                );
+            }
             default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(ctx.getChildCount() - 1).getText() + "' when attempting to evaluate 'type definition'.");
         };
 
@@ -76,7 +76,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         return new RuntimeValue.Primitive(null);
     }
-    /*
+    
     @Override
     public RuntimeValue visitClassType(delphi.ClassTypeContext ctx) {
         // Because of the different visibility sections we have to have three separate scopes.
@@ -99,20 +99,26 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             // For each class member, we add it to the visibilityScope...
             for (ClassMemberDeclarationContext memberCtx : sectionCtx.classMemberDeclaration()) {
                 switch (memberCtx.getChild(0)) {
-                    case delphi.ClassFieldDeclarationContext fieldCtx -> 
-                        visibilityScope.define(fieldCtx.identifier().getText(), visitType_(fieldCtx.type_()));
+                    case delphi.ClassFieldDeclarationContext fieldCtx -> visibilityScope.define(fieldCtx.identifier().getText(), visitType_(fieldCtx.type_()));
+                    // TODO: the below 4 cases share a lot of code so it should be cleaned up at some point
                     case delphi.ClassProcedureDeclarationContext procedureCtx -> {
                         String procedureName = procedureCtx.identifier().getText();
-                        LinkedHashMap<String, RuntimeValue> parameterTypes = visitFormalParameterList(procedureCtx.formalParameterList());
-                        parameterTypes.putFirst("this", new RuntimeValue.ClassInstance(null, null, null, null));
+                        ArrayList<RuntimeValue.Method.MethodParameter> parameterTypes = procedureCtx.formalParameterList() == null ? new ArrayList<>() : visitFormalParameterList(procedureCtx.formalParameterList());
+                        parameterTypes.addFirst(
+                            new RuntimeValue.Method.MethodParameter(
+                                "Self",
+                                new RuntimeValue.ClassInstance(null, null, null, null),
+                                false
+                            )
+                        );
 
                         visibilityScope.define(
                             procedureName + "/" + parameterTypes.size(), 
                             new RuntimeValue.Method(
                                 procedureName + "/" + parameterTypes.size(), 
                                 new RuntimeValue.Method.MethodSignature(
-                                    new ArrayList<RuntimeValue>(parameterTypes.values()),
-                                    new RuntimeValue.Primitive(null)
+                                    parameterTypes,
+                                    null
                                 ), 
                                 null
                             )
@@ -120,56 +126,71 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     }
                     case delphi.ClassFunctionDeclarationContext functionCtx -> {
                         String functionName = functionCtx.identifier().getText();
-                        LinkedHashMap<String, RuntimeValue> parameterTypes = visitFormalParameterList(functionCtx.formalParameterList());
-                        parameterTypes.putFirst("this", new RuntimeValue.ClassInstance(null, null, null, null));
+                        ArrayList<RuntimeValue.Method.MethodParameter> parameterTypes = functionCtx.formalParameterList() == null ? new ArrayList<>() : visitFormalParameterList(functionCtx.formalParameterList());
                         RuntimeValue returnType = visitResultType(functionCtx.resultType());
+                        parameterTypes.addFirst(
+                            new RuntimeValue.Method.MethodParameter(
+                                "Self",
+                                new RuntimeValue.ClassInstance(null, null, null, null),
+                                false
+                            )
+                        );
 
                         visibilityScope.define(
                             functionName + "/" + parameterTypes.size(), 
                             new RuntimeValue.Method(
                                 functionName + "/" + parameterTypes.size(), 
                                 new RuntimeValue.Method.MethodSignature(
-                                    new ArrayList<RuntimeValue>(parameterTypes.values()),
+                                    parameterTypes,
                                     returnType
-                                ), 
+                                ),
                                 null
                             )
                         );
                     }
-                    // TODO: should we store constructor and destructor separately...
+                    // TODO: should we store constructor and destructor separately within class definition?...
                     case delphi.ConstructorDeclarationContext constructorCtx -> {
                         String constructorName = constructorCtx.identifier().getText();
-                        LinkedHashMap<String, RuntimeValue> parameterTypes = new LinkedHashMap<>();
-                        parameterTypes.putFirst("this", new RuntimeValue.ClassInstance(null, null, null, null));
+                        ArrayList<RuntimeValue.Method.MethodParameter> parameterTypes = constructorCtx.formalParameterList() == null ? new ArrayList<>() : visitFormalParameterList(constructorCtx.formalParameterList());
+                        parameterTypes.addFirst(
+                            new RuntimeValue.Method.MethodParameter(
+                                constructorName,
+                                new RuntimeValue.ClassInstance(null, null, null, null),
+                                false
+                            )
+                        );
 
-                        if (constructorCtx.formalParameterList() != null) {
-                            parameterTypes = visitFormalParameterList(constructorCtx.formalParameterList());
-                        }
-                        
                         visibilityScope.define(
                             constructorName + "/" + parameterTypes.size(), 
                             new RuntimeValue.Method(
                                 constructorName + "/" + parameterTypes.size(), 
                                 new RuntimeValue.Method.MethodSignature(
-                                    new ArrayList<RuntimeValue>(parameterTypes.values()),
-                                    new RuntimeValue.Primitive(null)
-                                ), 
+                                    parameterTypes,
+                                    new RuntimeValue.ClassInstance(null, null, null, null)
+                                ),
                                 null
                             )
                         );
                     }
                     case delphi.DestructorDeclarationContext destructorCtx -> {
-                        LinkedHashMap<String, RuntimeValue> parameterTypes = new LinkedHashMap<>();
-                        parameterTypes.putFirst("this", new RuntimeValue.ClassInstance(null, null, null, null));
+                        String destructorName = destructorCtx.identifier().getText();
+                        ArrayList<RuntimeValue.Method.MethodParameter> parameterTypes = new ArrayList<>();
+                        parameterTypes.addFirst(
+                            new RuntimeValue.Method.MethodParameter(
+                                "Self",
+                                new RuntimeValue.ClassInstance(null, null, null, null),
+                                false
+                            )
+                        );
 
                         visibilityScope.define(
-                            destructorCtx.identifier().getText() + "/" + parameterTypes.size(), 
+                            destructorName + "/" + parameterTypes.size(), 
                             new RuntimeValue.Method(
-                                destructorCtx.identifier().getText() + "/" + parameterTypes.size(),
+                                destructorName + "/" + parameterTypes.size(), 
                                 new RuntimeValue.Method.MethodSignature(
-                                    new ArrayList<RuntimeValue>(parameterTypes.values()),
-                                    new RuntimeValue.Primitive(null)
-                                ),
+                                    parameterTypes,
+                                    null
+                                ), 
                                 null
                             )
                         );
@@ -186,7 +207,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             publicScope
         );
     }
-    */
+    
 
     /**
      * Creates a RuntimeValue.Method with a null function definition and a null name...
@@ -194,16 +215,6 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public RuntimeValue visitFunctionType(delphi.FunctionTypeContext ctx) {
         throw new UnsupportedOperationException("Operation not implemented");
-
-        // TODO: Get the parameter types...
-        // return new RuntimeValue.Method(
-        //     null,
-        //     new RuntimeValue.Method.MethodSignature(
-        //         List.of(),
-        //         visitResultType(ctx.resultType())
-        //     ),
-        //     null
-        // );
     }
 
     /**
@@ -218,8 +229,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      * Returns the type of each argument in the order it appears as a list of RuntimeValue
      */
     @Override
-    public List<RuntimeValue.Method.MethodParameter> visitFormalParameterList(delphi.FormalParameterListContext ctx) {
-        List<RuntimeValue.Method.MethodParameter> parameters = new ArrayList<RuntimeValue.Method.MethodParameter>();
+    public ArrayList<RuntimeValue.Method.MethodParameter> visitFormalParameterList(delphi.FormalParameterListContext ctx) {
+        ArrayList<RuntimeValue.Method.MethodParameter> parameters = new ArrayList<RuntimeValue.Method.MethodParameter>();
 
         // Handle each of the sections...
         for (delphi.FormalParameterSectionContext section: ctx.formalParameterSection()) {
@@ -380,7 +391,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return new RuntimeValue.Primitive(null);
     }
 
-        /**
+    /**
      * Visits the implementation (definition) of a procedure and adds it to the scope.
      * 
      * Returns a RuntimeValue.Primitive(null)
@@ -413,12 +424,13 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return new RuntimeValue.Primitive(null);
     }
 
+
+
     //#endregion Implementations
 
     //#region Statements
 
     // TODO: if statement
-    // TODO: procedure and function calls
     // TODO: goto statement (very difficult leave til last)
 
     @Override
@@ -755,7 +767,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     /**
-     * TODO: THIS IS NEEDS TO BE FINISHED EVENTUALLY!
+     * TODO: THIS IS NEEDS TO BE FINISHED EVENTUALLY! HANDLE THE postFixPart!
      * 
      * If the variable is a normal variable it is returned normally. 
      * If it is a reference, then the variable the reference is referring to is returned.
@@ -763,7 +775,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public RuntimeValue visitVariable(delphi.VariableContext ctx) {
         String primaryVarName = ctx.identifier().IDENT().getText();
-        // TODO: HANDLE MEMBER ACCESS HERE!!!
+        // TODO: HANDLE POST FIX PART!!
         RuntimeValue foundInScope = scope.lookup(primaryVarName).orElseThrow(() -> new NoSuchElementException(primaryVarName + " is not defined in scope!"));
         
         return switch (foundInScope) {
