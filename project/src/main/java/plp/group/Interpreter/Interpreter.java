@@ -424,7 +424,184 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return new RuntimeValue.Primitive(null);
     }
 
+    @Override
+    public RuntimeValue visitClassProcedureImplementation(delphi.ClassProcedureImplementationContext ctx) {
+        String className = ctx.identifier(0).getText();
+        String procedureName = ctx.identifier(1).getText();
+        ArrayList<RuntimeValue.Method.MethodParameter> parameters = (ctx.formalParameterList() == null) ? new ArrayList<>() : visitFormalParameterList(ctx.formalParameterList());
 
+        RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(scope.lookup(className).orElseThrow(() -> new NoSuchElementException("There is no class '" + className + "' defined in scope when attempting to define '" + procedureName + "/" + parameters.size() + "'.")), RuntimeValue.ClassDefinition.class);
+
+        parameters.addFirst(
+            new RuntimeValue.Method.MethodParameter(
+                "Self",
+                new RuntimeValue.ClassInstance(classDefinition, null, null, null),
+                false
+            )
+        );
+
+        // Lets get the old method reference
+        RuntimeValue.Method oldMethod = RuntimeValue.requireType(
+            classDefinition.publicScope().lookup(procedureName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + procedureName + "/" + parameters.size() + "' not defined when parsing class procedure implementation.")),
+            RuntimeValue.Method.class
+        );
+
+        classDefinition.publicScope().assign(
+            oldMethod.name(),
+            new RuntimeValue.Method(
+                oldMethod.name(),
+                new RuntimeValue.Method.MethodSignature(
+                    parameters,
+                    oldMethod.signature().returnType()
+                ),
+                (procedureScope) -> {
+                    Scope originalScope = scope;
+                    try {
+                        scope = procedureScope;
+                        visitBlock(ctx.block());
+                    } finally {
+                        scope = originalScope;
+                    }
+                }
+            )
+        );
+
+        return new RuntimeValue.Primitive(null);
+    }
+
+    @Override
+    public RuntimeValue visitClassFunctionImplementation(delphi.ClassFunctionImplementationContext ctx) {
+        String className = ctx.identifier(0).getText();
+        String functionName = ctx.identifier(1).getText();
+        ArrayList<RuntimeValue.Method.MethodParameter> parameters = (ctx.formalParameterList() == null) ? new ArrayList<>() : visitFormalParameterList(ctx.formalParameterList());
+
+        RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(scope.lookup(className).orElseThrow(() -> new NoSuchElementException("There is no class '" + className + "' defined in scope when attempting to define '" + functionName + "/" + parameters.size() + "'.")), RuntimeValue.ClassDefinition.class);
+
+        parameters.addFirst(
+            new RuntimeValue.Method.MethodParameter(
+                "Self",
+                new RuntimeValue.ClassInstance(classDefinition, null, null, null),
+                false
+            )
+        );
+
+        // Lets get the old method reference
+        RuntimeValue.Method oldMethod = RuntimeValue.requireType(
+            classDefinition.publicScope().lookup(functionName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + functionName + "/" + parameters.size() + "' not defined when parsing class procedure implementation.")),
+            RuntimeValue.Method.class
+        );
+
+        classDefinition.publicScope().assign(
+            oldMethod.name(),
+            new RuntimeValue.Method(
+                oldMethod.name(),
+                new RuntimeValue.Method.MethodSignature(
+                    parameters,
+                    oldMethod.signature().returnType()
+                ),
+                (procedureScope) -> {
+                    Scope originalScope = scope;
+                    try {
+                        scope = procedureScope;
+                        visitBlock(ctx.block());
+                    } finally {
+                        scope = originalScope;
+                    }
+                }
+            )
+        );
+
+        return new RuntimeValue.Primitive(null);
+    }
+
+    @Override
+    public RuntimeValue visitConstructorImplementation(delphi.ConstructorImplementationContext ctx) {
+        String className = ctx.identifier(0).getText();
+        String constructorName = ctx.identifier(1).getText();
+        ArrayList<RuntimeValue.Method.MethodParameter> parameters = (ctx.formalParameterList() == null) ? new ArrayList<>() : visitFormalParameterList(ctx.formalParameterList());
+
+        RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(scope.lookup(className).orElseThrow(() -> new NoSuchElementException("There is no class '" + className + "' defined in scope when attempting to define '" + constructorName + "/" + parameters.size() + "'.")), RuntimeValue.ClassDefinition.class);
+
+        parameters.addFirst(
+            new RuntimeValue.Method.MethodParameter(
+                "Self",
+                new RuntimeValue.ClassInstance(classDefinition, null, null, null),
+                false
+            )
+        );
+
+        // Lets get the old method reference
+        RuntimeValue.Method oldMethod = RuntimeValue.requireType(
+            classDefinition.publicScope().lookup(constructorName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + constructorName + "/" + parameters.size() + "' not defined when parsing class procedure implementation.")),
+            RuntimeValue.Method.class
+        );
+
+        classDefinition.publicScope().assign(
+            oldMethod.name(),
+            new RuntimeValue.Method(
+                oldMethod.name(),
+                new RuntimeValue.Method.MethodSignature(
+                    parameters,
+                    oldMethod.signature().returnType()
+                ),
+                (procedureScope) -> {
+                    Scope originalScope = scope;
+                    try {
+                        scope = procedureScope;
+                        visitBlock(ctx.block());
+                    } finally {
+                        scope = originalScope;
+                    }
+                }
+            )
+        );
+
+        return new RuntimeValue.Primitive(null);
+    }
+
+    @Override
+    public RuntimeValue visitDestructorImplementation(delphi.DestructorImplementationContext ctx) {
+        String className = ctx.identifier(0).getText();
+        String destructorName = ctx.identifier(1).getText();
+        RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(scope.lookup(className).orElseThrow(() -> new NoSuchElementException("There is no class '" + className + "' defined in scope when attempting to define '" + destructorName + "/" + 1 + "'.")), RuntimeValue.ClassDefinition.class);
+
+        ArrayList<RuntimeValue.Method.MethodParameter> parameters =  new ArrayList<>();
+        parameters.addFirst(
+            new RuntimeValue.Method.MethodParameter(
+                "Self",
+                new RuntimeValue.ClassInstance(classDefinition, null, null, null),
+                false
+            )
+        );
+
+        // Lets get the old method reference
+        RuntimeValue.Method oldMethod = RuntimeValue.requireType(
+            classDefinition.publicScope().lookup(destructorName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + destructorName + "/" + parameters.size() + "' not defined when parsing class procedure implementation.")),
+            RuntimeValue.Method.class
+        );
+
+        classDefinition.publicScope().assign(
+            oldMethod.name(),
+            new RuntimeValue.Method(
+                oldMethod.name(),
+                new RuntimeValue.Method.MethodSignature(
+                    parameters,
+                    oldMethod.signature().returnType()
+                ),
+                (procedureScope) -> {
+                    Scope originalScope = scope;
+                    try {
+                        scope = procedureScope;
+                        visitBlock(ctx.block());
+                    } finally {
+                        scope = originalScope;
+                    }
+                }
+            )
+        );
+
+        return new RuntimeValue.Primitive(null);
+    }
 
     //#endregion Implementations
 
