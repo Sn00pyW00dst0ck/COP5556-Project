@@ -649,7 +649,10 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         String procedureName = ctx.identifier().IDENT().getText() + "/" + parameterValues.size();
         RuntimeValue.Method procedure = RuntimeValue.requireType(
-            scope.lookup(procedureName).orElseThrow(() -> new NoSuchElementException("Method '" + procedureName + "' is not present in scope when attempting to evaluate 'procedure statement'.")), 
+            scope.lookup(procedureName)
+                .or(() -> scope.lookup(ctx.identifier().IDENT().getText() + "/X"))
+                .orElseThrow(() -> new NoSuchElementException("Method '" + procedureName + "' is not present in scope when attempting to evaluate 'procedure statement', and it is not variadic.")
+            ), 
             RuntimeValue.Method.class
         );
 
@@ -921,7 +924,11 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public RuntimeValue visitFunctionDesignator(delphi.FunctionDesignatorContext ctx) {
         LinkedHashMap<String, RuntimeValue> parameterValues = visitParameterList(ctx.parameterList());
 
-        RuntimeValue scopeValue = scope.lookup(ctx.identifier().getText() + "/" + parameterValues.size()).orElseThrow(() -> new NoSuchElementException("Method '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'function designator'."));
+        RuntimeValue scopeValue = scope.lookup(ctx.identifier().getText() + "/" + parameterValues.size())
+            .or(() -> scope.lookup(ctx.identifier().IDENT().getText() + "/X"))
+            .orElseThrow(() -> new NoSuchElementException("Method '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'function designator', and it is not variadic.")
+        );
+
         RuntimeValue.Method function = RuntimeValue.requireType(scopeValue, RuntimeValue.Method.class);
 
         // Turn parameters to be variables valid for the function call...

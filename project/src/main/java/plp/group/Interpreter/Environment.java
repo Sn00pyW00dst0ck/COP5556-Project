@@ -176,9 +176,8 @@ public class Environment {
             (methodScope) -> writeln(methodScope, 3)
         ));
 
-        // TODO: FIGURE OUT VARIADIC ARG NAMING CONVENTION! 
-        scope.define("read", new RuntimeValue.Method(
-            "read",
+        scope.define("read/X", new RuntimeValue.Method(
+            "read/X",
             new RuntimeValue.Method.MethodSignature(
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
@@ -192,8 +191,8 @@ public class Environment {
             ),
             Environment::read
         ));
-        scope.define("readln/1", new RuntimeValue.Method(
-            "readln",
+        scope.define("readln/X", new RuntimeValue.Method(
+            "readln/X",
             new RuntimeValue.Method.MethodSignature(
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
@@ -268,7 +267,7 @@ public class Environment {
     private static List<String> tokenBuffer = new ArrayList<>();
 
     /**
-     * Helper method which reads a full line and converts it into tokens if the tokenBuffer is empty.
+     * Helper method which prompts to read a full line and converts it into tokens if the tokenBuffer is empty.
      */
     private static void ensureTokenBuffer() {
         if (tokenBuffer.isEmpty()) {
@@ -278,7 +277,7 @@ public class Environment {
     }
 
     /**
-     * Place tokens one at a time into the variables given.
+     * Place tokens one at a time into the variables given, error if not possible.
      * @param methodScope the scope available to the function call.
      */
     private static void read(Scope methodScope) {
