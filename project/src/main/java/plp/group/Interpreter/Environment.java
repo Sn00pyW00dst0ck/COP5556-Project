@@ -248,7 +248,7 @@ public class Environment {
                 new RuntimeValue.Primitive(new BigDecimal("0.0"))
             ),
             (Scope methodScope) -> {
-                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class), BigDecimal.class);
+                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class).value(), BigDecimal.class);
                 RuntimeValue.Primitive result = new RuntimeValue.Primitive(BigDecimalMath.atan(num, new MathContext(20)));
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
@@ -268,7 +268,7 @@ public class Environment {
                 new RuntimeValue.Primitive(Character.valueOf('a'))
             ),
             (Scope methodScope) -> {
-                BigInteger num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("c").get(), RuntimeValue.Variable.class), BigInteger.class);
+                BigInteger num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("c").get(), RuntimeValue.Variable.class).value(), BigInteger.class);
                 RuntimeValue.Primitive result = new RuntimeValue.Primitive((char) num.intValue());
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
@@ -289,7 +289,7 @@ public class Environment {
                 new RuntimeValue.Primitive(new BigDecimal("0.0"))
             ),
             (Scope methodScope) -> {
-                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("theta").get(), RuntimeValue.Variable.class), BigDecimal.class);
+                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("theta").get(), RuntimeValue.Variable.class).value(), BigDecimal.class);
                 RuntimeValue.Primitive result = new RuntimeValue.Primitive(BigDecimalMath.cos(num, new MathContext(20)));
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
@@ -310,7 +310,7 @@ public class Environment {
                 new RuntimeValue.Primitive(new BigDecimal("0.0"))
             ),            
             (Scope methodScope) -> {
-                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class), BigDecimal.class);
+                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class).value(), BigDecimal.class);
                 RuntimeValue.Primitive result = new RuntimeValue.Primitive(BigDecimalMath.exp(num, new MathContext(20)));
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
@@ -331,7 +331,7 @@ public class Environment {
                 new RuntimeValue.Primitive(new BigDecimal("0.0"))
             ),            
             (Scope methodScope) -> {
-                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class), BigDecimal.class);
+                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class).value(), BigDecimal.class);
                 RuntimeValue.Primitive result = new RuntimeValue.Primitive(BigDecimalMath.log(num, new MathContext(20)));
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
@@ -352,8 +352,8 @@ public class Environment {
                 new RuntimeValue.Primitive(Boolean.valueOf(true))
             ),
             (Scope methodScope) -> {
-                BigInteger num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class), BigInteger.class);
-                RuntimeValue.Primitive result = new RuntimeValue.Primitive(Boolean.valueOf(!num.testBit(0)));
+                BigInteger num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class).value(), BigInteger.class);
+                RuntimeValue.Primitive result = new RuntimeValue.Primitive(Boolean.valueOf(num.testBit(0)));
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
         );
@@ -370,7 +370,6 @@ public class Environment {
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
         );
-
         
         // https://www.freepascal.org/docs-html/rtl/system/round.html
         scope.define("round/1", new RuntimeValue.Method(
@@ -387,12 +386,11 @@ public class Environment {
                 new RuntimeValue.Primitive(new BigInteger("0"))
             ),
             (Scope methodScope) -> {
-                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class), BigDecimal.class);
+                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class).value(), BigDecimal.class);
                 RuntimeValue.Primitive result = new RuntimeValue.Primitive(num.setScale(0, RoundingMode.HALF_EVEN).toBigIntegerExact());
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
         );
-
         
         // https://www.freepascal.org/docs-html/rtl/system/sin.html
         scope.define("sin/1", new RuntimeValue.Method(
@@ -409,12 +407,11 @@ public class Environment {
                 new RuntimeValue.Primitive(new BigDecimal("0.0"))
             ),
             (Scope methodScope) -> {
-                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("theta").get(), RuntimeValue.Variable.class), BigDecimal.class);
+                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("theta").get(), RuntimeValue.Variable.class).value(), BigDecimal.class);
                 RuntimeValue.Primitive result = new RuntimeValue.Primitive(BigDecimalMath.sin(num, new MathContext(20)));
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
         );
-
         
         // https://www.freepascal.org/docs-html/rtl/system/sqrt.html
         scope.define("sqrt/1", new RuntimeValue.Method(
@@ -431,7 +428,7 @@ public class Environment {
                 new RuntimeValue.Primitive(new BigDecimal("0.0"))
             ),
             (Scope methodScope) -> {
-                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class), BigDecimal.class);
+                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class).value(), BigDecimal.class);
                 RuntimeValue.Primitive result = new RuntimeValue.Primitive(BigDecimalMath.sqrt(num, new MathContext(20)));
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
@@ -452,7 +449,7 @@ public class Environment {
                 new RuntimeValue.Primitive(new BigInteger("0"))
             ),
             (Scope methodScope) -> {
-                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class), BigDecimal.class);
+                BigDecimal num = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class).value(), BigDecimal.class);
                 RuntimeValue.Primitive result = new RuntimeValue.Primitive(num.setScale(0, RoundingMode.DOWN).toBigIntegerExact());
                 RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(result);
             })
