@@ -40,15 +40,13 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     /*
      * TODO: 
-     *  1. Built in function definitions (read and readln).
-     *  2. visitVariable
-     *  3. Statements (broad / biggest thing)
-     *      3.5. Break/continue keywords.
-     *  4. Function/Procedure Definitions.
-     *  5. Class Definitions / Usage -> Pair program? 
-     *  6. Other types we had in P1 (range, enum, etc).
-     * 
-     *  * Write unit tests!
+     *  1. visitVariable
+     *  2. Statements (broad / biggest thing)
+     *  -> GOTO
+     *  -> IF STATEMENT
+     *  3. Class Usage -> Comes from visitVariable 'postFix' part.
+     *  4. Other types we had in P1 (range, enum, etc).
+     *  5. Unit tests
      */
 
     //#region Types
