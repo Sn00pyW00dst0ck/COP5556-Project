@@ -481,7 +481,7 @@ public class Environment {
      */
     private static void writeln(Scope methodScope, int numParams) {
         write(methodScope, numParams);
-        System.out.println();
+        System.out.print("\n");
     }
 
     // IMPORTANT! Below reader needs to be set before executing any code with read or readln... 
