@@ -173,7 +173,6 @@ public class EnvironmentTest {
             Arguments.of("readln/X", "100 200 300 400\n", List.of("100", "200", "300", "400"))
         );
     }
-    // TODO: test other built in functions.
 
     @ParameterizedTest
     @MethodSource("provideMathematicalFunctionVariants")
