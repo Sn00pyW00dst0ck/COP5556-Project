@@ -1,7 +1,5 @@
 package plp.group.Interpreter;
 
-import static plp.group.Interpreter.RuntimeValue.requireType;
-
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.DecimalFormat;

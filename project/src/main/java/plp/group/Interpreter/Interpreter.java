@@ -5,12 +5,14 @@ import static plp.group.Interpreter.RuntimeValue.requireType;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.HashMap;
 import java.util.LinkedHashMap;
 import java.util.List;
 import java.util.Map;
 import java.util.NoSuchElementException;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 import org.antlr.v4.runtime.tree.TerminalNode;
 import org.jline.reader.LineReader;
@@ -742,14 +744,14 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     public RuntimeValue visitForStatement(delphi.ForStatementContext ctx) {
         String varName = ctx.identifier().getText();
         
-        List<RuntimeValue.Primitive> forList = visitForList(ctx.forList());
+        List<RuntimeValue> forList = visitForList(ctx.forList());
         
         Scope oldScope = scope;
         scope = new Scope(Optional.of(oldScope));
         try {
             scope.define(varName, new RuntimeValue.Variable(varName, forList.get(0)));
             
-            for (RuntimeValue.Primitive value : forList) {
+            for (RuntimeValue value : forList) {
                 scope.assign(varName, new RuntimeValue.Variable(varName, value));
     
                 try {
@@ -770,45 +772,81 @@ public class Interpreter extends delphiBaseVisitor<Object> {
      * Constructs the list of values that will be looped over within a for loop...
      */
     @Override
-    public List<RuntimeValue.Primitive> visitForList(delphi.ForListContext ctx) {
-        RuntimeValue.Primitive start = RuntimeValue.requireType((RuntimeValue) visit(ctx.initialValue()), RuntimeValue.Primitive.class);
-        RuntimeValue.Primitive end = RuntimeValue.requireType((RuntimeValue) visit(ctx.finalValue()), RuntimeValue.Primitive.class);
+    public List<RuntimeValue> visitForList(delphi.ForListContext ctx) {
+        RuntimeValue start = visitExpression(ctx.initialValue().expression());
+        RuntimeValue end = visitExpression(ctx.finalValue().expression());
 
-        ArrayList<RuntimeValue.Primitive> result = new ArrayList<>();
+        return switch (start) {
+            case RuntimeValue.Enumeration initialValue -> {
+                RuntimeValue.Enumeration finalValue = RuntimeValue.requireType(end, RuntimeValue.Enumeration.class);
+                
+                List<String> sortedKeys = initialValue.options().entrySet()
+                    .stream()
+                    .sorted((e1, e2) -> {
+                        return RuntimeValue.requireType(e1.getValue(), BigInteger.class).compareTo(RuntimeValue.requireType(e2.getValue(), BigInteger.class));
+                    })
+                    .filter((e) -> {
+                        BigInteger value = RuntimeValue.requireType(e.getValue(), BigInteger.class);
 
-        return switch (start.value()) {
-            case BigInteger initialValue -> {
-                BigInteger finalValue = RuntimeValue.requireType(end, BigInteger.class);
-                
-                if (ctx.TO() != null) {
-                    for (BigInteger i = initialValue; i.compareTo(finalValue) <= 0 ; i = i.add(new BigInteger("1"))) {
-                        result.add(new RuntimeValue.Primitive(i));
-                    }
-                } else {
-                    for (BigInteger i = initialValue; i.compareTo(finalValue) >= 0; i = i.subtract(new BigInteger("1"))) {
-                        result.add(new RuntimeValue.Primitive(i));
-                    }
+                        BigInteger min = RuntimeValue.requireType(initialValue.options().get(initialValue.value()), BigInteger.class);
+                        BigInteger max = RuntimeValue.requireType(finalValue.options().get(finalValue.value()), BigInteger.class);
+
+                        if (ctx.DOWNTO() != null) {
+                            max = RuntimeValue.requireType(initialValue.options().get(initialValue.value()), BigInteger.class);
+                            min = RuntimeValue.requireType(finalValue.options().get(finalValue.value()), BigInteger.class);
+                        }
+
+                        return min.compareTo(value) <= 0 && max.compareTo(value) >= 0;
+                    })
+                    .map(Map.Entry::getKey)
+                    .collect(Collectors.toList());
+
+                if (ctx.DOWNTO() != null) {
+                    Collections.reverse(sortedKeys);
                 }
-                
-                yield result;
+
+                yield sortedKeys.stream()
+                        .map((key) -> new RuntimeValue.Enumeration(key, initialValue.options()))
+                        .collect(Collectors.toList());
             }
-            case Character initialValue -> {
-                Character finalValue = RuntimeValue.requireType(end, Character.class);
-                
-                if (ctx.TO() != null) {
-                    for (Character i = initialValue; i.compareTo(finalValue) <= 0 ; i++) {
-                        result.add(new RuntimeValue.Primitive(i));
+            case RuntimeValue.Primitive primitive -> {
+                ArrayList<RuntimeValue> result = new ArrayList<>();
+
+                yield switch (primitive.value()) {
+                    case BigInteger initialValue -> {
+                        BigInteger finalValue = RuntimeValue.requireType(end, BigInteger.class);
+                        
+                        if (ctx.TO() != null) {
+                            for (BigInteger i = initialValue; i.compareTo(finalValue) <= 0 ; i = i.add(new BigInteger("1"))) {
+                                result.add(new RuntimeValue.Primitive(i));
+                            }
+                        } else {
+                            for (BigInteger i = initialValue; i.compareTo(finalValue) >= 0; i = i.subtract(new BigInteger("1"))) {
+                                result.add(new RuntimeValue.Primitive(i));
+                            }
+                        }
+                        
+                        yield result;
                     }
-                } else {
-                    for (Character i = initialValue; i.compareTo(finalValue) >= 0; i--) {
-                        result.add(new RuntimeValue.Primitive(i));
+                    case Character initialValue -> {
+                        Character finalValue = RuntimeValue.requireType(end, Character.class);
+                        
+                        if (ctx.TO() != null) {
+                            for (Character i = initialValue; i.compareTo(finalValue) <= 0 ; i++) {
+                                result.add(new RuntimeValue.Primitive(i));
+                            }
+                        } else {
+                            for (Character i = initialValue; i.compareTo(finalValue) >= 0; i--) {
+                                result.add(new RuntimeValue.Primitive(i));
+                            }
+                        }
+                        
+                        yield result;
                     }
-                }
-                
-                yield result;
+                    default -> throw new RuntimeException("Unexpected type '" + primitive.value().getClass().getSimpleName() + "' when evaluating 'for list'");
+                };
             }
-            // Other cases here...
-            default -> throw new RuntimeException("Unexpected type '" + start.value().getClass().getSimpleName() + "' when evaluating 'for list'");
+            default -> throw new RuntimeException("Unexpected type '" + start.getClass().getSimpleName() + "' when evaluating 'for list'");
         };
     }
 
