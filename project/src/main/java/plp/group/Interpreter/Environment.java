@@ -42,7 +42,7 @@ public class Environment {
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     )
@@ -57,13 +57,13 @@ public class Environment {
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param2",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     )
@@ -78,19 +78,19 @@ public class Environment {
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param2",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param3",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     )
@@ -114,7 +114,7 @@ public class Environment {
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     )
@@ -129,13 +129,13 @@ public class Environment {
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param2",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     )
@@ -150,19 +150,19 @@ public class Environment {
                 List.of(
                     new RuntimeValue.Method.MethodParameter(
                         "param1",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param2",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     ),
                     new RuntimeValue.Method.MethodParameter(
                         "param3",
-                        new RuntimeValue.Primitive(new Object()),
+                        new RuntimeValue.AnyType(),
                         false,
                         false
                     )

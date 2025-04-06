@@ -17,6 +17,7 @@ import org.jline.reader.LineReader;
 
 import plp.group.project.delphi;
 import plp.group.project.delphiBaseVisitor;
+import plp.group.project.delphi.CaseListElementContext;
 import plp.group.project.delphi.ClassMemberDeclarationContext;
 import plp.group.Interpreter.ControlFlowExceptions.BreakException;
 import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
@@ -72,8 +73,13 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             default -> throw new RuntimeException("Unexpected item '" + ctx.getChild(ctx.getChildCount() - 1).getText() + "' when attempting to evaluate 'type definition'.");
         };
 
-        // Add the new typeName to the scope with correct typeDefinition
+        // Add the new typeName to the scope with correct typeDefinition (enumerations have special behavior here).
         scope.define(typeName, typeDefinition);
+        if (typeDefinition instanceof RuntimeValue.Enumeration enumeration) {
+            for (Map.Entry<String, RuntimeValue.Primitive> entry : enumeration.options().entrySet()) {
+                scope.define(entry.getKey(), new RuntimeValue.Variable(entry.getKey(), new RuntimeValue.Enumeration(entry.getKey(), enumeration.options())));
+            }
+        }
 
         return new RuntimeValue.Primitive(null);
     }
@@ -319,11 +325,11 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public RuntimeValue visitScalarType(delphi.ScalarTypeContext ctx) {
         // Looks weird, but looping over all identifiers in the identifier list..
-        Map<String, Integer> optionsMap = new HashMap<String, Integer>();
+        Map<String, RuntimeValue.Primitive> optionsMap = new HashMap<String, RuntimeValue.Primitive>();
         for (int i = 0; i < ctx.identifierList().identifier().size(); i++) {
-            optionsMap.put(ctx.identifierList().identifier().get(i).getText(), i);
+            String identifierName = ctx.identifierList().identifier().get(i).getText();
+            optionsMap.put(identifierName, new RuntimeValue.Primitive(new BigInteger("" + i)));
         }
-
         // Create a new Enumeration RuntimeValue and return it.
         return new RuntimeValue.Enumeration(null, optionsMap);
     }
@@ -628,8 +634,13 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         switch (receiver) {
             case RuntimeValue.Variable variable ->  {
-                RuntimeValue.requireType(newValue, variable.value().getClass());
-                variable.setValue(newValue);
+                if (variable.value() instanceof RuntimeValue.Enumeration enumeration) {
+                    RuntimeValue.Enumeration value = RuntimeValue.requireType(newValue, RuntimeValue.Enumeration.class);
+                    enumeration.setValue(value.value());
+                } else {
+                    RuntimeValue.requireType(newValue, variable.value().getClass());
+                    variable.setValue(newValue);    
+                }
             }
             case RuntimeValue.Reference reference -> {
                 RuntimeValue.requireType(newValue, reference.getValue().getClass());
@@ -638,6 +649,36 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             default -> throw new RuntimeException("Unexpected type of receiver when evaluating 'assignment statement'.");
         }
 
+        return new RuntimeValue.Primitive(null);
+    }
+
+    @Override
+    public RuntimeValue visitCaseStatement(delphi.CaseStatementContext ctx) {
+        RuntimeValue expression = visitExpression(ctx.expression());
+
+        // For each case, check if the expression is in the constList and if so do the case, otherwise do the else
+        for (CaseListElementContext castCtx : ctx.caseListElement()) {
+            for (var constantCtx : castCtx.constList().constant()) {
+                RuntimeValue value = visitConstant(constantCtx);
+                switch (value) {
+                    case RuntimeValue.Variable variable -> {
+                        if (expression.equals(variable.value())) {
+                            visit(castCtx.statement());
+                            return new RuntimeValue.Primitive(null);
+                        }
+                    }
+                    default -> {
+                        if (expression.equals(value)) {
+                            visit(castCtx.statement());
+                            return new RuntimeValue.Primitive(null);
+                        }        
+                    }
+                }
+            }
+        }
+
+        // If none of cases work, visit else part.
+        visit(ctx.statements());
         return new RuntimeValue.Primitive(null);
     }
 

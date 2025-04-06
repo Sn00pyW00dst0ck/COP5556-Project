@@ -1,5 +1,7 @@
 package plp.group.Interpreter;
 
+import static plp.group.Interpreter.RuntimeValue.requireType;
+
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.text.DecimalFormat;
@@ -250,12 +252,50 @@ public sealed interface RuntimeValue {
     /**
      * Represents an enumeration type. 
      */
-    record Enumeration(
-        @Nullable String value,
-        Map<String, Integer> options
-    ) implements RuntimeValue {
+    public final class Enumeration implements RuntimeValue {
+        private String value; 
+        private final Map<String, RuntimeValue.Primitive> options;
+
+        public Enumeration(@Nullable String value, Map<String, RuntimeValue.Primitive> options) {
+            this.value = value;
+            this.options = options;
+        }
+
+        public String value() {
+            return this.value;
+        }
+
+        public Map<String, RuntimeValue.Primitive> options() {
+            return this.options;
+        }
+
+        public void setValue(String newValue) {
+            if (!options.keySet().contains(newValue)) {
+                throw new RuntimeException("Key '" + newValue + "' does not exist in Enumeration.");
+            }
+            this.value = newValue;
+        }
+
+        public void setValue(BigInteger newValue) {
+            for (Map.Entry<String, RuntimeValue.Primitive> entry : this.options().entrySet()) {
+                BigInteger entryValue = RuntimeValue.requireType(entry.getValue(), BigInteger.class);
+                if (entryValue.equals(newValue)) {
+                    this.value = entry.getKey();
+                }
+            }
+        }
+
+        @Override
+        public boolean equals(Object obj) {
+            // Ensure obj is a method
+            if (!(obj instanceof Enumeration enumeration)) return false;
+
+            // Ensure same name and signature for equality
+            return value().equals(enumeration.value()) && Objects.equals(options(), enumeration.options());
+        }
+
         public String getPrintString() {
-            throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
+            return value;
         }
     };
 
@@ -290,6 +330,15 @@ public sealed interface RuntimeValue {
     };
 
     /**
+     * A one off to allow any type to be accepted by a Method. 
+     */
+    public final class AnyType implements RuntimeValue {
+        public String getPrintString() {
+            throw new RuntimeException("Don't evaluate directly with AnyType");
+        }
+    }
+
+    /**
      * Use requireType to convert a RuntimeValue into an instance of a requested class.
      * 
      * @param <T> 
@@ -299,6 +348,10 @@ public sealed interface RuntimeValue {
      */
     @SuppressWarnings("unchecked")
     public static <T> T requireType(RuntimeValue value, Class<T> type) {
+        if (type.equals(AnyType.class)) {
+            return (T) value;
+        }
+    
         if (RuntimeValue.class.isAssignableFrom(type)) {
             if (!type.isInstance(value)) {
                 throw new RuntimeException("Expected value to be of type " + type + ", received " + value.getClass() + ".");
