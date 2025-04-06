@@ -700,22 +700,16 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public RuntimeValue visitForStatement(delphi.ForStatementContext ctx) {
         String varName = ctx.identifier().getText();
-        delphi.ForListContext list = ctx.forList();
         
-        // TODO: update for working with more things, characters, enums, etc.
-        BigInteger start = RuntimeValue.requireType((RuntimeValue) visit(list.initialValue()), BigInteger.class);
-        BigInteger end = RuntimeValue.requireType((RuntimeValue) visit(list.finalValue()), BigInteger.class);
-        
-        boolean isTo = list.getChild(1).getText().equalsIgnoreCase("to");
+        List<RuntimeValue.Primitive> forList = visitForList(ctx.forList());
         
         Scope oldScope = scope;
         scope = new Scope(Optional.of(oldScope));
-        
         try {
-            scope.define(varName, new RuntimeValue.Variable(varName, new RuntimeValue.Primitive(start)));
+            scope.define(varName, new RuntimeValue.Variable(varName, forList.get(0)));
             
-            for (BigInteger i = start; isTo ? i.compareTo(end) <= 0 : i.compareTo(end) >= 0; i = i.add(isTo ? BigInteger.ONE : BigInteger.ONE.negate())) {
-                scope.assign(varName, new RuntimeValue.Variable(varName, new RuntimeValue.Primitive(i)));    
+            for (RuntimeValue.Primitive value : forList) {
+                scope.assign(varName, new RuntimeValue.Variable(varName, value));
     
                 try {
                     visit(ctx.statement());
@@ -729,6 +723,52 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             scope = oldScope;
         }
         return new RuntimeValue.Primitive(null);
+    }
+
+    /**
+     * Constructs the list of values that will be looped over within a for loop...
+     */
+    @Override
+    public List<RuntimeValue.Primitive> visitForList(delphi.ForListContext ctx) {
+        RuntimeValue.Primitive start = RuntimeValue.requireType((RuntimeValue) visit(ctx.initialValue()), RuntimeValue.Primitive.class);
+        RuntimeValue.Primitive end = RuntimeValue.requireType((RuntimeValue) visit(ctx.finalValue()), RuntimeValue.Primitive.class);
+
+        ArrayList<RuntimeValue.Primitive> result = new ArrayList<>();
+
+        return switch (start.value()) {
+            case BigInteger initialValue -> {
+                BigInteger finalValue = RuntimeValue.requireType(end, BigInteger.class);
+                
+                if (ctx.TO() != null) {
+                    for (BigInteger i = initialValue; i.compareTo(finalValue) <= 0 ; i = i.add(new BigInteger("1"))) {
+                        result.add(new RuntimeValue.Primitive(i));
+                    }
+                } else {
+                    for (BigInteger i = initialValue; i.compareTo(finalValue) >= 0; i = i.subtract(new BigInteger("1"))) {
+                        result.add(new RuntimeValue.Primitive(i));
+                    }
+                }
+                
+                yield result;
+            }
+            case Character initialValue -> {
+                Character finalValue = RuntimeValue.requireType(end, Character.class);
+                
+                if (ctx.TO() != null) {
+                    for (Character i = initialValue; i.compareTo(finalValue) <= 0 ; i++) {
+                        result.add(new RuntimeValue.Primitive(i));
+                    }
+                } else {
+                    for (Character i = initialValue; i.compareTo(finalValue) >= 0; i--) {
+                        result.add(new RuntimeValue.Primitive(i));
+                    }
+                }
+                
+                yield result;
+            }
+            // Other cases here...
+            default -> throw new RuntimeException("Unexpected type '" + start.value().getClass().getSimpleName() + "' when evaluating 'for list'");
+        };
     }
 
     @Override
@@ -749,7 +789,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         } while (!RuntimeValue.requireType((RuntimeValue) visit(ctx.expression()), Boolean.class));
 
         return new RuntimeValue.Primitive(null);
-    } 
+    }
 
     //#endregion Statements
 
