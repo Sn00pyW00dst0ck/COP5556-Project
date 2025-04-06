@@ -496,7 +496,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         // Lets get the old method reference
         RuntimeValue.Method oldMethod = RuntimeValue.requireType(
-            classDefinition.publicScope().lookup(functionName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + functionName + "/" + parameters.size() + "' not defined when parsing class procedure implementation.")),
+            classDefinition.publicScope().lookup(functionName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + functionName + "/" + parameters.size() + "' not defined when parsing class function implementation.")),
             RuntimeValue.Method.class
         );
 
@@ -542,7 +542,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         // Lets get the old method reference
         RuntimeValue.Method oldMethod = RuntimeValue.requireType(
-            classDefinition.publicScope().lookup(constructorName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + constructorName + "/" + parameters.size() + "' not defined when parsing class procedure implementation.")),
+            classDefinition.publicScope().lookup(constructorName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + constructorName + "/" + parameters.size() + "' not defined when parsing class constructor implementation.")),
             RuntimeValue.Method.class
         );
 
@@ -587,7 +587,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         // Lets get the old method reference
         RuntimeValue.Method oldMethod = RuntimeValue.requireType(
-            classDefinition.publicScope().lookup(destructorName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + destructorName + "/" + parameters.size() + "' not defined when parsing class procedure implementation.")),
+            classDefinition.publicScope().lookup(destructorName + "/" + (parameters.size())).orElseThrow(() -> new NoSuchElementException("'" + destructorName + "/" + parameters.size() + "' not defined when parsing class destructor implementation.")),
             RuntimeValue.Method.class
         );
 
