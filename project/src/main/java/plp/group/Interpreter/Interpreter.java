@@ -677,7 +677,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitWhileStatement(delphi.WhileStatementContext ctx) {
+    public RuntimeValue visitWhileStatement(delphi.WhileStatementContext ctx) {
         Scope oldScope = scope;
 
         while (RuntimeValue.requireType((RuntimeValue) visit(ctx.expression()), Boolean.class)) {
@@ -698,7 +698,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     }
 
     @Override
-    public Object visitForStatement(delphi.ForStatementContext ctx) {
+    public RuntimeValue visitForStatement(delphi.ForStatementContext ctx) {
         String varName = ctx.identifier().getText();
         delphi.ForListContext list = ctx.forList();
         
@@ -730,6 +730,26 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         }
         return new RuntimeValue.Primitive(null);
     }
+
+    @Override
+    public RuntimeValue visitRepeatStatement(delphi.RepeatStatementContext ctx) {
+        Scope oldScope = scope;
+
+        do {
+            scope = new Scope(Optional.of(oldScope));
+            try {
+                visit(ctx.statements());
+            } catch (ContinueException e) {
+                // skip to next iteration
+            } catch (BreakException e) {
+                break;
+            } finally {
+                scope = oldScope;
+            }
+        } while (!RuntimeValue.requireType((RuntimeValue) visit(ctx.expression()), Boolean.class));
+
+        return new RuntimeValue.Primitive(null);
+    } 
 
     //#endregion Statements
 
