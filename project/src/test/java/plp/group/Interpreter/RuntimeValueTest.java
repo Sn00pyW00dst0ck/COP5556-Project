@@ -2,10 +2,12 @@ package plp.group.Interpreter;
 
 import java.math.BigInteger;
 import java.util.List;
+import java.util.Optional;
 
 import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertNotEquals;
+import static org.junit.jupiter.api.Assertions.assertThrows;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import org.junit.jupiter.api.Test;
@@ -41,118 +43,165 @@ public class RuntimeValueTest {
 
     //#endregion
 
+    
     //#region Method Test Cases
 
     @Test
     void testMethodInvocation() {
         RuntimeValue.Method sumMethod = new RuntimeValue.Method(
-            "sum",
-            new RuntimeValue.Method.MethodSignature(List.of(new RuntimeValue.Primitive(new BigInteger("0")), new RuntimeValue.Primitive(new BigInteger("0"))), new RuntimeValue.Primitive(new BigInteger("0"))),
-            args -> {
-                var first = (BigInteger) ((RuntimeValue.Primitive) args.get(0)).value();
-                var second = (BigInteger) ((RuntimeValue.Primitive) args.get(1)).value();
-                return new RuntimeValue.Primitive(first.add(second));
+            "sum", 
+            new RuntimeValue.Method.MethodSignature(
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "x", 
+                        new RuntimeValue.Primitive(new BigInteger("0")), 
+                        false, 
+                        false
+                    ),
+                new RuntimeValue.Method.MethodParameter(
+                        "y", 
+                        new RuntimeValue.Primitive(new BigInteger("0")), 
+                        false, 
+                        false
+                    )
+                ), 
+                new RuntimeValue.Primitive(new BigInteger("0"))
+            ), 
+            (Scope methodScope) -> {
+                BigInteger x = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class).value(), BigInteger.class);
+                BigInteger y = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("y").get(), RuntimeValue.Variable.class).value(), BigInteger.class);
+                RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(new RuntimeValue.Primitive(x.add(y)));
             }
         );
 
         List<RuntimeValue> parameters1 = List.of(
-            new RuntimeValue.Primitive(new BigInteger("5")),
-            new RuntimeValue.Primitive(new BigInteger("7"))
+            new RuntimeValue.Variable("a", new RuntimeValue.Primitive(new BigInteger("5"))),
+            new RuntimeValue.Variable("b", new RuntimeValue.Primitive(new BigInteger("-12")))
         );
         List<RuntimeValue> parameters2 = List.of(
-            new RuntimeValue.Primitive(new BigInteger("15")),
-            new RuntimeValue.Primitive(new BigInteger("-10"))
+            new RuntimeValue.Variable("x", new RuntimeValue.Primitive(new BigInteger("15"))),
+            new RuntimeValue.Variable("y", new RuntimeValue.Primitive(new BigInteger("-10")))
+        );
+        List<RuntimeValue> parameters3 = List.of(
+            new RuntimeValue.Variable("inavlid_type", new RuntimeValue.Primitive(Boolean.valueOf(true))),
+            new RuntimeValue.Variable("y", new RuntimeValue.Primitive(new BigInteger("-10")))
         );
 
-        // Test valid usage of sample method
         assertDoesNotThrow(() -> {
-            assertEquals(new RuntimeValue.Primitive(new BigInteger("12")), sumMethod.definition().invoke(parameters1));
-            assertEquals(new RuntimeValue.Primitive(new BigInteger("5")), sumMethod.definition().invoke(parameters2));    
+            assertEquals(new RuntimeValue.Primitive(new BigInteger("-7")), sumMethod.invoke(new Scope(Optional.empty()), parameters1));
+            assertEquals(new RuntimeValue.Primitive(new BigInteger("5")), sumMethod.invoke(new Scope(Optional.empty()), parameters2));
+        });
+
+        assertThrows(RuntimeException.class, () -> {
+            sumMethod.invoke(new Scope(Optional.empty()), parameters3);
         });
     }
 
     @Test
-    void testMethodEquality() {
-        RuntimeValue.Method methodA = new RuntimeValue.Method(
-            "testMethodA",
-            new RuntimeValue.Method.MethodSignature(List.of(), new RuntimeValue.Primitive("")),
-            _ -> {
-                return new RuntimeValue.Primitive("String");
-            }
-        );
-        
-        // Same as methodA, for testing equality
-        RuntimeValue.Method methodB = new RuntimeValue.Method(
-            "testMethodA",
-            new RuntimeValue.Method.MethodSignature(List.of(), new RuntimeValue.Primitive("")),
-            _ -> {
-                return new RuntimeValue.Primitive("String");
-            }
-        );
-        
-        // Different from method A and B.
-        RuntimeValue.Method methodC = new RuntimeValue.Method(
-            "testMethodC",
-            new RuntimeValue.Method.MethodSignature(List.of(new RuntimeValue.Primitive(new BigInteger("0")), new RuntimeValue.Primitive(new BigInteger("0"))), new RuntimeValue.Primitive(new BigInteger("0"))),
-            _ -> {
-                return new RuntimeValue.Primitive(new BigInteger("95"));
-            }
-        );
-
-        // Same name as methods A and B, but different signature
-        RuntimeValue.Method methodD = new RuntimeValue.Method(
-            "testMethodA",
-            new RuntimeValue.Method.MethodSignature(List.of(new RuntimeValue.Primitive(""), new RuntimeValue.Primitive("")), new RuntimeValue.Primitive("")),
-            _ -> {
-                return new RuntimeValue.Primitive(new BigInteger("String"));
+    void testMethodInvocationWithReferenceParameters() {
+        RuntimeValue.Method sumMethod = new RuntimeValue.Method(
+            "sum", 
+            new RuntimeValue.Method.MethodSignature(
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "x", 
+                        new RuntimeValue.Primitive(new BigInteger("0")), 
+                        false, 
+                        false
+                    ),
+                new RuntimeValue.Method.MethodParameter(
+                        "y", 
+                        new RuntimeValue.Primitive(new BigInteger("0")), 
+                        false, 
+                        false
+                    ),
+                    new RuntimeValue.Method.MethodParameter(
+                        "output", 
+                        new RuntimeValue.Primitive(new BigInteger("0")), 
+                        true, 
+                        false
+                    )
+                ), 
+                null
+            ), 
+            (Scope methodScope) -> {
+                BigInteger x = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("x").get(), RuntimeValue.Variable.class).value(), BigInteger.class);
+                BigInteger y = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("y").get(), RuntimeValue.Variable.class).value(), BigInteger.class);
+                RuntimeValue.requireType(methodScope.lookup("output").get(), RuntimeValue.Reference.class).setValue(new RuntimeValue.Primitive(x.add(y)));
             }
         );
 
-        // Same as methodC, except for different return type
-        RuntimeValue.Method methodE = new RuntimeValue.Method(
-            "testMethodC",
-            new RuntimeValue.Method.MethodSignature(List.of(new RuntimeValue.Primitive(new BigInteger("0")), new RuntimeValue.Primitive(new BigInteger("0"))), new RuntimeValue.Primitive(null)),
-            _ -> {
-                return new RuntimeValue.Primitive("Output");
+        var a = new RuntimeValue.Variable("a", new RuntimeValue.Primitive(new BigInteger("5")));
+        var b = new RuntimeValue.Variable("b", new RuntimeValue.Primitive(new BigInteger("-12")));
+        var result = new RuntimeValue.Variable("result", new RuntimeValue.Primitive(new BigInteger("-12")));
+        List<RuntimeValue> parameters1 = List.of(a, b, new RuntimeValue.Reference("c", result));
+
+        assertDoesNotThrow(() -> {
+            // Setup the parent scope
+            Scope s = new Scope(Optional.empty());
+            s.define("a", a);
+            s.define("b", b);
+            s.define("result", result);
+            // Procedure should return null, but result should update.
+            assertEquals(new RuntimeValue.Primitive(null), sumMethod.invoke(new Scope(Optional.of(s)), parameters1));
+            assertEquals(new RuntimeValue.Primitive(new BigInteger("-7")), result.value());
+        });
+    }
+
+    @Test
+    void testMethodInvocationWithVariadicParameter() {
+        RuntimeValue.Method sumMethod = new RuntimeValue.Method(
+            "sum", 
+            new RuntimeValue.Method.MethodSignature(
+                List.of(
+                    new RuntimeValue.Method.MethodParameter(
+                        "Arguments", 
+                        new RuntimeValue.Primitive(new BigInteger("0")), 
+                        false, 
+                        true
+                    )
+                ),
+                new RuntimeValue.Primitive(new BigInteger("0"))
+            ), 
+            (Scope methodScope) -> {
+                BigInteger totalSum = new BigInteger("0");
+
+                var args = RuntimeValue.requireType(RuntimeValue.requireType(methodScope.lookup("Arguments").get(), RuntimeValue.Variable.class).value(), RuntimeValue.Array.class);
+
+                for (int i = 0; i < args.size(); i++) {
+                    totalSum = totalSum.add(RuntimeValue.requireType(RuntimeValue.requireType(args.get(i), RuntimeValue.Variable.class).value(), BigInteger.class));
+                }
+
+                RuntimeValue.requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).setValue(new RuntimeValue.Primitive(totalSum));
+                System.out.println("");
             }
         );
 
-        // Test equalities
-        assertEquals(methodA, methodA);
-        assertEquals(methodB, methodB);
-        assertEquals(methodC, methodC);
-        assertEquals(methodD, methodD);
-        assertEquals(methodE, methodE);
-        assertEquals(methodA, methodB);
+        var a = new RuntimeValue.Variable("a", new RuntimeValue.Primitive(new BigInteger("5")));
+        var b = new RuntimeValue.Variable("b", new RuntimeValue.Primitive(new BigInteger("-12")));
+        var c = new RuntimeValue.Variable("c", new RuntimeValue.Primitive(new BigInteger("36")));
+        var d = new RuntimeValue.Variable("d", new RuntimeValue.Primitive(new BigInteger("120")));
+        var e = new RuntimeValue.Variable("e", new RuntimeValue.Primitive(new BigInteger("-21")));
+        List<RuntimeValue> parameters1 = List.of(a, b, c, d, e);
 
-        // Test inequalities
-        assertNotEquals(methodA, methodC);
-        assertNotEquals(methodA, methodD);
-        assertNotEquals(methodA, methodE);
-
-        assertNotEquals(methodB, methodC);
-        assertNotEquals(methodB, methodD);
-        assertNotEquals(methodB, methodE);
-    
-        assertNotEquals(methodC, methodD);
-        assertNotEquals(methodC, methodE);
-
-        assertNotEquals(methodD, methodE);
+        assertDoesNotThrow(() -> {
+            assertEquals(new RuntimeValue.Primitive(new BigInteger("128")), sumMethod.invoke(new Scope(Optional.empty()), parameters1));
+        });
     }
     
     @Test
     void testMethodToString() {
         RuntimeValue.Method method = new RuntimeValue.Method(
             "print", 
-            new RuntimeValue.Method.MethodSignature(List.of(), new RuntimeValue.Primitive(null)),
-            _ -> {
-                return new RuntimeValue.Primitive("Printed");
-            }
+            new RuntimeValue.Method.MethodSignature(
+                List.of(), 
+                null
+            ),
+            (Scope _) -> {}
         );
-
         assertTrue(method.toString().contains("print"));
     }
 
     //#endregion
-
+    
 }
