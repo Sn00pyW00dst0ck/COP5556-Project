@@ -2,6 +2,7 @@ package plp.group.Interpreter;
 
 import static plp.group.Interpreter.RuntimeValue.requireType;
 
+import java.lang.instrument.ClassDefinition;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -60,8 +61,6 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         RuntimeValue typeDefinition = switch (ctx.getChild(ctx.getChildCount() - 1)) {
             case delphi.Type_Context typeContext -> visitType_(typeContext);
-            case delphi.FunctionTypeContext functionTypeContext -> visitFunctionType(functionTypeContext);
-            case delphi.ProcedureTypeContext procedureTypeContext -> visitProcedureType(procedureTypeContext);
             case delphi.ClassTypeContext classTypeContext -> {
                 RuntimeValue.ClassDefinition classDefinition = RuntimeValue.requireType(visitClassType(classTypeContext), RuntimeValue.ClassDefinition.class);
                 // Copy over the scopes we found into the ClassDefinition with the proper name.
@@ -221,23 +220,6 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         );
     }
     
-
-    /**
-     * Creates a RuntimeValue.Method with a null function definition and a null name...
-     */
-    @Override
-    public RuntimeValue visitFunctionType(delphi.FunctionTypeContext ctx) {
-        throw new UnsupportedOperationException("Operation not implemented");
-    }
-
-    /**
-     * Creates a RuntimeValue.Method with a null function definition and a null name...
-     */
-    @Override
-    public RuntimeValue visitProcedureType(delphi.ProcedureTypeContext ctx) {
-        throw new UnsupportedOperationException("Operation not implemented");
-    }
-
     /**
      * Returns the type of each argument in the order it appears as a list of RuntimeValue
      */
@@ -343,7 +325,13 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public RuntimeValue visitTypeIdentifier(delphi.TypeIdentifierContext ctx) {
         return switch (ctx.getChild(0)) {
-            case delphi.IdentifierContext identifier -> scope.lookup(identifier.getText()).orElseThrow(() -> new NoSuchElementException("Type Identifier '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'type identifier'."));
+            case delphi.IdentifierContext identifier -> {
+                RuntimeValue result = scope.lookup(identifier.getText()).orElseThrow(() -> new NoSuchElementException("Type Identifier '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'type identifier'."));
+                if (result instanceof RuntimeValue.ClassDefinition definition) {
+                    yield new RuntimeValue.ClassInstance(definition, null, null, null);
+                }
+                yield result;
+            }
             // NOTE: arbitrary choices for the primitive default values...
             case TerminalNode t when(t.getSymbol().getType() == delphi.CHAR) -> new RuntimeValue.Primitive((char)'a');
             case TerminalNode t when(t.getSymbol().getType() == delphi.STRING) -> new RuntimeValue.Primitive("");
@@ -1123,14 +1111,57 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     switch (current) {
                         // If we perform this on a class definition, we assume it is the constructor call.
                         case RuntimeValue.ClassDefinition definition -> {
-                            String name = postFixPart.identifier().getText();
-                            RuntimeValue.Method constructor = RuntimeValue.requireType(definition.publicScope().lookup(name + "/1").get(), RuntimeValue.Method.class);
-                            // Call the constructor then set current to be the new object...
-                            Scope instancePrivate = definition.privateScope().deepCopy();
-                            Scope instanceProtected = instancePrivate.getParent().get();
-                            Scope instancePublic = instanceProtected.getParent().get();
-                            RuntimeValue.Variable newObj = new RuntimeValue.Variable("newObj", new RuntimeValue.ClassInstance(definition, instancePublic, instancePrivate, instanceProtected)); // TODO: DEEP COPY THE SCOPES!!
-                            current = new RuntimeValue.Variable("", constructor.invoke(scope, List.of(newObj)));
+                            switch (postFixPart.getChild(1)) {
+                                case delphi.FunctionDesignatorContext functionDesignatorCtx -> {
+                                    // Can't just visit the designator becuase we lookup in receiver scope and apply a self argument...
+                                    LinkedHashMap<String, RuntimeValue> parameterValues = visitParameterList(functionDesignatorCtx.parameterList());
+
+                                    RuntimeValue.Method constructor = RuntimeValue.requireType(definition.publicScope().lookup(functionDesignatorCtx.identifier().getText() + "/" + (parameterValues.size() + 1))
+                                        .or(() -> definition.publicScope().lookup(functionDesignatorCtx.identifier().getText() + "/X"))
+                                        .orElseThrow(() -> new NoSuchElementException("Method '" + functionDesignatorCtx.identifier().getText() + "' is not present in scope when attempting to evaluate 'function designator postfix part', and it is not variadic.")
+                                    ), RuntimeValue.Method.class);
+                                    
+                                    Scope instancePrivate = definition.privateScope().deepCopy();
+                                    Scope instanceProtected = instancePrivate.getParent().get();
+                                    Scope instancePublic = instanceProtected.getParent().get();
+
+                                    // Fix the parameters just like with the normal function designator, but add self in front.
+                                    List<RuntimeValue> parameters = new ArrayList<>();
+                                    parameters.add(new RuntimeValue.Variable(
+                                        "Self",
+                                        new RuntimeValue.ClassInstance(definition, instancePublic, instancePrivate, instanceProtected)
+                                    ));
+                                    int i = 1;
+                                    for (var parameter : parameterValues.entrySet()) {
+                                        if (constructor.signature().parameters().get(i).isReference()) {
+                                            parameters.add(new RuntimeValue.Reference(
+                                                constructor.signature().parameters().get(i).name(), 
+                                                requireType(scope.lookup(parameter.getKey()).get(), RuntimeValue.Variable.class)
+                                            ));
+                                        } else {
+                                            parameters.add(new RuntimeValue.Variable(
+                                                constructor.signature().parameters().get(i).name(), 
+                                                parameter.getValue()
+                                            ));
+                                        }
+                                        i++;
+                                    }
+                                    current = new RuntimeValue.Variable("", constructor.invoke(scope, parameters));
+                                }
+                                case delphi.IdentifierContext identifierCtx -> {
+                                    String name = identifierCtx.getText();
+                                    RuntimeValue.Method constructor = RuntimeValue.requireType(definition.publicScope().lookup(name + "/1").get(), RuntimeValue.Method.class);
+                                    // Call the constructor then set current to be the new object...
+                                    Scope instancePrivate = definition.privateScope().deepCopy();
+                                    Scope instanceProtected = instancePrivate.getParent().get();
+                                    Scope instancePublic = instanceProtected.getParent().get();
+                                    RuntimeValue.Variable newObj = new RuntimeValue.Variable("newObj", new RuntimeValue.ClassInstance(definition, instancePublic, instancePrivate, instanceProtected));
+                                    current = new RuntimeValue.Variable("", constructor.invoke(scope, List.of(newObj)));        
+                                }
+
+                                default -> throw new RuntimeException("Unexpected error evaluating postfix part '" + postFixPart.getText() + "'when evaluating 'variable'.");
+                            }
+                            
                         }
                         // If it is a ClassInstance, it can be a method call or a field access.
                         case RuntimeValue.Variable variable when (variable.value() instanceof RuntimeValue.ClassInstance instance) -> {
@@ -1180,7 +1211,6 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                         }
                         default -> throw new RuntimeException("Unexpected error evaluating postfix part '" + postFixPart.getText() + "'when evaluating 'variable'.");
                     }
-                    
                     yield current;
                 }
                 default -> throw new RuntimeException("Unexpected postfix part '" + postFixPart.getText() + "'when evaluating 'variable'.");
