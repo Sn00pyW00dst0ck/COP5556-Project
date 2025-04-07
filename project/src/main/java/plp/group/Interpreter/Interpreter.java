@@ -2,7 +2,6 @@ package plp.group.Interpreter;
 
 import static plp.group.Interpreter.RuntimeValue.requireType;
 
-import java.lang.instrument.ClassDefinition;
 import java.math.BigDecimal;
 import java.math.BigInteger;
 import java.util.ArrayList;
@@ -628,7 +627,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 if (variable.value() instanceof RuntimeValue.Enumeration enumeration) {
                     RuntimeValue.Enumeration value = RuntimeValue.requireType(newValue, RuntimeValue.Enumeration.class);
                     enumeration.setValue(value.value());
-                } else if (variable.value() instanceof RuntimeValue.ClassDefinition definition) {
+                } else if (variable.value() instanceof RuntimeValue.ClassDefinition _) {
                     RuntimeValue.ClassInstance value = RuntimeValue.requireType(newValue, RuntimeValue.ClassInstance.class);
                     variable.setValue(value);
                 } else {
