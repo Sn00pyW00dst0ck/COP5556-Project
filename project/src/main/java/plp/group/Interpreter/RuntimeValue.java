@@ -12,8 +12,6 @@ import java.util.stream.Collectors;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
-
 /**
  * Represents a value calculated during the runtime of the program. 
  */
@@ -241,10 +239,8 @@ public sealed interface RuntimeValue {
             }
             
             // Evaluate, if a return exception is thrown catch it but nothing special has to happen.
-            try {
-                definition().invoke(methodScope);
-            } catch (ReturnException r) {}
-
+            definition().invoke(methodScope);
+            
             // If a function, return the value of the result variable...
             if (signature().returnType() != null) {
                 return requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).value();

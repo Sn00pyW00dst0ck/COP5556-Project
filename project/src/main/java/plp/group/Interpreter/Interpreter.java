@@ -23,6 +23,7 @@ import plp.group.project.delphi.CaseListElementContext;
 import plp.group.project.delphi.ClassMemberDeclarationContext;
 import plp.group.Interpreter.ControlFlowExceptions.BreakException;
 import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
+import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
 
 /**
  * The interpreter that walks the tree and does the actual calculations/running of the program.
@@ -40,17 +41,6 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         Environment.setReader(input);
         scope = new Scope(Optional.of(Environment.scope()));
     }
-
-    /*
-     * TODO: 
-     *  1. visitVariable
-     *  2. Statements (broad / biggest thing)
-     *  -> GOTO
-     *  -> IF STATEMENT
-     *  3. Class Usage -> Comes from visitVariable 'postFix' part.
-     *  4. Other types we had in P1 (range, enum, etc).
-     *  5. Unit tests
-     */
 
     //#region Types
 
@@ -383,6 +373,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = procedureScope;
                         visitBlock(ctx.block());
+                    } catch(ReturnException e) {
+                        
                     } finally {
                         scope = originalScope;
                     }
@@ -416,6 +408,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = functionScope;
                         visitBlock(ctx.block());
+                    } catch(ReturnException e) {
+
                     } finally {
                         scope = originalScope;
                     }
@@ -462,6 +456,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = procedureScope;
                         visitBlock(ctx.block());
+                    } catch(ReturnException e) {
+
                     } finally {
                         scope = originalScope;
                     }
@@ -508,6 +504,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = procedureScope;
                         visitBlock(ctx.block());
+                    } catch(ReturnException e) {
+
                     } finally {
                         scope = originalScope;
                     }
@@ -555,6 +553,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                         scope = procedureScope;
                         visitBlock(ctx.block());
                         scope.assign("result", scope.lookup("Self").get());
+                    } catch(ReturnException e) {
+
                     } finally {
                         scope = originalScope;
                     }
@@ -600,6 +600,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = procedureScope;
                         visitBlock(ctx.block());
+                    } catch(ReturnException e) {
+
                     } finally {
                         scope = originalScope;
                     }
