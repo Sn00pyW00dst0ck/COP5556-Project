@@ -37,13 +37,18 @@ end;
 
 var
     Person1: TPerson;
+    Person2: TPerson;
 
 begin
     Person1 := TPerson.Create;
+    Person2 := TPerson.Create;
     Person1.Age := 10;
 
     writeln(Person1.Age);
+    writeln(Person2.Age);
     Person1.greet();
     writeln(Person1.Age);
+    Person2.Age := 5;
     writeln(Person1.getAge());
+    writeln(Person2.getAge());
 end.

@@ -1126,7 +1126,10 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                             String name = postFixPart.identifier().getText();
                             RuntimeValue.Method constructor = RuntimeValue.requireType(definition.publicScope().lookup(name + "/1").get(), RuntimeValue.Method.class);
                             // Call the constructor then set current to be the new object...
-                            RuntimeValue.Variable newObj = new RuntimeValue.Variable("newObj", new RuntimeValue.ClassInstance(definition, definition.publicScope(), definition.privateScope(), definition.protectedScope())); // TODO: DEEP COPY THE SCOPES!!
+                            Scope instancePrivate = definition.privateScope().deepCopy();
+                            Scope instanceProtected = instancePrivate.getParent().get();
+                            Scope instancePublic = instanceProtected.getParent().get();
+                            RuntimeValue.Variable newObj = new RuntimeValue.Variable("newObj", new RuntimeValue.ClassInstance(definition, instancePublic, instancePrivate, instanceProtected)); // TODO: DEEP COPY THE SCOPES!!
                             current = new RuntimeValue.Variable("", constructor.invoke(scope, List.of(newObj)));
                         }
                         // If it is a ClassInstance, it can be a method call or a field access.
