@@ -1082,14 +1082,18 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     @Override
     public LinkedHashMap<String, RuntimeValue> visitParameterList(delphi.ParameterListContext ctx) {
-        LinkedHashMap<String, RuntimeValue> parameters = new LinkedHashMap<String, RuntimeValue>();
-        for (delphi.ActualParameterContext parameter: ctx.actualParameter()) {
-            parameters.put(parameter.getText(), visitExpression(parameter.expression()));
-            // TODO: figure out how to deal with parameter width... What even is it??
-            // parameter.parameterwidth();
+        LinkedHashMap<String, RuntimeValue> parameters = new LinkedHashMap<>();
+    
+        if (ctx != null && ctx.actualParameter() != null) {
+            for (delphi.ActualParameterContext parameter : ctx.actualParameter()) {
+                parameters.put(parameter.getText(), visitExpression(parameter.expression()));
+                // TODO: figure out how to deal with parameter width... What even is it??
+                // parameter.parameterwidth();
+            }
         }
+    
         return parameters;
-    }
+    }    
 
     /**
      * TODO: THIS IS NEEDS TO BE FINISHED EVENTUALLY! HANDLE THE postFixPart!

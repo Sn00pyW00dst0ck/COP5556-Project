@@ -44,11 +44,6 @@ begin
     Person2 := TPerson.Create;
     Person1.Age := 10;
 
-    writeln(Person1.Age);
-    writeln(Person2.Age);
-    Person1.greet();
-    writeln(Person1.Age);
-    Person2.Age := 5;
-    writeln(Person1.getAge());
-    writeln(Person2.getAge());
+    writeln(Person1.Name);
+    writeln(Person1.Name.Age(Person1));
 end.
