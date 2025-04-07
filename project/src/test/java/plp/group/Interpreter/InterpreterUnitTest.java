@@ -66,6 +66,7 @@ public class InterpreterUnitTest {
             Arguments.of("If Statement", "if_statement.pas", "if_statement.out"),
             Arguments.of("Loop Test", "loop_test.pas", "loop_test.out"), 
             Arguments.of("Nested Calculations", "nested_calculations.pas", "nested_calculations.out"), 
+            Arguments.of("Nested Classes", "nested_classes.pas", "nested_classes.out"), 
             Arguments.of("Procedure Definition", "procedure_definition.pas", "procedure_definition.out"),
             Arguments.of("Repetitive Statements", "repetetive_statements.pas", "repetetive_statements.out"),
             Arguments.of("Simple Class", "simple_class.pas", "simple_class.out"), 

@@ -26,6 +26,16 @@ public class Scope {
         this.parent = parent;
     }
 
+    // Deep copy constructor
+    private Scope(Map<String, RuntimeValue> symbols, Optional<Scope> parent) {
+        this.symbols.putAll(symbols);
+        this.parent = parent;
+    }
+
+    public Optional<Scope> getParent() {
+        return this.parent;
+    }
+    
     /**
      * Define a new symbol within the current scope.
      * 
@@ -71,5 +81,18 @@ public class Scope {
     public Optional<RuntimeValue> lookup(String name) {
         // A funky one liner, if the symbol exists in current scope get that, or we get it from the parent scope recursively
         return Optional.ofNullable(symbols.get(name)).or(() -> parent.flatMap(p -> p.lookup(name)));
+    }
+
+    public Scope deepCopy() {
+        // Deep copy the symbols map
+        Map<String, RuntimeValue> symbolsCopy = new HashMap<>();
+        for (Map.Entry<String, RuntimeValue> entry : this.symbols.entrySet()) {
+            symbolsCopy.put(entry.getKey(), entry.getValue().deepCopy());
+        }
+    
+        // Deep copy the parent if present
+        Optional<Scope> parentCopy = this.parent.map(Scope::deepCopy);
+    
+        return new Scope(symbolsCopy, parentCopy);
     }
 }
