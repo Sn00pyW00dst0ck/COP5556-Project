@@ -7,7 +7,6 @@ type
         Age: Integer;
 
         constructor Create;
-        destructor Destroy;
         procedure greet();
         function getAge(): Integer;
     end;
@@ -17,11 +16,6 @@ begin
     writeln('CONSTRUCTOR');
     Self.Name := 'Test Student';
     Self.Age := 21;
-end;
-
-destructor TPerson.Destroy;
-begin
-    writeln('DESTRUCTOR');
 end;
 
 procedure TPerson.greet();
