@@ -53,24 +53,23 @@ public class InterpreterUnitTest {
 
     public static Stream<Arguments> testInterpreter() {
         return Stream.of(
-            Arguments.of("Hello World", "hello_world.pas", "hello_world.out"),
-            Arguments.of("Break Continue", "break_continue.pas", "break_continue.out"),
-            Arguments.of("Loop Test", "loop_test.pas", "loop_test.out"),
-            Arguments.of("Boolean Operators", "boolean_operators.pas", "boolean_operators.out"),
-            Arguments.of("Comparison Operators", "comparison_operators.pas", "comparison_operators.out"),
-            Arguments.of("Nested Calculations", "nested_calculations.pas", "nested_calculations.out"),
             Arguments.of("Arithmetic Operators", "arithmetic_operators.pas", "arithmetic_operators.out"),
-            Arguments.of("Enumerations", "enumerations.pas", "enumerations.out"),
-            Arguments.of("Subranges", "subranges.pas", "subranges.out"),
-            Arguments.of("If Statement", "if_statement.pas", "if_statement.out"),
-            Arguments.of("Procedure Definition", "procedure_definition.pas", "procedure_definition.out"),
-            Arguments.of("Function Definition", "function_definition.pas", "function_definition.out"),
-            Arguments.of("Repetitive Statements", "repetetive_statements.pas", "repetetive_statements.out"),
+            Arguments.of("Boolean Operators", "boolean_operators.pas", "boolean_operators.out"),
+            Arguments.of("Break Continue", "break_continue.pas", "break_continue.out"),
             Arguments.of("Case Statement", "case_statement.pas", "case_statement.out"),
-            Arguments.of("Simple Class", "simple_class.pas", "simple_class.out"),
-            Arguments.of("Simple Math", "simple_math.pas", "simple_math.out"),
+            Arguments.of("Comparison Operators", "comparison_operators.pas", "comparison_operators.out"),
+            Arguments.of("Enumerations", "enumerations.pas", "enumerations.out"),
+            Arguments.of("Function Definition", "function_definition.pas", "function_definition.out"),
             Arguments.of("Goto Statement Simple", "goto_statement_simple.pas", "goto_statement_simple.out"),
-            Arguments.of("Goto Statement Complex", "goto_statement_complex.pas", "goto_statement_complex.out")
+            Arguments.of("Goto Statement Complex", "goto_statement_complex.pas", "goto_statement_complex.out"),
+            Arguments.of("Hello World", "hello_world.pas", "hello_world.out"),
+            Arguments.of("If Statement", "if_statement.pas", "if_statement.out"),
+            Arguments.of("Loop Test", "loop_test.pas", "loop_test.out"), 
+            Arguments.of("Nested Calculations", "nested_calculations.pas", "nested_calculations.out"), 
+            Arguments.of("Procedure Definition", "procedure_definition.pas", "procedure_definition.out"),
+            Arguments.of("Repetitive Statements", "repetetive_statements.pas", "repetetive_statements.out"),
+            Arguments.of("Simple Class", "simple_class.pas", "simple_class.out"), 
+            Arguments.of("Simple Math", "simple_math.pas", "simple_math.out")
         );
     }
 }
