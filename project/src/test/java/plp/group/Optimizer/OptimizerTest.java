@@ -191,7 +191,7 @@ public class OptimizerTest {
             // Optimize the tree
             String optimized = (new Optimizer()).visit(tree);
 
-            String expected = "program Arithmetic_Operators ; begin writeln ( 7 ) ; writeln ( 15.5 ) ; writeln ( 'Hello World!' ) ; writeln ( 'Hello World<' ) ; writeln ( 'AB' ) ; writeln ( -1 ) ; writeln ( -1.5 ) ; writeln ( 12 ) ; writeln ( 13.5 ) ; writeln ( 2 ) ; writeln ( 4 ) ; writeln ( 0 ) ; writeln ( -5 ) ;  end . ";
+            String expected = "program Arithmetic_Operators ; begin writeln ( 7 ) ; writeln ( 15.5 ) ; writeln ( 'Hello World!' ) ; writeln ( 'Hello World<' ) ; writeln ( 'AB' ) ; writeln ( -1 ) ; writeln ( -1.5 ) ; writeln ( 12 ) ; writeln ( 13.5 ) ; writeln ( 2 ) ; writeln ( 4.0 ) ; writeln ( 0 ) ; writeln ( -5 ) ;  end . ";
             assertEquals(expected, optimized);
         });
     }
