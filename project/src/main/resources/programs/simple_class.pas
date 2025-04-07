@@ -9,11 +9,14 @@ type
         constructor Create;
         destructor Destroy;
         procedure greet();
+        function getAge(): Integer;
     end;
 
 constructor TPerson.Create;
 begin
     writeln('CONSTRUCTOR');
+    Self.Name := 'Test Student';
+    Self.Age := 21;
 end;
 
 destructor TPerson.Destroy;
@@ -23,7 +26,13 @@ end;
 
 procedure TPerson.greet();
 begin
-    writeln('Hello');
+    writeln('Hello from ' + Self.Name);
+    Self.Age := 21;
+end;
+
+function TPerson.getAge(): Integer;
+begin
+    result := Self.Age;
 end;
 
 var
@@ -31,7 +40,10 @@ var
 
 begin
     Person1 := TPerson.Create;
+    Person1.Age := 10;
 
-    writeln(Person1.Name);
-    writeln(Person1.Name.Age(Person1));
+    writeln(Person1.Age);
+    Person1.greet();
+    writeln(Person1.Age);
+    writeln(Person1.getAge());
 end.

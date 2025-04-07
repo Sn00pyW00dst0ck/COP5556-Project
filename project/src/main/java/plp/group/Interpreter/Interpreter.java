@@ -108,7 +108,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             // For each class member, we add it to the visibilityScope...
             for (ClassMemberDeclarationContext memberCtx : sectionCtx.classMemberDeclaration()) {
                 switch (memberCtx.getChild(0)) {
-                    case delphi.ClassFieldDeclarationContext fieldCtx -> visibilityScope.define(fieldCtx.identifier().getText(), visitType_(fieldCtx.type_()));
+                    case delphi.ClassFieldDeclarationContext fieldCtx -> visibilityScope.define(fieldCtx.identifier().getText(), new RuntimeValue.Variable(fieldCtx.identifier().getText(), visitType_(fieldCtx.type_())));
                     // TODO: the below 4 cases share a lot of code so it should be cleaned up at some point
                     case delphi.ClassProcedureDeclarationContext procedureCtx -> {
                         String procedureName = procedureCtx.identifier().getText();
@@ -567,6 +567,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                     try {
                         scope = procedureScope;
                         visitBlock(ctx.block());
+                        scope.assign("result", scope.lookup("Self").get());
                     } finally {
                         scope = originalScope;
                     }
@@ -639,9 +640,12 @@ public class Interpreter extends delphiBaseVisitor<Object> {
                 if (variable.value() instanceof RuntimeValue.Enumeration enumeration) {
                     RuntimeValue.Enumeration value = RuntimeValue.requireType(newValue, RuntimeValue.Enumeration.class);
                     enumeration.setValue(value.value());
+                } else if (variable.value() instanceof RuntimeValue.ClassDefinition definition) {
+                    RuntimeValue.ClassInstance value = RuntimeValue.requireType(newValue, RuntimeValue.ClassInstance.class);
+                    variable.setValue(value);
                 } else {
                     RuntimeValue.requireType(newValue, variable.value().getClass());
-                    variable.setValue(newValue);    
+                    variable.setValue(newValue);
                 }
             }
             case RuntimeValue.Reference reference -> {
@@ -1062,8 +1066,8 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         LinkedHashMap<String, RuntimeValue> parameterValues = visitParameterList(ctx.parameterList());
 
         RuntimeValue scopeValue = scope.lookup(ctx.identifier().getText() + "/" + parameterValues.size())
-            .or(() -> scope.lookup(ctx.identifier().IDENT().getText() + "/X"))
-            .orElseThrow(() -> new NoSuchElementException("Method '" + ctx.identifier().IDENT().getText() + "' is not present in scope when attempting to evaluate 'function designator', and it is not variadic.")
+            .or(() -> scope.lookup(ctx.identifier().getText() + "/X"))
+            .orElseThrow(() -> new NoSuchElementException("Method '" + ctx.identifier().getText() + "' is not present in scope when attempting to evaluate 'function designator', and it is not variadic.")
         );
 
         RuntimeValue.Method function = RuntimeValue.requireType(scopeValue, RuntimeValue.Method.class);
@@ -1109,10 +1113,79 @@ public class Interpreter extends delphiBaseVisitor<Object> {
     @Override
     public RuntimeValue visitVariable(delphi.VariableContext ctx) {
         String primaryVarName = ctx.identifier().IDENT().getText();
-        // TODO: HANDLE POST FIX PART!!
-        RuntimeValue foundInScope = scope.lookup(primaryVarName).orElseThrow(() -> new NoSuchElementException(primaryVarName + " is not defined in scope!"));
+        RuntimeValue current = scope.lookup(primaryVarName).orElseThrow(() -> new NoSuchElementException(primaryVarName + " is not defined in scope!"));
         
-        return switch (foundInScope) {
+        // TODO: Loop over the post fix add ons, use a switch to tell which it is. Modify the 'current' appropriately...
+        for (delphi.PostFixPartContext postFixPart : ctx.postFixPart()) {
+
+            current = switch (postFixPart.getChild(0)) {
+                case TerminalNode t when t.getSymbol().getType() == delphi.DOT -> {
+                    switch (current) {
+                        // If we perform this on a class definition, we assume it is the constructor call.
+                        case RuntimeValue.ClassDefinition definition -> {
+                            String name = postFixPart.identifier().getText();
+                            RuntimeValue.Method constructor = RuntimeValue.requireType(definition.publicScope().lookup(name + "/1").get(), RuntimeValue.Method.class);
+                            // Call the constructor then set current to be the new object...
+                            RuntimeValue.Variable newObj = new RuntimeValue.Variable("newObj", new RuntimeValue.ClassInstance(definition, definition.publicScope(), definition.privateScope(), definition.protectedScope())); // TODO: DEEP COPY THE SCOPES!!
+                            current = new RuntimeValue.Variable("", constructor.invoke(scope, List.of(newObj)));
+                        }
+                        // If it is a ClassInstance, it can be a method call or a field access.
+                        case RuntimeValue.Variable variable when (variable.value() instanceof RuntimeValue.ClassInstance instance) -> {
+                            yield switch (postFixPart.getChild(1)) {
+                                case delphi.FunctionDesignatorContext functionDesignatorCtx -> {
+                                    // Can't just visit the designator becuase we lookup in receiver scope and apply a self argument...
+                                    LinkedHashMap<String, RuntimeValue> parameterValues = visitParameterList(functionDesignatorCtx.parameterList());
+
+                                    RuntimeValue.Method method = RuntimeValue.requireType(instance.publicScope().lookup(functionDesignatorCtx.identifier().getText() + "/" + (parameterValues.size() + 1))
+                                        .or(() -> instance.publicScope().lookup(functionDesignatorCtx.identifier().getText() + "/X"))
+                                        .orElseThrow(() -> new NoSuchElementException("Method '" + functionDesignatorCtx.identifier().getText() + "' is not present in scope when attempting to evaluate 'function designator postfix part', and it is not variadic.")
+                                    ), RuntimeValue.Method.class);
+
+                                    // Fix the parameters just like with the normal function designator, but add self in front.
+                                    List<RuntimeValue> parameters = new ArrayList<>();
+                                    parameters.add(new RuntimeValue.Variable(
+                                        "Self",
+                                        instance
+                                    ));
+                                    int i = 1;
+                                    for (var parameter : parameterValues.entrySet()) {
+                                        if (method.signature().parameters().get(i).isReference()) {
+                                            parameters.add(new RuntimeValue.Reference(
+                                                method.signature().parameters().get(i).name(), 
+                                                requireType(scope.lookup(parameter.getKey()).get(), RuntimeValue.Variable.class)
+                                            ));
+                                        } else {
+                                            parameters.add(new RuntimeValue.Variable(
+                                                method.signature().parameters().get(i).name(), 
+                                                parameter.getValue()
+                                            ));
+                                        }
+                                        i++;
+                                    }
+                                    yield new RuntimeValue.Variable("", method.invoke(scope, parameters));
+                                }
+                                case delphi.IdentifierContext identifierCtx -> {
+                                    String name = identifierCtx.getText();
+                                    RuntimeValue x = instance.publicScope().lookup(name).or(() -> {
+                                        RuntimeValue.Method method = RuntimeValue.requireType(instance.publicScope().lookup(name + "/1").get(), RuntimeValue.Method.class);
+                                        return Optional.of(RuntimeValue.requireType(method.invoke(scope, List.of(new RuntimeValue.Variable("Self", instance))), RuntimeValue.class));
+                                    }).get();
+                                    yield x;
+                                }
+                                default -> throw new RuntimeException("Unexpected error evaluating postfix part '" + postFixPart.getText() + "'when evaluating 'variable'.");
+                            };
+                        }
+                        default -> throw new RuntimeException("Unexpected error evaluating postfix part '" + postFixPart.getText() + "'when evaluating 'variable'.");
+                    }
+                    
+                    yield current;
+                }
+                default -> throw new RuntimeException("Unexpected postfix part '" + postFixPart.getText() + "'when evaluating 'variable'.");
+            };
+        }
+
+        // Return either a variable or a reference...
+        return switch (current) {
             case RuntimeValue.Variable variable -> { yield variable; }
             case RuntimeValue.Reference reference -> { yield reference.variable(); }
             default -> throw new RuntimeException("Unexpected type of variable '" + primaryVarName + "' when evaluating 'variable'.");
