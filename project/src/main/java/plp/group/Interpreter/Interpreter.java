@@ -29,11 +29,6 @@ import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
  */
 public class Interpreter extends delphiBaseVisitor<Object> {
 
-    // Add a no-argument constructor
-    public Interpreter() {
-        // Initialize any required fields or perform setup here
-    }
-
     /**
      * The scope of the interpreter as it is running.
      * 

@@ -42,7 +42,7 @@ public class InterpreterUnitTest {
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         delphi parser = new delphi(tokens);
 
-        Interpreter interpreter = new Interpreter();
+        Interpreter interpreter = new Interpreter(null);
         interpreter.visit(parser.program());
 
         InputStream expectedOutputStream = getClass().getClassLoader().getResourceAsStream("outputs/" + outputFile);
