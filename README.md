@@ -106,7 +106,7 @@ The following items have been implemented within this version of the project:
     - *writeln*
     - *read* - NOTE: currently only works for reading integers
     - *readln* - NOTE: currently only works for reading integers
-    - *Exit*
+    - *Exit* - equivalent of return statement as defined by Pascal
     - *Continue*
     - *Break*
     - *arctan*
@@ -124,27 +124,34 @@ The following items have been implemented within this version of the project:
 6. Implemented the ability to interpret the following types of statements:
     - while loops
     - for loops
-    - procedure call statements
-    - return statement
+    - repeat until loops
+    - case statement
+    - procedure call statement
+    - return, break, and continue statements - through built in procedures as is consistent with Pascal
 7. Implemented the ability for users to define custom procedures and functions. 
     - Parameters may be passed by value or by reference. 
     - Parameters passed by reference are correctly modified outside of the function call.
     - Currently, parameters defined to be `PROCEDURE` or `FUNCTION` type are unsupported. 
-8. 
-9. 
-10. 
-11. Unit tests for nearly all of the above mentioned features.
+8. Implemented *basic* class and object operations. 
+    - Constructor call on object creation.
+    - Field access
+    - Class methods - as a procedure or function, with ability to pass by value or reference
+    - Nested accesses
+9. Ability to perform calculations utilizing Enumerations, including looping over them and using them in case statement conditions.
+10. Unit tests for nearly all of the above mentioned features.
 
 ## Known Bugs & Limitations
 
 > [!CAUTION]
 > The following items have been identified as known bugs and limitations within this version of the project:
 
-1. 
-2. 
-3. 
-4. 
-5. 
+1. Subranges, Arrays, Pointers, and other non-trivial data types (unless listed above) are not implemented.
+2. Classes do not support encapsulation. All field lookups are made within public scope, even if protected or private scope lookups should be utilized.
+3. Class destructors are not supported. They may be defined, but will not be invoked automatically. They must be invoked manually by the programmer. 
+4. Type checking when performing operations with objects is limited. An instance of a class may be assigned to a variable of any class type.  
+5. Type checking when performing operations with enumeration types is limited, and may result in undefined behavior.
+6. *read* and *readln* methods currently only work when reading in Integer data types.
+7. *write* and *writeln* currently supports printing primitive types and enumerations, printing an object leads to undefined behavior.
 
 ## References
 
