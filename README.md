@@ -33,7 +33,8 @@ When within the top level directory, VSCode should identify the Maven Java proje
 
 Alternatively, build the project from the command line by running the following command within the `./project` directory:
 ```
-mvn clean package
+> cd project
+> mvn clean package
 ```
 
 VSCode has been setup such that when viewing any of the `.java` files within the `src` directory the run button will be available in the top left corner. This can be used to run the application either in normal or debug mode. 
