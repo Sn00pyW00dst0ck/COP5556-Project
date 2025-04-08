@@ -23,6 +23,7 @@ import plp.group.project.delphi.CaseListElementContext;
 import plp.group.project.delphi.ClassMemberDeclarationContext;
 import plp.group.Interpreter.ControlFlowExceptions.BreakException;
 import plp.group.Interpreter.ControlFlowExceptions.ContinueException;
+import plp.group.Interpreter.ControlFlowExceptions.GotoException;
 
 /**
  * The interpreter that walks the tree and does the actual calculations/running of the program.
@@ -41,16 +42,12 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         scope = new Scope(Optional.of(Environment.scope()));
     }
 
-    /*
-     * TODO: 
-     *  1. visitVariable
-     *  2. Statements (broad / biggest thing)
-     *  -> GOTO
-     *  -> IF STATEMENT
-     *  3. Class Usage -> Comes from visitVariable 'postFix' part.
-     *  4. Other types we had in P1 (range, enum, etc).
-     *  5. Unit tests
-     */
+    @Override
+    public RuntimeValue visitProgram(delphi.ProgramContext ctx) {
+        // Visit the block to initialize variables and run the program
+        visit(ctx.block());
+        return new RuntimeValue.Primitive(null);
+    }
 
     //#region Types
 
@@ -367,7 +364,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         }
 
         return new RuntimeValue.Primitive(null);
-    }
+    }  
 
     //#endregion Variable Declaration
 
@@ -626,9 +623,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     //#region Statements
 
-    // TODO: if statement
-    // TODO: goto statement (very difficult leave til last)
-
+    // assignment statement
     @Override
     public RuntimeValue visitAssignmentStatement(delphi.AssignmentStatementContext ctx) {
         RuntimeValue receiver = visitVariable(ctx.variable());
@@ -654,6 +649,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return new RuntimeValue.Primitive(null);
     }
 
+    // case statement
     @Override
     public RuntimeValue visitCaseStatement(delphi.CaseStatementContext ctx) {
         RuntimeValue expression = visitExpression(ctx.expression());
@@ -719,6 +715,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return new RuntimeValue.Primitive(null);
     }
 
+    // while statement
     @Override
     public RuntimeValue visitWhileStatement(delphi.WhileStatementContext ctx) {
         Scope oldScope = scope;
@@ -740,6 +737,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         return new RuntimeValue.Primitive(null);
     }
 
+    // for statement
     @Override
     public RuntimeValue visitForStatement(delphi.ForStatementContext ctx) {
         String varName = ctx.identifier().getText();
@@ -850,6 +848,7 @@ public class Interpreter extends delphiBaseVisitor<Object> {
         };
     }
 
+    // repeat statement
     @Override
     public RuntimeValue visitRepeatStatement(delphi.RepeatStatementContext ctx) {
         Scope oldScope = scope;
@@ -869,6 +868,68 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
         return new RuntimeValue.Primitive(null);
     }
+
+    // if statement
+    @Override
+    public Object visitIfStatement(delphi.IfStatementContext ctx) {
+        // Evaluate the condition
+        RuntimeValue conditionValue = visitExpression(ctx.expression());
+        boolean condition = RuntimeValue.requireType(conditionValue, Boolean.class);
+
+        Scope oldScope = scope;
+        try {
+            scope = new Scope(Optional.of(oldScope));
+
+            if (condition) {
+                return visit(ctx.statement(0)); // THEN block
+            } else if (ctx.statement().size() > 1) {
+                return visit(ctx.statement(1)); // ELSE block
+            }
+        } finally {
+            scope = oldScope;
+        }
+
+        return null;
+    }
+
+
+    // goto statement
+    @Override
+    public Object visitGotoStatement(delphi.GotoStatementContext ctx) {
+        throw new GotoException(ctx.label().getText());
+    }
+    
+    @Override
+    public Object visitBlock(delphi.BlockContext ctx) {
+        if (ctx.declarationPart() != null) {
+            for (delphi.DeclarationPartContext part : ctx.declarationPart()) {
+                visit(part);
+            }
+        }
+    
+        Map<String, List<delphi.StatementContext>> labelMap = LabelWalker.walk(ctx);
+        List<delphi.StatementContext> stmts = ctx.compoundStatement().statements().statement();
+    
+        int index = 0;
+        while (index < stmts.size()) {
+            try {
+                visit(stmts.get(index));
+                index++;
+            } catch (GotoException e) {
+                List<delphi.StatementContext> jumpStatements = labelMap.get(e.label);
+                if (jumpStatements == null) {
+                    throw new RuntimeException("Label not found: " + e.label);
+                }
+    
+                // jumpStatements starts after label, so we skip the label stmt itself
+                stmts = jumpStatements;
+                index = 0;
+            }
+        }
+    
+        return null;
+    }    
+    
 
     //#endregion Statements
 
