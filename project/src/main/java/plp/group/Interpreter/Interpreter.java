@@ -900,19 +900,19 @@ public class Interpreter extends delphiBaseVisitor<Object> {
 
     // goto statement
     @Override
-    public Object visitGotoStatement(delphi.GotoStatementContext ctx) {
+    public RuntimeValue visitGotoStatement(delphi.GotoStatementContext ctx) {
         throw new GotoException(ctx.label().getText());
     }
     
     @Override
-    public Object visitBlock(delphi.BlockContext ctx) {
+    public RuntimeValue visitBlock(delphi.BlockContext ctx) {
         if (ctx.declarationPart() != null) {
             for (delphi.DeclarationPartContext part : ctx.declarationPart()) {
                 visit(part);
             }
         }
-    
-        Map<String, List<delphi.StatementContext>> labelMap = LabelWalker.walk(ctx);
+
+        Map<String, List<delphi.StatementContext>> labelMap = new LabelWalker().walk(ctx);
         List<delphi.StatementContext> stmts = ctx.compoundStatement().statements().statement();
     
         int index = 0;
@@ -932,9 +932,9 @@ public class Interpreter extends delphiBaseVisitor<Object> {
             }
         }
     
-        return null;
-    }    
-    
+        return new RuntimeValue.Primitive(null);
+    }
+
 
     //#endregion Statements
 

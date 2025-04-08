@@ -127,6 +127,7 @@ The following items have been implemented within this version of the project:
     - repeat until loops
     - case statement
     - procedure call statement
+    - goto statement - NOTE: see limitations for details!
     - return, break, and continue statements - through built in procedures as is consistent with Pascal
 7. Implemented the ability for users to define custom procedures and functions. 
     - Parameters may be passed by value or by reference. 
@@ -152,6 +153,7 @@ The following items have been implemented within this version of the project:
 5. Type checking when performing operations with enumeration types is limited, and may result in undefined behavior.
 6. *read* and *readln* methods currently only work when reading in Integer data types.
 7. *write* and *writeln* currently supports printing primitive types and enumerations, printing an object leads to undefined behavior.
+8. goto statement behavior is very bugged. It passes the goto_statement_simple.pas test file, but fails the goto_statement_complex.pas and it also has issues in many other cases that are untested. Usage highly discouraged.
 
 ## References
 
