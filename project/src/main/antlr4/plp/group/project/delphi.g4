@@ -57,16 +57,18 @@ identifier
     : IDENT
     ;
 
+declarationPart
+    : labelDeclarationPart
+    | constantDefinitionPart
+    | typeDefinitionPart
+    | variableDeclarationPart
+    | callableImplementationPart
+    | usesUnitsPart
+    | IMPLEMENTATION
+    ;
+
 block
-    : (
-        labelDeclarationPart
-        | constantDefinitionPart
-        | typeDefinitionPart
-        | variableDeclarationPart
-        | callableImplementationPart
-        | usesUnitsPart
-        | IMPLEMENTATION
-    )* compoundStatement
+    : declarationPart* compoundStatement
     ;
 
 usesUnitsPart
