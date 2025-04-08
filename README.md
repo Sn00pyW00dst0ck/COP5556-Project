@@ -84,6 +84,20 @@ This time, a different approach is utilized. We have abstracted *most* things wh
 
 Furthermore, we have reworked the **Scope** class to utilize the **RuntimeValue** abstraction and to make it less likely to accidentally create unnecessary scopes. Additionally, an **Environment** class was created which provides an initial scope with implementations for many of the Pascal built in functions, including *write*, *writeln*, *read*, *readln*, and trigonometric/mathematical functions. 
 
+### Static Scoping Support
+
+Each new code block introduces a new scope that is chained to its parent scope:
+- Global scope at the top level
+- Nested scopes for:
+   - Procedures/functions
+   - Loop bodies (`for`, `while`, `repeat`)
+   - Conditionals (`if`, `case`)
+- Inner blocks can access variables from enclosing scopes (lexical/static scope)
+- Functions/procedures see their own local variables and parameters, and global variables
+- Shadowing is supported (a variable in inner scope can hide one in outer)
+
+Scopes are implemented as a linked data structure where each scope has a reference to its parent, allowing efficient upward traversal during variable lookup.
+
 ### Optimizer Logic
 
 The **Optimizer** class is new to this project and did not exist in the previous iteration. The **Optimizer** is a visitor which walks over the **ANTLR4** generated parse tree and performs a simple version of constant propagation. It does this by walking the tree and transforming the tree back into a string representation of the program, but interrupting the process during the evaluation of expressions so that any expressions formed of purely constant values may be pre-calculated, and the calculated outcome written instead. 
@@ -140,6 +154,47 @@ The following items have been implemented within this version of the project:
     - Nested accesses
 9. Ability to perform calculations utilizing Enumerations, including looping over them and using them in case statement conditions.
 10. Unit tests for nearly all of the above mentioned features.
+
+## Bonus Implementations
+
+### Constant Propagation
+This optional optimization evaluates constant expressions at compile time. For example:
+
+```
+v := 2 * (10 + 11);   // becomes: v := 42
+v := v + 2 * 3;       // becomes: v := v + 6
+```
+This is achieved by rewriting AST nodes during parse tree traversal.
+
+### Formal Parameter Passing
+
+Procedures and functions can declare formal parameters, including:
+- **By value** (default): parameters are passed as copies
+- **By reference** (`var` keyword): parameters are passed as references, allowing in-place modification
+
+Parameter names are scoped correctly and follow static scoping rules. Internally, reference parameters are wrapped as RuntimeValue.Reference objects that track their originating variables.
+Example:
+
+```
+procedure Increment(var x: integer);
+begin
+    x := x + 1;
+end;
+```
+
+### Goto Statement Support
+- Goto statements use the `GotoException` mechanism to simulate jumps.
+- `LabelWalker` scans and maps labels to statement lists in advance.
+- Control flow exceptions safely unwind stack and resume at correct labeled statement.
+Example:
+
+```
+a := 0;
+goto MyLabel;
+a := 1;
+MyLabel:
+a := a + 10;
+```
 
 ## Known Bugs & Limitations
 
