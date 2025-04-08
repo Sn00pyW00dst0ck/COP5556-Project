@@ -2,6 +2,7 @@ package plp.group.Optimizer;
 
 import java.math.BigDecimal;
 import java.math.BigInteger;
+import java.math.RoundingMode;
 
 import org.antlr.v4.runtime.tree.RuleNode;
 import org.antlr.v4.runtime.tree.TerminalNode;
@@ -150,9 +151,11 @@ public class Optimizer extends delphiBaseVisitor<String> {
 
                     // Attempt to evaluate as decimals
                     try {
-                        BigDecimal result = requireType(lhs, BigDecimal.class).add(requireType(rhs, BigDecimal.class));
-                        yield result.toString();
-                    } catch (Exception e) {}
+                        String result = requireType(lhs, BigDecimal.class).add(requireType(rhs, BigDecimal.class)).toString();
+                        if (!result.contains(".")) {
+                            result += ".0";
+                        }
+                        yield result;                    } catch (Exception e) {}
 
                     // If ALL fail, then we can't do it...
                     throw new RuntimeException("Can't evaluate, fallback!");
@@ -166,8 +169,11 @@ public class Optimizer extends delphiBaseVisitor<String> {
 
                     // Attempt to evaluate as decimals
                     try {
-                        BigDecimal result = requireType(lhs, BigDecimal.class).subtract(requireType(rhs, BigDecimal.class));
-                        yield result.toString();
+                        String result = requireType(lhs, BigDecimal.class).subtract(requireType(rhs, BigDecimal.class)).toString();
+                        if (!result.contains(".")) {
+                            result += ".0";
+                        }
+                        yield result;
                     } catch (Exception e) {}
 
                     // If both fail, then we can't do it...
@@ -202,8 +208,11 @@ public class Optimizer extends delphiBaseVisitor<String> {
 
                     // Attempt to evaluate as decimals
                     try {
-                        BigDecimal result = requireType(lhs, BigDecimal.class).multiply(requireType(rhs, BigDecimal.class));
-                        yield result.toString();
+                        String result = requireType(lhs, BigDecimal.class).multiply(requireType(rhs, BigDecimal.class)).toString();
+                        if (!result.contains(".")) {
+                            result += ".0";
+                        }
+                        yield result;
                     } catch (Exception e) {}
 
                     // If both fail, then we can't do it...
@@ -218,8 +227,11 @@ public class Optimizer extends delphiBaseVisitor<String> {
 
                     // Attempt to evaluate as decimals
                     try {
-                        BigDecimal result = requireType(lhs, BigDecimal.class).divide(requireType(rhs, BigDecimal.class));
-                        yield result.toString();
+                        String result = requireType(lhs, BigDecimal.class).divide(requireType(rhs, BigDecimal.class)).toString();
+                        if (!result.contains(".")) {
+                            result += ".0";
+                        }
+                        yield result;
                     } catch (Exception e) {}
 
                     // If both fail, then we can't do it...
@@ -234,8 +246,11 @@ public class Optimizer extends delphiBaseVisitor<String> {
 
                     // Attempt to evaluate as decimals
                     try {
-                        BigDecimal result = requireType(lhs, BigDecimal.class).divide(requireType(rhs, BigDecimal.class));
-                        yield result.toString();
+                        String result = requireType(lhs, BigDecimal.class).divide(requireType(rhs, BigDecimal.class)).toString();
+                        if (!result.contains(".")) {
+                            result += ".0";
+                        }
+                        yield result;
                     } catch (Exception e) {}
 
                     // If both fail, then we can't do it...
@@ -250,8 +265,11 @@ public class Optimizer extends delphiBaseVisitor<String> {
 
                     // Attempt to evaluate as decimals
                     try {
-                        BigDecimal result = requireType(lhs, BigDecimal.class).remainder(requireType(rhs, BigDecimal.class));
-                        yield result.toString();
+                        String result = requireType(lhs, BigDecimal.class).remainder(requireType(rhs, BigDecimal.class)).toString();
+                        if (!result.contains(".")) {
+                            result += ".0";
+                        }
+                        yield result;
                     } catch (Exception e) {}
                     
                     // If both fail, then we can't do it..

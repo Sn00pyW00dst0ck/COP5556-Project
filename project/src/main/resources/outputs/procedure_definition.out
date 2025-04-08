@@ -1,8 +1,8 @@
-Winthin the program
-value of a = 100 b =  200 and c = 300
-Winthin the procedure display
-value of a = 10 b =  20 and c = 30
-Winthin the procedure parameter_display
-value of a = 15 b =  45 and c = 60
+Within the program
+value of a = 100 b = 200 and c = 300
+Within the procedure display
+value of a = 10 b = 20 and c = 30
+Within the procedure parameter_display
+value of a = 15 b = 45 and c = 60
 Modifying value within function
 600

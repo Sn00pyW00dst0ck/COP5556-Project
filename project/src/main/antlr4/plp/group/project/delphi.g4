@@ -377,6 +377,7 @@ simpleStatement
     : assignmentStatement
     | gotoStatement
     | procedureStatement
+    | variable
     | emptyStatement_
     ;
 
@@ -389,7 +390,8 @@ variable
     ;
 
 postFixPart
-    : DOT identifier (LPAREN parameterList RPAREN)?
+    : DOT identifier
+    | DOT functionDesignator
     | LBRACK expression (COMMA expression)* RBRACK
     | LBRACK2 expression (COMMA expression)* RBRACK2
     | POINTER

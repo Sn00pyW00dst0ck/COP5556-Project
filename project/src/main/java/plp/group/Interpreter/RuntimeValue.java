@@ -12,8 +12,6 @@ import java.util.stream.Collectors;
 
 import org.checkerframework.checker.nullness.qual.Nullable;
 
-import plp.group.Interpreter.ControlFlowExceptions.ReturnException;
-
 /**
  * Represents a value calculated during the runtime of the program. 
  */
@@ -53,6 +51,13 @@ public sealed interface RuntimeValue {
                 default -> throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
             };
         }
+
+        /**
+         * Cheat a bit for this by not deep copying the value itself, could cause issues later.
+         */
+        public RuntimeValue deepCopy() {
+            return new RuntimeValue.Primitive(value);
+        }
     };
 
     /**
@@ -81,6 +86,13 @@ public sealed interface RuntimeValue {
 
         public String getPrintString() {
             return this.value.getPrintString();
+        }
+
+        /**
+         * Cheat a bit for this.
+         */
+        public RuntimeValue deepCopy() {
+            return new RuntimeValue.Variable(this.name(), value.deepCopy());
         }
     };
 
@@ -114,6 +126,10 @@ public sealed interface RuntimeValue {
                 .map(RuntimeValue::getPrintString)
                 .collect(Collectors.joining(", ", "[", "]"));
         }
+
+        public RuntimeValue deepCopy() {
+            return this;
+        }
     }
 
     /**
@@ -133,6 +149,10 @@ public sealed interface RuntimeValue {
 
         public String getPrintString() {
             return variable.getPrintString();
+        }
+
+        public RuntimeValue deepCopy() {
+            return new RuntimeValue.Reference(this.name(), RuntimeValue.requireType(variable.deepCopy(), RuntimeValue.Variable.class));
         }
     };
 
@@ -219,10 +239,8 @@ public sealed interface RuntimeValue {
             }
             
             // Evaluate, if a return exception is thrown catch it but nothing special has to happen.
-            try {
-                definition().invoke(methodScope);
-            } catch (ReturnException r) {}
-
+            definition().invoke(methodScope);
+            
             // If a function, return the value of the result variable...
             if (signature().returnType() != null) {
                 return requireType(methodScope.lookup("result").get(), RuntimeValue.Variable.class).value();
@@ -242,6 +260,13 @@ public sealed interface RuntimeValue {
 
         public String getPrintString() {
             throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
+        }
+
+        /**
+         * Cheat a bit for this.
+         */
+        public RuntimeValue deepCopy() {
+            return this;
         }
     };
 
@@ -295,6 +320,13 @@ public sealed interface RuntimeValue {
         public String getPrintString() {
             return value;
         }
+
+        /**
+         * Cheat a bit for this.
+         */
+        public RuntimeValue deepCopy() {
+            return this;
+        }
     };
 
     /**
@@ -309,6 +341,13 @@ public sealed interface RuntimeValue {
     ) implements RuntimeValue {
         public String getPrintString() {
             throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
+        }
+
+        /**
+         * Cheat a bit for this.
+         */
+        public RuntimeValue deepCopy() {
+            return this;
         }
     };
 
@@ -325,6 +364,13 @@ public sealed interface RuntimeValue {
         public String getPrintString() {
             throw new RuntimeException("Unexpected error when attempting to get print string for: " + this.toString());
         }
+
+        /**
+         * Cheat a bit for this, hopefully it won't cause issues later.
+         */
+        public RuntimeValue deepCopy() {
+            return this;
+        }
     };
 
     /**
@@ -333,6 +379,10 @@ public sealed interface RuntimeValue {
     public final class AnyType implements RuntimeValue {
         public String getPrintString() {
             throw new RuntimeException("Don't evaluate directly with AnyType");
+        }
+
+        public RuntimeValue deepCopy() {
+            return new RuntimeValue.AnyType();
         }
     }
 
@@ -372,5 +422,6 @@ public sealed interface RuntimeValue {
     }
 
     public abstract String getPrintString();
+    public abstract RuntimeValue deepCopy();
 
 }
