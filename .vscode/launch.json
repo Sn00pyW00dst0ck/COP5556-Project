@@ -9,27 +9,14 @@
             "name": "Main",
             "request": "launch",
             "mainClass": "plp.group.Main",
-            "projectName": "cli"
+            "projectName": "web"
         },
         {
             "type": "java",
             "name": "Main",
             "request": "launch",
-            "mainClass": "plp.group.cli.Main",
-            "projectName": "project"
-        },
-        {
-            "type": "java",
-            "name": "Current File",
-            "request": "launch",
-            "mainClass": "${file}"
-        },
-        {
-            "type": "java",
-            "name": "App",
-            "request": "launch",
-            "mainClass": "plp.group.App",
-            "projectName": "project"
+            "mainClass": "plp.group.Main",
+            "projectName": "cli"
         }
     ]
 }
