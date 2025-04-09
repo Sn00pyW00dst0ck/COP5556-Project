@@ -6,16 +6,30 @@
     "configurations": [
         {
             "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "plp.group.Main",
+            "projectName": "cli"
+        },
+        {
+            "type": "java",
+            "name": "Main",
+            "request": "launch",
+            "mainClass": "plp.group.cli.Main",
+            "projectName": "project"
+        },
+        {
+            "type": "java",
             "name": "Current File",
             "request": "launch",
-            "mainClass": "${file}",
+            "mainClass": "${file}"
         },
         {
             "type": "java",
             "name": "App",
             "request": "launch",
             "mainClass": "plp.group.App",
-            "projectName": "project",
+            "projectName": "project"
         }
     ]
 }
