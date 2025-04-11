@@ -1,0 +1,39 @@
+<!doctype html>
+<html>
+<head>
+   <title>Hello World</title>
+
+   <script type="importmap">
+   {
+      "imports": {
+         "twr-wasm": "./index.js"
+      }
+   }
+   </script>
+
+</head>
+<body>
+   <div id="twr_iodiv"></div>
+
+   <script type="module">
+      import { twrWasmModule } from "twr-wasm";
+
+      const mod = new twrWasmModule();
+      const response = await fetch("./compile", {
+         method: 'POST',
+         headers: {
+            "Content-Type": "application/json"
+         },
+         body: JSON.stringify({
+            "filename": "example1.ll",
+            "sourceCode": `QC5zdHIgPSBwcml2YXRlIHVubmFtZWRfYWRkciBjb25zdGFudCBbMTIgeCBpOF0gYyJIZWxsbyBXb3JsZFwwMCIsIGFsaWduIDEKCjsgRnVuY3Rpb24gQXR0cnM6IG11c3Rwcm9ncmVzcyBub2lubGluZSBub3JlY3Vyc2Ugb3B0bm9uZSB1d3RhYmxlCmRlZmluZSBkc29fbG9jYWwgbm91bmRlZiBpMzIgQG1haW4oKSAjMCB7CiAgJTEgPSBhbGxvY2EgaTMyLCBhbGlnbiA0CiAgc3RvcmUgaTMyIDAsIHB0ciAlMSwgYWxpZ24gNAogICUyID0gY2FsbCBpMzIgKHB0ciwgLi4uKSBAcHJpbnRmKHB0ciBub3VuZGVmIEAuc3RyKQogIHJldCBpMzIgNDIKfQoKZGVjbGFyZSBpMzIgQHByaW50ZihwdHIgbm91bmRlZiwgLi4uKSAjMQ==`
+         })
+      });
+      const data = await response.json();
+      console.log(data);
+
+      await mod.loadWasm("./wasm/example1.wasm");
+      await mod.callC(["main"]);
+   </script>
+</body>
+</html>
