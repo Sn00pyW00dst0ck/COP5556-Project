@@ -1,6 +1,5 @@
 {
   "dependencies": {
-    "monaco-editor": "^0.52.2",
     "twr-wasm": "^2.5.0"
   }
 }
