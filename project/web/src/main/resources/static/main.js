@@ -1,33 +1,43 @@
-import { runWasmBinary } from "./wasm-runner.js";
-import { encodeBase64 } from "./utils.js";
+import { twrWasmModule } from "twr-wasm";
+import './editor.js';
 
-window.loadExample = function () {
-  document.getElementById("code-editor").value = `
-program HelloWorld;
+const EDITOR = await window.MonacoEditorModule.initEditor('monaco-container');
+
+const DEFAULT_TEXT = 
+`program HelloWorld;
 begin
-  writeln('Hello, WebAssembly!');
-end.
-  `;
-};
+    writeln('Hello, WebAssembly!');
+end.`;
 
-window.compileAndRun = async function () {
-  const code = document.getElementById("code-editor").value;
-  const base64Source = encodeBase64(code);
-  const response = await fetch("/compile", {
-    method: "POST",
-    headers: { "Content-Type": "application/json" },
-    body: JSON.stringify({
-      filename: "main.pas",
-      sourceCode: base64Source,
-    }),
-  });
+window.loadExample = () => EDITOR.setValue(DEFAULT_TEXT);
 
-  const result = await response.json();
-  if (!result.success) {
-    alert("Compilation failed:\n" + result.message);
-    return;
-  }
+window.compileAndRun = async () => {
+    await window.compile("main");
+    window.clearConsole();
+    await window.runWasm("main");
+}
 
-  const wasmBinary = Uint8Array.from(atob(result.wasm), c => c.charCodeAt(0));
-  await runWasmBinary(wasmBinary);
-};
+window.compile = async (filename) => {
+    const response = await fetch("/compile", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+            filename: `${filename}.ll`, // TODO: SWAP .ll for .pas when compiler to .ll works in java
+            sourceCode: btoa(EDITOR.getValue()),
+        })
+    });  
+
+    const result = await response.json();
+    if (!result.success) {
+        alert("Compilation failed:\n" + result.message);
+        return;
+    }
+}
+
+window.clearConsole = () => document.getElementById("twr_iodiv").innerHTML = "";
+
+window.runWasm = async (filename) => {
+    const mod = new twrWasmModule();
+    await mod.loadWasm(`/wasm/${filename}.wasm`);
+    await mod.callC(["main"]);
+}
