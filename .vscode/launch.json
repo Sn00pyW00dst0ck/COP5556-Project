@@ -6,16 +6,17 @@
     "configurations": [
         {
             "type": "java",
-            "name": "Current File",
+            "name": "Main",
             "request": "launch",
-            "mainClass": "${file}",
+            "mainClass": "plp.group.Main",
+            "projectName": "web"
         },
         {
             "type": "java",
-            "name": "App",
+            "name": "Main",
             "request": "launch",
-            "mainClass": "plp.group.App",
-            "projectName": "project",
+            "mainClass": "plp.group.Main",
+            "projectName": "cli"
         }
     ]
 }

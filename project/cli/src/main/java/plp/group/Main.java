@@ -15,14 +15,13 @@ import plp.group.project.delphi;
 import plp.group.project.delphi_lexer;
 
 /**
- * Right now this invokes ANTLR4 tooling to view the AST in a GUI window, in
- * future it will call our interpreter.
- *
+ * Entry point for the CLI application.
  */
-public class App {
+public class Main {
 
     private static Terminal terminal;
     private static LineReader reader;
+    
     public static void main(String[] args) throws IOException {
         terminal = TerminalBuilder.terminal();
         reader = LineReaderBuilder.builder().terminal(terminal).build();
@@ -65,7 +64,7 @@ public class App {
         try {
             // Get the parse tree for the file we enter in command line.
             var lexer = new delphi_lexer(
-                    CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream("programs/" + programFileName)));
+                    CharStreams.fromStream(Main.class.getClassLoader().getResourceAsStream("programs/" + programFileName)));
             var tokens = new CommonTokenStream(lexer);
             var parser = new delphi(tokens);
             var tree = parser.program();
@@ -87,7 +86,7 @@ public class App {
         try {
             // Get the parse tree for the file we enter in command line.
             var lexer = new delphi_lexer(
-                    CharStreams.fromStream(App.class.getClassLoader().getResourceAsStream("programs/" + programFileName)));
+                    CharStreams.fromStream(Main.class.getClassLoader().getResourceAsStream("programs/" + programFileName)));
             var tokens = new CommonTokenStream(lexer);
             var parser = new delphi(tokens);
             var tree = parser.program();

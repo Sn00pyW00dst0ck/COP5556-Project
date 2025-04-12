@@ -4,9 +4,9 @@ import static org.junit.jupiter.api.Assertions.*;
 import org.junit.jupiter.api.Test;
 
 /**
- * Unit test for simple App.
+ * Unit test for core.
  */
-public class AppTest {
+public class CoreTest {
     /**
      * Rigorous Test :-)
      */

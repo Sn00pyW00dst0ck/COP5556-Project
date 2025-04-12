@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <title>Pascal to WebAssembly</title>
+  <link rel="stylesheet" href="style.css" />
+
+  <!--Setup ES Module Import Mapping.-->
+  <script type="importmap">
+    {
+      "imports": {
+        "twr-wasm": "./twr-wasm/lib-js/index.js"
+      }
+    }
+  </script>
+  <!--Monaco CDN-->
+  <script src="https://cdn.jsdelivr.net/npm/monaco-editor@latest/min/vs/loader.js"></script>
+</head>
+<body>
+  <div id="app">
+    <aside id="sidebar">
+      <h2>Pascal to WASM</h2>
+      <button class="action-btn" onclick="loadExample()">Load Example</button>
+      <button class="action-btn" onclick="compileAndRun()">Compile & Run</button>  
+    </aside>
+
+    <main id="main-content">
+      <section id="editor-section">
+        <div id="editor-tab-header">
+          main.pas
+        </div>
+        <div id="monaco-container"></div>
+      </section>
+
+      <section id="output-section">
+        <h3>Console Output</h3>
+        <div id="twr_iodiv"></div>
+      </section>
+    </main>
+  </div>
+
+  <!--Run the javascript of the page.-->
+  <script type="module" src="main.js"></script>
+</body>
+</html>
