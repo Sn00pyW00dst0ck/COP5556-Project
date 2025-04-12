@@ -1,39 +1,38 @@
-<!doctype html>
-<html>
+<!DOCTYPE html>
+<html lang="en">
 <head>
-   <title>Hello World</title>
-
-   <script type="importmap">
-   {
+  <meta charset="UTF-8" />
+  <title>Pascal to WebAssembly</title>
+  <link rel="stylesheet" href="style.css" />
+  <script type="importmap">
+    {
       "imports": {
-         "twr-wasm": "./index.js"
+        "twr-wasm": "./node_modules/twr-wasm/lib-js/index.js"
       }
-   }
-   </script>
-
+    }
+  </script>
 </head>
 <body>
-   <div id="twr_iodiv"></div>
+  <div id="app">
+    <aside id="sidebar">
+      <h2>Pascal to WASM</h2>
+      <button onclick="loadExample()">Load Example</button>
+      <button onclick="compileAndRun()">Compile & Run</button>
+    </aside>
 
-   <script type="module">
-      import { twrWasmModule } from "twr-wasm";
+    <main id="main-content">
+      <section id="editor-section">
+        <h3>Editor</h3>
+        <textarea id="code-editor">// Write Pascal code here</textarea>
+      </section>
 
-      const mod = new twrWasmModule();
-      const response = await fetch("./compile", {
-         method: 'POST',
-         headers: {
-            "Content-Type": "application/json"
-         },
-         body: JSON.stringify({
-            "filename": "example1.ll",
-            "sourceCode": `QC5zdHIgPSBwcml2YXRlIHVubmFtZWRfYWRkciBjb25zdGFudCBbMTIgeCBpOF0gYyJIZWxsbyBXb3JsZFwwMCIsIGFsaWduIDEKCjsgRnVuY3Rpb24gQXR0cnM6IG11c3Rwcm9ncmVzcyBub2lubGluZSBub3JlY3Vyc2Ugb3B0bm9uZSB1d3RhYmxlCmRlZmluZSBkc29fbG9jYWwgbm91bmRlZiBpMzIgQG1haW4oKSAjMCB7CiAgJTEgPSBhbGxvY2EgaTMyLCBhbGlnbiA0CiAgc3RvcmUgaTMyIDAsIHB0ciAlMSwgYWxpZ24gNAogICUyID0gY2FsbCBpMzIgKHB0ciwgLi4uKSBAcHJpbnRmKHB0ciBub3VuZGVmIEAuc3RyKQogIHJldCBpMzIgNDIKfQoKZGVjbGFyZSBpMzIgQHByaW50ZihwdHIgbm91bmRlZiwgLi4uKSAjMQ==`
-         })
-      });
-      const data = await response.json();
-      console.log(data);
+      <section id="output-section">
+        <h3>Console Output</h3>
+        <div id="twr_iodiv"></div>
+      </section>
+    </main>
+  </div>
 
-      await mod.loadWasm("./wasm/example1.wasm");
-      await mod.callC(["main"]);
-   </script>
+  <script type="module" src="main.js"></script>
 </body>
 </html>
