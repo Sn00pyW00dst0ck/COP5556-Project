@@ -298,7 +298,7 @@ variableDeclaration
     ;
 
 callableImplementationPart
-    : callableImplementation SEMI
+    : callableImplementation (SEMI callableImplementation)* SEMI
     ;
 
 callableImplementation
