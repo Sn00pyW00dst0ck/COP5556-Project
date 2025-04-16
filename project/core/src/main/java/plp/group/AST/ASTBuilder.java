@@ -615,9 +615,17 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
         AST.Variable.Simple base = new AST.Variable.Simple(ctx.identifier().IDENT().getText());
 
         // Turn parameters into arguments...
-        ArrayList<AST.Expression> parameters = new ArrayList<AST.Expression>();
+        ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument> parameters = new ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument>();
         for (delphi.ActualParameterContext parameter : ctx.parameterList().actualParameter()) {
-            parameters.add(this.visitExpression(parameter.expression()));
+            ArrayList<AST.Expression> widths = new ArrayList<AST.Expression>();
+            for (delphi.ParameterwidthContext widthCtx : parameter.parameterwidth()) {
+                widths.add(this.visitExpression(widthCtx.expression()));
+            }
+
+            parameters.add(new AST.Variable.PostFixVariable.PostFix.MethodCall.Argument(
+                this.visitExpression(parameter.expression()),
+                widths
+            ));
         }
         
         return new AST.Statement.Variable(
@@ -772,12 +780,22 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
                             case delphi.FunctionDesignatorContext functionDesignatorContext -> {
                                 // Add the method name
                                 postFixes.add(new AST.Variable.PostFixVariable.PostFix.FieldAccess(functionDesignatorContext.identifier().IDENT().getText()));
-                                // Parse all the arguments...
-                                ArrayList<AST.Expression> arguments = new ArrayList<AST.Expression>();
+
+                                // Turn parameters into arguments...
+                                ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument> parameters = new ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument>();
                                 for (delphi.ActualParameterContext parameter : functionDesignatorContext.parameterList().actualParameter()) {
-                                    arguments.add(this.visitExpression(parameter.expression()));
+                                    ArrayList<AST.Expression> widths = new ArrayList<AST.Expression>();
+                                    for (delphi.ParameterwidthContext widthCtx : parameter.parameterwidth()) {
+                                        widths.add(this.visitExpression(widthCtx.expression()));
+                                    }
+                                
+                                    parameters.add(new AST.Variable.PostFixVariable.PostFix.MethodCall.Argument(
+                                        this.visitExpression(parameter.expression()),
+                                        widths
+                                    ));
                                 }
-                                yield new AST.Variable.PostFixVariable.PostFix.MethodCall(arguments); 
+
+                                yield new AST.Variable.PostFixVariable.PostFix.MethodCall(parameters); 
                             }
                             default -> throw new RuntimeException("");
                         };
@@ -790,11 +808,14 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
                         yield new AST.Variable.PostFixVariable.PostFix.ArrayAccess(indices);
                     }
                     case TerminalNode t when t.getSymbol().getType() == delphi.LBRACK2 -> {
-                        ArrayList<AST.Expression> indices = new ArrayList<AST.Expression>();
+                        ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument> parameters = new ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument>();
                         for (delphi.ExpressionContext expression : postFixPartCtx.expression()) {
-                            indices.add(this.visitExpression(expression));
+                            parameters.add(new AST.Variable.PostFixVariable.PostFix.MethodCall.Argument(
+                                this.visitExpression(expression),
+                                List.of()
+                            ));
                         }
-                        yield new AST.Variable.PostFixVariable.PostFix.MethodCall(indices);
+                        yield new AST.Variable.PostFixVariable.PostFix.MethodCall(parameters);
                     }
                     case TerminalNode t when t.getSymbol().getType() == delphi.POINTER -> new AST.Variable.PostFixVariable.PostFix.PointerDereference();
                     default -> throw new RuntimeException("");
@@ -815,9 +836,17 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
         AST.Variable.Simple base = new AST.Variable.Simple(ctx.identifier().IDENT().getText());
         
         // Turn parameters into arguments...
-        ArrayList<AST.Expression> parameters = new ArrayList<AST.Expression>();
+        ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument> parameters = new ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument>();
         for (delphi.ActualParameterContext parameter : ctx.parameterList().actualParameter()) {
-            parameters.add(this.visitExpression(parameter.expression()));
+            ArrayList<AST.Expression> widths = new ArrayList<AST.Expression>();
+            for (delphi.ParameterwidthContext widthCtx : parameter.parameterwidth()) {
+                widths.add(this.visitExpression(widthCtx.expression()));
+            }
+
+            parameters.add(new AST.Variable.PostFixVariable.PostFix.MethodCall.Argument(
+                this.visitExpression(parameter.expression()),
+                widths
+            ));
         }
 
         // Return the Variable Expression

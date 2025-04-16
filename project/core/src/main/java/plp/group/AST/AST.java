@@ -50,8 +50,13 @@ public sealed interface AST {
                 ) implements PostFix {};
 
                 public record MethodCall(
-                    List<Expression> args
-                ) implements PostFix {};
+                    List<MethodCall.Argument> args
+                ) implements PostFix {
+                    public record Argument(
+                        AST.Expression expr,
+                        List<AST.Expression> widths
+                    ) {};
+                };
 
                 public record ArrayAccess(
                     List<Expression> indices
