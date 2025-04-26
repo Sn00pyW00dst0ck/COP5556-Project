@@ -3,6 +3,8 @@ package plp.group.Compiler;
 import java.util.Optional;
 
 import plp.group.AST.AST;
+import plp.group.Compiler.visitors.FunctionCollectionVisitor;
+import plp.group.Compiler.visitors.StringCollectionVisitor;
 
 /**
  * An object that should be passed around the compiler passes to serve as a collection of all the compiler state...
@@ -26,12 +28,38 @@ public class CompilerContext {
 
 
     /**
+     * 
+     * @param source
+     * @return
+     */
+    public String compileToLLVMIR(AST source) {
+        // Collect all the strings
+
+        // For each string in the symbol table, write the global def
+
+        // GET ALL THE TYPE DEFS
+
+        // Collect all the functions
+        (new FunctionCollectionVisitor(this)).visit(source);
+
+        // For each function in the symbol table, write the declaration
+
+        // Write the main function
+
+        // Anything else
+
+        return "";
+    }
+
+    //#region Helpers
+
+    /**
      * Get the LLVM type name for a given AST.Type
      * 
      * @param type the AST.Type to get the LLVM type of...
      * @return
      */
-    String getLLVMType(AST.Type type) {
+    public String getLLVMType(AST.Type type) {
         return switch (type) {
             // Convert named types
             case AST.Type.Simple.Named named -> 
@@ -52,4 +80,6 @@ public class CompilerContext {
             default -> throw new RuntimeException("Unsupported Type: " + type.toString());
         };
     }
+
+    //#endregion Helpers
 }

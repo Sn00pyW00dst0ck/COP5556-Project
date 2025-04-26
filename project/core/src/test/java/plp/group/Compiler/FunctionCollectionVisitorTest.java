@@ -1,6 +1,5 @@
 package plp.group.Compiler;
 
-import static org.junit.jupiter.api.Assertions.assertDoesNotThrow;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 
 import java.io.IOException;
@@ -16,6 +15,7 @@ import org.junit.jupiter.params.provider.MethodSource;
 
 import plp.group.AST.AST;
 import plp.group.AST.ASTBuilder;
+import plp.group.Compiler.visitors.FunctionCollectionVisitor;
 import plp.group.project.delphi;
 import plp.group.project.delphi_lexer;
 
