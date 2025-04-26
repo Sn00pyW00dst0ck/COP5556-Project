@@ -43,28 +43,28 @@ public sealed interface AST {
         public record PostFixVariable(
             AST.Variable.Simple base,
             List<PostFix> postFixes
-        ) implements Variable {
-            public sealed interface PostFix {
-                public record FieldAccess(
-                    java.lang.String name
-                ) implements PostFix {};
+        ) implements Variable {};
 
-                public record MethodCall(
-                    List<MethodCall.Argument> args
-                ) implements PostFix {
-                    public record Argument(
-                        AST.Expression expr,
-                        List<AST.Expression> widths
-                    ) {};
-                };
+        public sealed interface PostFix extends Variable {
+            public record FieldAccess(
+                java.lang.String name
+            ) implements PostFix {};
 
-                public record ArrayAccess(
-                    List<Expression> indices
-                ) implements PostFix {};
+            public record MethodCall(
+                List<MethodCall.Argument> args
+            ) implements PostFix {
+                public record Argument(
+                    AST.Expression expr,
+                    List<AST.Expression> widths
+                ) {};
+            };
 
-                public record PointerDereference() implements PostFix {};
-            }
-        };
+            public record ArrayAccess(
+                List<Expression> indices
+            ) implements PostFix {};
+
+            public record PointerDereference() implements PostFix {};
+        }
     }
 
     /**
@@ -103,7 +103,7 @@ public sealed interface AST {
             public record Record(
                 List<FieldListElement> fieldsAndVariants
             ) implements Unpacked {
-                public sealed interface FieldListElement {
+                public sealed interface FieldListElement extends AST {
                     public record Field(
                         List<java.lang.String> names,
                         AST.Type type
@@ -116,12 +116,12 @@ public sealed interface AST {
                         public record Tag(
                             Optional<java.lang.String> name,
                             AST.Type.Simple.Named typeName
-                        ) {};
+                        ) implements AST {};
     
                         public record Variant(
                             List<AST.Expression> constants,
                             List<FieldListElement> fieldsAndVariants
-                        ) {};
+                        ) implements AST {};
                     };
                 }
             };
@@ -162,28 +162,19 @@ public sealed interface AST {
             ) {
                 public enum Visibility { PUBLIC, PRIVATE, PROTECTED };
 
-                public sealed interface Member {
+                public sealed interface Member extends AST {
                     public record Field(
                         java.lang.String name,
                         AST.Type type
                     ) implements Member {};
 
                     /**
-                     * Maybe there's a better way to do this, idk...
+                     * Note, the signature does NOT include implicit 'this'...
                      */
                     public record Method(
                         java.lang.String name,
-                        List<AST.Type.Method.ParameterGroup> parameters,
-                        Optional<AST.Type> resultType
-                    ) implements Member {
-                        public record ParameterGroup(
-                            List<java.lang.String> parameters,
-                            AST.Type parameterType,
-                            GroupType groupType
-                        ) {
-                            public enum GroupType { VALUE, REFERENCE, PROCEDURE, FUNCTION };
-                        };
-                    };
+                        AST.Type.Method signature
+                    ) implements Member {};
                     
                     /**
                      * Note, the signature of Constructor and Destructor do *NOT* include the implicit 'this'.
@@ -403,6 +394,10 @@ public sealed interface AST {
             case AST.Variable.Simple variable -> visitor.visitVariableSimple(variable);
             case AST.Variable.Address variable -> visitor.visitVariableAddress(variable);
             case AST.Variable.PostFixVariable variable -> visitor.visitVariablePostFixVariable(variable);
+            case AST.Variable.PostFix.FieldAccess post -> visitor.visitVariablePostFixFieldAccess(post);
+            case AST.Variable.PostFix.ArrayAccess post -> visitor.visitVariablePostFixArrayAccess(post);
+            case AST.Variable.PostFix.MethodCall post -> visitor.visitVariablePostFixMethodCall(post);
+            case AST.Variable.PostFix.PointerDereference post -> visitor.visitVariablePostFixPointerDereference(post);
 
             case AST.Type.Simple.Scalar type -> visitor.visitTypeSimpleScalar(type);
             case AST.Type.Simple.Subrange type -> visitor.visitTypeSimpleSubrange(type);
@@ -412,10 +407,18 @@ public sealed interface AST {
             case AST.Type.Unpacked.Array type -> visitor.visitTypeUnpackedArray(type);
             case AST.Type.Unpacked.Set type -> visitor.visitTypeUnpackedSet(type);
             case AST.Type.Unpacked.Record type -> visitor.visitTypeUnpackedRecord(type);
+            case AST.Type.Unpacked.Record.FieldListElement.Field type -> visitor.visitTypeUnpackedRecordField(type);
+            case AST.Type.Unpacked.Record.FieldListElement.VariantPart type -> visitor.visitTypeUnpackedRecordVariantPart(type);
+            case AST.Type.Unpacked.Record.FieldListElement.VariantPart.Tag type -> visitor.visitTypeUnpackedRecordVariantPartTag(type);
+            case AST.Type.Unpacked.Record.FieldListElement.VariantPart.Variant type -> visitor.visitTypeUnpackedRecordVariantPartVariant(type);
             case AST.Type.Unpacked.File type -> visitor.visitTypeUnpackedFile(type);
             case AST.Type.Pointer type -> visitor.visitTypePointer(type);
             case AST.Type.Method type -> visitor.visitTypeMethod(type);
             case AST.Type.Class type -> visitor.visitTypeClass(type);
+            case AST.Type.Class.VisibilitySection.Member.Field type -> visitor.visitTypeClassField(type);
+            case AST.Type.Class.VisibilitySection.Member.Method type -> visitor.visitTypeClassMethod(type);
+            case AST.Type.Class.VisibilitySection.Member.Constructor type -> visitor.visitTypeClassConstructor(type);
+            case AST.Type.Class.VisibilitySection.Member.Destructor type -> visitor.visitTypeClassDestructor(type);
 
             case AST.DeclarationPart.Label dec -> visitor.visitDeclarationPartLabel(dec);
             case AST.DeclarationPart.Constant dec -> visitor.visitDeclarationPartConstant(dec);

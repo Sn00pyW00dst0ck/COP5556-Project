@@ -217,9 +217,8 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
         }
 
         return new AST.Type.Class.VisibilitySection.Member.Method(
-            ctx.identifier().IDENT().getText(),    
-            parameterGroups,
-            Optional.empty()
+            ctx.identifier().IDENT().getText(),
+            new AST.Type.Method(parameterGroups, Optional.empty())
         );
     }
 
@@ -237,8 +236,7 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
 
         return new AST.Type.Class.VisibilitySection.Member.Method(
             ctx.identifier().IDENT().getText(),    
-            parameterGroups,
-            Optional.of(resultType)
+            new AST.Type.Method(parameterGroups, Optional.of(resultType))
         );
     }
 

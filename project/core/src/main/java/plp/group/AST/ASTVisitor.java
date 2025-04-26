@@ -40,104 +40,134 @@ import plp.group.AST.AST.Type.Unpacked.Set;
 import plp.group.AST.AST.Variable.Address;
 import plp.group.AST.AST.Variable.PostFixVariable;
 import plp.group.AST.AST.Variable.Simple;
+import plp.group.AST.AST.Variable.PostFix.ArrayAccess;
+import plp.group.AST.AST.Variable.PostFix.FieldAccess;
+import plp.group.AST.AST.Variable.PostFix.MethodCall;
+import plp.group.AST.AST.Variable.PostFix.PointerDereference;
 
-public interface ASTVisitor<T> {
+public abstract class ASTVisitor<T> {
 
-    T visitProgram(Program program);
+	public T visit(AST ast) { return ast.accept(this); }
 
-    T visitBlock(Block block);
+    public abstract T visitProgram(Program program);
 
-    T visitVariableSimple(Simple variable);
+    public abstract T visitBlock(Block block);
 
-    T visitVariableAddress(Address variable);
+    public abstract T visitVariableSimple(Simple variable);
 
-    T visitVariablePostFixVariable(PostFixVariable variable);
+    public abstract T visitVariableAddress(Address variable);
 
-    T visitTypeSimpleScalar(Scalar type);
+    public abstract T visitVariablePostFixVariable(PostFixVariable variable);
 
-    T visitTypeSimpleSubrange(Subrange type);
+    public abstract T visitVariablePostFixFieldAccess(FieldAccess post);
 
-    T visitTypeSimpleNamed(Named type);
+    public abstract T visitVariablePostFixArrayAccess(ArrayAccess post);
+    
+    public abstract T visitVariablePostFixMethodCall(MethodCall post);
 
-    T visitTypeSimpleString(String type);
+    public abstract T visitVariablePostFixPointerDereference(PointerDereference post);
 
-    T visitTypePacked(Packed type);
+    public abstract T visitTypeSimpleScalar(Scalar type);
 
-    T visitTypeUnpackedArray(Array type);
+    public abstract T visitTypeSimpleSubrange(Subrange type);
 
-    T visitTypeUnpackedSet(Set type);
+    public abstract T visitTypeSimpleNamed(Named type);
 
-    T visitTypeUnpackedRecord(Record type);
+    public abstract T visitTypeSimpleString(String type);
 
-    T visitTypeUnpackedFile(File type);
+    public abstract T visitTypePacked(Packed type);
 
-    T visitTypePointer(Pointer type);
+    public abstract T visitTypeUnpackedArray(Array type);
 
-    T visitTypeMethod(Method type);
+    public abstract T visitTypeUnpackedSet(Set type);
 
-    T visitTypeClass(Class type);
+    public abstract T visitTypeUnpackedRecord(Record type);
 
-    T visitDeclarationPartLabel(Label dec);
+    public abstract T visitTypeUnpackedRecordField(Record.FieldListElement.Field type);
 
-    T visitDeclarationPartConstant(Constant dec);
+    public abstract T visitTypeUnpackedRecordVariantPart(Record.FieldListElement.VariantPart type);
 
-    T visitDeclarationPartType(Type dec);
+    public abstract T visitTypeUnpackedRecordVariantPartTag(Record.FieldListElement.VariantPart.Tag type);
 
-    T visitDeclarationPartVariable(Variable dec);
+    public abstract T visitTypeUnpackedRecordVariantPartVariant(Record.FieldListElement.VariantPart.Variant type);
 
-    T visitDeclarationPartCallable(Callable dec);
+    public abstract T visitTypeUnpackedFile(File type);
 
-    T visitDeclarationPartUsesUnits(UsesUnits dec);
+    public abstract T visitTypePointer(Pointer type);
 
-    T visitDeclarationLabel(plp.group.AST.AST.Declaration.Label dec);
+    public abstract T visitTypeMethod(Method type);
 
-    T visitDeclarationConstant(plp.group.AST.AST.Declaration.Constant dec);
+    public abstract T visitTypeClass(Class type);
 
-    T visitDeclarationType(plp.group.AST.AST.Declaration.Type dec);
+    public abstract T visitTypeClassField(Class.VisibilitySection.Member.Field type);
 
-    T visitDeclarationVariable(plp.group.AST.AST.Declaration.Variable dec);
+    public abstract T visitTypeClassMethod(Class.VisibilitySection.Member.Method type);
+    
+    public abstract T visitTypeClassConstructor(Class.VisibilitySection.Member.Constructor type);
+    
+    public abstract T visitTypeClassDestructor(Class.VisibilitySection.Member.Destructor type);
 
-    T visitDeclarationCallable(plp.group.AST.AST.Declaration.Callable dec);
+    public abstract T visitDeclarationPartLabel(Label dec);
 
-    T visitDeclarationUsesUnits(plp.group.AST.AST.Declaration.UsesUnits dec);
+    public abstract T visitDeclarationPartConstant(Constant dec);
 
-    T visitStatementLabeled(Labeled stmt);
+    public abstract T visitDeclarationPartType(Type dec);
 
-    T visitStatementAssignment(Assignment stmt);
+    public abstract T visitDeclarationPartVariable(Variable dec);
 
-    T visitStatementGoto(Goto stmt);
+    public abstract T visitDeclarationPartCallable(Callable dec);
 
-    T visitStatementVariable(plp.group.AST.AST.Statement.Variable stmt);
+    public abstract T visitDeclarationPartUsesUnits(UsesUnits dec);
 
-    T visitStatementCompound(Compound stmt);
+    public abstract T visitDeclarationLabel(plp.group.AST.AST.Declaration.Label dec);
 
-    T visitStatementIf(If stmt);
+    public abstract T visitDeclarationConstant(plp.group.AST.AST.Declaration.Constant dec);
 
-    T visitStatementWhile(While stmt);
+    public abstract T visitDeclarationType(plp.group.AST.AST.Declaration.Type dec);
 
-    T visitStatementRepeat(Repeat stmt);
+    public abstract T visitDeclarationVariable(plp.group.AST.AST.Declaration.Variable dec);
 
-    T visitStatementFor(For stmt);
+    public abstract T visitDeclarationCallable(plp.group.AST.AST.Declaration.Callable dec);
 
-    T visitStatementWith(With stmt);
+    public abstract T visitDeclarationUsesUnits(plp.group.AST.AST.Declaration.UsesUnits dec);
 
-    T visitExpressionBinary(Binary expr);
+    public abstract T visitStatementLabeled(Labeled stmt);
 
-    T visitExpressionUnary(Unary expr);
+    public abstract T visitStatementAssignment(Assignment stmt);
 
-    T visitExpressionGroup(Group expr);
+    public abstract T visitStatementGoto(Goto stmt);
 
-    T visitExpressionVariable(plp.group.AST.AST.Expression.Variable expr);
+    public abstract T visitStatementVariable(plp.group.AST.AST.Statement.Variable stmt);
 
-    T visitExpressionLiteralInteger(Integer expr);
+    public abstract T visitStatementCompound(Compound stmt);
 
-    T visitExpressionLiteralReal(Real expr);
+    public abstract T visitStatementIf(If stmt);
 
-    T visitExpressionLiteralString(plp.group.AST.AST.Expression.Literal.String expr);
+    public abstract T visitStatementWhile(While stmt);
 
-    T visitExpressionLiteralCharacter(Character expr);
+    public abstract T visitStatementRepeat(Repeat stmt);
 
-    T visitExpressionLiteralBoolean(Boolean expr);
+    public abstract T visitStatementFor(For stmt);
 
-    T visitExpressionLiteralNil(Nil expr);
+    public abstract T visitStatementWith(With stmt);
+
+    public abstract T visitExpressionBinary(Binary expr);
+
+    public abstract T visitExpressionUnary(Unary expr);
+
+    public abstract T visitExpressionGroup(Group expr);
+
+    public abstract T visitExpressionVariable(plp.group.AST.AST.Expression.Variable expr);
+
+    public abstract T visitExpressionLiteralInteger(Integer expr);
+
+    public abstract T visitExpressionLiteralReal(Real expr);
+
+    public abstract T visitExpressionLiteralString(plp.group.AST.AST.Expression.Literal.String expr);
+
+    public abstract T visitExpressionLiteralCharacter(Character expr);
+
+    public abstract T visitExpressionLiteralBoolean(Boolean expr);
+
+    public abstract T visitExpressionLiteralNil(Nil expr);
 }
