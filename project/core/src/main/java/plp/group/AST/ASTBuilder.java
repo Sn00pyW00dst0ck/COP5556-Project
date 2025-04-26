@@ -678,7 +678,7 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
             }
         }
 
-        return new AST.Statement.Case(condition, null, Optional.of(new AST.Statement.Compound(elseBranchStatements)));
+        return new AST.Statement.Case(condition, cases, Optional.of(new AST.Statement.Compound(elseBranchStatements)));
     }
 
     @Override

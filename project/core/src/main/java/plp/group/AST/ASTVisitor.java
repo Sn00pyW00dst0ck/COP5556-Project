@@ -17,6 +17,7 @@ import plp.group.AST.AST.Expression.Literal.Real;
 import plp.group.AST.AST.Expression.Unary;
 import plp.group.AST.AST.Program;
 import plp.group.AST.AST.Statement.Assignment;
+import plp.group.AST.AST.Statement.Case;
 import plp.group.AST.AST.Statement.Compound;
 import plp.group.AST.AST.Statement.For;
 import plp.group.AST.AST.Statement.Goto;
@@ -142,6 +143,8 @@ public abstract class ASTVisitor<T> {
     public abstract T visitStatementCompound(Compound stmt);
 
     public abstract T visitStatementIf(If stmt);
+
+    public abstract T visitStatementCase(Case stmt);
 
     public abstract T visitStatementWhile(While stmt);
 

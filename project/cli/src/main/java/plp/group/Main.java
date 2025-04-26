@@ -9,7 +9,10 @@ import org.antlr.v4.gui.Trees;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
+import plp.group.AST.AST;
 import plp.group.AST.ASTBuilder;
+import plp.group.Compiler.CompilerContext;
+import plp.group.Compiler.FunctionCollectionVisitor;
 import plp.group.Interpreter.Interpreter;
 import plp.group.Optimizer.Optimizer;
 import plp.group.project.delphi;
@@ -125,13 +128,11 @@ public class Main {
             }
 
             ASTBuilder builder = new ASTBuilder();
-            builder.visit(tree);
+            AST AST = (AST) builder.visit(tree);
+            System.out.println(builder.visit(tree).toString());
+            new FunctionCollectionVisitor(new CompilerContext()).visit(AST);
 
             // TODO: logic to compile everything...
-
-            // Open a GUI window with the parse tree.
-            var frame = Trees.inspect(tree, parser);
-            frame.get().setSize(600, 800);
         } catch (Exception e) {
             e.printStackTrace();
         }

@@ -1,5 +1,7 @@
 package plp.group.Compiler;
 
+import java.util.List;
+
 public interface LLVMValue {
     /**
      * Returns the type in LLVM
@@ -68,15 +70,26 @@ public interface LLVMValue {
 
     /**
      * Represents a function in LLVM
-     * 
-     * TODO: figure out getType becuase idk what it should be.
      */
     public record Function(
         java.lang.String name,
-        java.lang.String type
+        java.lang.String returnType,
+        List<java.lang.String> paramTypes
     ) implements LLVMValue {
-        public java.lang.String getType() { return type; }
+        public java.lang.String getType() { return returnType + " (" + java.lang.String.join(", ", paramTypes) + ")*"; }
         public java.lang.String getRef() { return "@" + name; }
+
+        public java.lang.String getSignature() {
+            return returnType + " @" + name + "(" + java.lang.String.join(", ", paramTypes) + ")";
+        }
+    
+        public java.lang.String getDeclare() {
+            return "declare " + getSignature();
+        }
+    
+        public java.lang.String getDefineHeader() {
+            return "define " + getSignature() + " {";
+        }    
     }
 
     /**
