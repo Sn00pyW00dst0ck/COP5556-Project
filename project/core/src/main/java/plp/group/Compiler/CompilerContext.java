@@ -31,7 +31,7 @@ public class CompilerContext {
      * @param source
      * @return
      */
-    public String compileToLLVMIR(AST source) {
+    public String compileToLLVMIR(AST.Program source) {
         // Collect all the strings, add all their declarations to the IR.
 
         // For each string in the symbol table, write the global def
@@ -41,10 +41,22 @@ public class CompilerContext {
         // Collect all the functions, add all their declarations to the IR. 
         (new FunctionCollectionVisitor(this)).visit(source);
         var functions = this.symbolTable.getEntriesOfType(LLVMValue.Function.class, false);
+        for (var function : functions.entrySet()) {
+            ir.append(((LLVMValue.Function) function.getValue()).getDeclare() + "\n");
+        }
 
         // Write all the function definitions to the IR.
+        for (var function : functions.entrySet()) {
+            ir.append(((LLVMValue.Function) function.getValue()).getDefineHeader() + "\n");
+            // TODO: generate LLVM IR for the function body
+            ir.append("}\n");
+        }
+        ir.append("\n");
 
         // Write the main function
+        ir.append("define i32 main() {\n");
+        // TODO: generate LLVM IR for the main function's
+        ir.append("}\n");
 
         // Anything else
 

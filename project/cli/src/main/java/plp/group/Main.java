@@ -128,10 +128,8 @@ public class Main {
             }
 
             ASTBuilder builder = new ASTBuilder();
-            AST AST = (AST) builder.visit(tree);
-            System.out.println(builder.visit(tree).toString());
-            new FunctionCollectionVisitor(new CompilerContext()).visit(AST);
-
+            AST.Program AST = (AST.Program) builder.visit(tree);
+            System.out.println((new CompilerContext()).compileToLLVMIR(AST));
             // TODO: logic to compile everything...
         } catch (Exception e) {
             e.printStackTrace();
