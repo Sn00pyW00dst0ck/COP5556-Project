@@ -9,7 +9,10 @@ import org.antlr.v4.gui.Trees;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
+import plp.group.AST.AST;
 import plp.group.AST.ASTBuilder;
+import plp.group.Compiler.CompilerContext;
+import plp.group.Compiler.FunctionCollectionVisitor;
 import plp.group.Interpreter.Interpreter;
 import plp.group.Optimizer.Optimizer;
 import plp.group.project.delphi;
@@ -48,6 +51,9 @@ public class Main {
                         break;
                     case "tree":
                         displayParseTree(programFile, "-o".equals(line[1]));
+                        break;
+                    case "compile":
+                        compile(programFile, "-o".equals(line[1]));
                         break;
                     case "help":
                         displayHelpMenu();
@@ -92,10 +98,6 @@ public class Main {
             var parser = new delphi(tokens);
             var tree = parser.program();
 
-            // TODO: eventually remove this from here and make a CLI option to compile to LLVM which uses this and the Compiler visitor over the AST.
-            ASTBuilder builder = new ASTBuilder();
-            System.out.println(builder.visit(tree).toString());
-
             // Apply optimization pass if necessary.
             if (optimize) {
                 String optimized = (new Optimizer()).visit(tree);
@@ -105,6 +107,32 @@ public class Main {
             // Open a GUI window with the parse tree.
             var frame = Trees.inspect(tree, parser);
             frame.get().setSize(600, 800);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private static void compile(String programFileName, boolean optimize) {
+        try {
+            // Get the parse tree for the file we enter in command line.
+            var lexer = new delphi_lexer(
+                    CharStreams.fromStream(Main.class.getClassLoader().getResourceAsStream("programs/" + programFileName)));
+            var tokens = new CommonTokenStream(lexer);
+            var parser = new delphi(tokens);
+            var tree = parser.program();
+
+            // Apply optimization pass if necessary.
+            if (optimize) {
+                String optimized = (new Optimizer()).visit(tree);
+                tree = new delphi(new CommonTokenStream(new delphi_lexer(CharStreams.fromString(optimized)))).program();
+            }
+
+            ASTBuilder builder = new ASTBuilder();
+            AST AST = (AST) builder.visit(tree);
+            System.out.println(builder.visit(tree).toString());
+            new FunctionCollectionVisitor(new CompilerContext()).visit(AST);
+
+            // TODO: logic to compile everything...
         } catch (Exception e) {
             e.printStackTrace();
         }
@@ -120,6 +148,10 @@ public class Main {
         System.out.println("\tClears the screen.\n");
         System.out.println("exit");
         System.out.println("\tQuits the program.\n");
+        System.out.println("compile <program_file>");
+        System.out.println("\tCompile the program_file to LLVM IR.\n");
+        System.out.println("compile -o <program_file>");
+        System.out.println("\ttCompile the program_file to LLVM IR after optimizations are applied.\n");
         System.out.println("eval <program_file>");
         System.out.println("\tInterpret the program_file.\n");
         System.out.println("eval -o <program_file>");
