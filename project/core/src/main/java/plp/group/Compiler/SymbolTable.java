@@ -1,7 +1,9 @@
 package plp.group.Compiler;
 
 import java.util.HashMap;
+import java.util.Map;
 import java.util.Optional;
+import java.util.stream.Collectors;
 
 /**
  * A symbol table, analagous to a scope, but usable in more contexts...
@@ -39,6 +41,23 @@ public class SymbolTable {
             return parent.get().lookup(name, false);
         }
         return Optional.empty();
+    }
+
+    /**
+     * Get all entries of a specific LLVMValue type...
+     * 
+     * @param typeClass the class to get the type of (ex: LLVMValue.String.class)
+     * @param current set true to use only the current scope, set false to include parent scope.
+     * @return all entries in the table of given typeClass
+     */
+    public Map<String, LLVMValue> getEntriesOfType(Class<? extends LLVMValue> typeClass, boolean current) {
+        Map<String, LLVMValue> result = symbols.entrySet().stream()
+            .filter(e -> typeClass.isInstance(e.getValue()))
+            .collect(Collectors.toMap(Map.Entry::getKey, Map.Entry::getValue));
+        if (!current) {
+            parent.ifPresent(p -> result.putAll(p.getEntriesOfType(typeClass, false)));
+        }
+        return result;
     }
 
     /**

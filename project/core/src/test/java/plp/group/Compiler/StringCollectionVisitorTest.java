@@ -6,6 +6,7 @@ import static org.junit.jupiter.api.Assertions.assertTrue;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
+import java.util.Map;
 import java.util.stream.Stream;
 
 import org.antlr.v4.runtime.CharStreams;
@@ -24,7 +25,6 @@ public class StringCollectionVisitorTest {
     @ParameterizedTest
     @MethodSource
     void testStringCollection(String testName, String programFile, int expectedStringCount) throws IOException {
-
         InputStream inputProgram = getClass().getClassLoader().getResourceAsStream("programs/" + programFile);
         delphi_lexer lexer = new delphi_lexer(CharStreams.fromStream(inputProgram, StandardCharsets.UTF_8));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
@@ -38,16 +38,18 @@ public class StringCollectionVisitorTest {
 
         // Visit the AST
         visitor.visit(program);
-        var collectedStrings = context.getGlobalStrings();
+ 
+        // Get collected strings from symbol table
+        Map<String, LLVMValue> collectedStrings = context.symbolTable.getEntriesOfType(LLVMValue.String.class, true);
 
         assertEquals(expectedStringCount, collectedStrings.size(), 
             "Program '" + programFile + "' should collect " + expectedStringCount + " unique strings.");
-
-        for (var llvmName : collectedStrings.values()) {
-            assertTrue(llvmName.startsWith("@.str"), "LLVM global name should start with '@.str'");
+        for (LLVMValue value : collectedStrings.values()) {
+            assertTrue(((LLVMValue.String) value).name().startsWith("@llvm.str."), 
+                "LLVM global string name should start with '@llvm.str.'");
         }
     }
-
+ 
     public static Stream<Arguments> testStringCollection() {
         return Stream.of(
             Arguments.of("Arithmetic Operators", "arithmetic_operators.pas", 2),

@@ -21,7 +21,11 @@ public class StringCollectionVisitor extends ASTBaseVisitor<Void> {
 
         if (!seenStrings.contains(value)) {
             seenStrings.add(value);
-            context.createGlobalString(value);
+            String name = context.getNextString();
+            context.symbolTable.define(
+                name, 
+                new LLVMValue.String(name, value.length() + 1)
+            );
         }
         return null;
     }
