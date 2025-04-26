@@ -9,6 +9,7 @@ import org.antlr.v4.gui.Trees;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
 
+import plp.group.AST.ASTBuilder;
 import plp.group.Interpreter.Interpreter;
 import plp.group.Optimizer.Optimizer;
 import plp.group.project.delphi;
@@ -90,6 +91,10 @@ public class Main {
             var tokens = new CommonTokenStream(lexer);
             var parser = new delphi(tokens);
             var tree = parser.program();
+
+            // TODO: eventually remove this from here and make a CLI option to compile to LLVM which uses this and the Compiler visitor over the AST.
+            ASTBuilder builder = new ASTBuilder();
+            System.out.println(builder.visit(tree).toString());
 
             // Apply optimization pass if necessary.
             if (optimize) {
