@@ -614,16 +614,18 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
 
         // Turn parameters into arguments...
         ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument> parameters = new ArrayList<AST.Variable.PostFixVariable.PostFix.MethodCall.Argument>();
-        for (delphi.ActualParameterContext parameter : ctx.parameterList().actualParameter()) {
-            ArrayList<AST.Expression> widths = new ArrayList<AST.Expression>();
-            for (delphi.ParameterwidthContext widthCtx : parameter.parameterwidth()) {
-                widths.add(this.visitExpression(widthCtx.expression()));
+        if (ctx.parameterList() != null) {
+            for (delphi.ActualParameterContext parameter : ctx.parameterList().actualParameter()) {
+                ArrayList<AST.Expression> widths = new ArrayList<AST.Expression>();
+                for (delphi.ParameterwidthContext widthCtx : parameter.parameterwidth()) {
+                    widths.add(this.visitExpression(widthCtx.expression()));
+                }
+    
+                parameters.add(new AST.Variable.PostFixVariable.PostFix.MethodCall.Argument(
+                    this.visitExpression(parameter.expression()),
+                    widths
+                ));
             }
-
-            parameters.add(new AST.Variable.PostFixVariable.PostFix.MethodCall.Argument(
-                this.visitExpression(parameter.expression()),
-                widths
-            ));
         }
         
         return new AST.Statement.Variable(
