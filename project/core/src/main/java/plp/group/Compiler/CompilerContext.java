@@ -4,7 +4,6 @@ import java.util.Optional;
 
 import plp.group.AST.AST;
 import plp.group.Compiler.visitors.FunctionCollectionVisitor;
-import plp.group.Compiler.visitors.StringCollectionVisitor;
 
 /**
  * An object that should be passed around the compiler passes to serve as a collection of all the compiler state...
@@ -33,22 +32,23 @@ public class CompilerContext {
      * @return
      */
     public String compileToLLVMIR(AST source) {
-        // Collect all the strings
+        // Collect all the strings, add all their declarations to the IR.
 
         // For each string in the symbol table, write the global def
 
         // GET ALL THE TYPE DEFS
 
-        // Collect all the functions
+        // Collect all the functions, add all their declarations to the IR. 
         (new FunctionCollectionVisitor(this)).visit(source);
+        var functions = this.symbolTable.getEntriesOfType(LLVMValue.Function.class, false);
 
-        // For each function in the symbol table, write the declaration
+        // Write all the function definitions to the IR.
 
         // Write the main function
 
         // Anything else
 
-        return "";
+        return ir.toString();
     }
 
     //#region Helpers
