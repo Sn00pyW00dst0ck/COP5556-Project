@@ -67,6 +67,7 @@ public class CompilerContext {
         // Write the main function
         ir.append("define i32 main() {\n");
         // TODO: generate LLVM IR for the main function's
+        ir.append("\tret i32 0\n");
         ir.append("}\n");
 
         // Anything else
@@ -98,7 +99,7 @@ public class CompilerContext {
                     }
                 };
             
-            // TODO: handle other Type nodes...
+            // TODO: handle other Type nodes here...
 
             default -> throw new RuntimeException("Unsupported Type: " + type.toString());
         };

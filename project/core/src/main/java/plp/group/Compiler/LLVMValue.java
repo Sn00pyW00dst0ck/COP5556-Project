@@ -1,6 +1,9 @@
 package plp.group.Compiler;
 
 import java.util.List;
+import java.util.Optional;
+
+import plp.group.AST.AST;
 
 public interface LLVMValue {
     /**
@@ -97,7 +100,8 @@ public interface LLVMValue {
     public record Function(
         java.lang.String name,
         java.lang.String returnType,
-        List<java.lang.String> paramTypes
+        List<java.lang.String> paramTypes,
+        Optional<AST.Block> body
     ) implements LLVMValue {
         public java.lang.String getType() { return returnType + " (" + java.lang.String.join(", ", paramTypes) + ")*"; }
         public java.lang.String getRef() { return "@" + name; }
