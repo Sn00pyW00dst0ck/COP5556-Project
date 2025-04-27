@@ -26,12 +26,10 @@ public class StringCollectionVisitor extends ASTBaseVisitor<Void> {
             seenStrings.add(value);
             String name = context.getNextString();
             context.symbolTable.define(
-                name, 
-                new LLVMValue.String(name, value.length() + 1)
+                "'" + value + "'",
+                new LLVMValue.String(name, value)
             );
         }
         return null;
     }
-    
 }
-

@@ -19,6 +19,7 @@ import plp.group.project.delphi_lexer;
 import plp.group.project.delphi;
 import plp.group.AST.AST;
 import plp.group.AST.ASTBuilder;
+import plp.group.Compiler.visitors.StringCollectionVisitor;
 
 public class StringCollectionVisitorTest {
 

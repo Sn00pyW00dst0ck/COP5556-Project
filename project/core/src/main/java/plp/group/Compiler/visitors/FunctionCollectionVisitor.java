@@ -6,7 +6,6 @@ import plp.group.AST.AST;
 import plp.group.AST.ASTBaseVisitor;
 import plp.group.Compiler.CompilerContext;
 import plp.group.Compiler.LLVMValue;
-import plp.group.Compiler.LLVMValue.Function;
 
 /**
  * Walks the AST to get all function definitions so that we can forward declare them...

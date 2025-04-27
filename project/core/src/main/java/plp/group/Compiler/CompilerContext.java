@@ -1,9 +1,12 @@
 package plp.group.Compiler;
 
+import java.util.Collections;
+import java.util.Map;
 import java.util.Optional;
 
 import plp.group.AST.AST;
 import plp.group.Compiler.visitors.FunctionCollectionVisitor;
+import plp.group.Compiler.visitors.StringCollectionVisitor;
 
 /**
  * An object that should be passed around the compiler passes to serve as a collection of all the compiler state...
@@ -35,8 +38,14 @@ public class CompilerContext {
      */
     public String compileToLLVMIR(AST.Program source) {
         // Collect all the strings, add all their declarations to the IR.
-
-        // For each string in the symbol table, write the global def
+        (new StringCollectionVisitor(this)).visit(source);
+        var strings = this.symbolTable.getEntriesOfType(LLVMValue.String.class, false);
+        for (var string : strings.entrySet().stream().sorted((Map.Entry<String,LLVMValue> a, Map.Entry<String,LLVMValue> b) -> {
+            return ((LLVMValue.String) a.getValue()).name().compareTo(((LLVMValue.String) b.getValue()).name());
+        }).toList()) {
+            ir.append(((LLVMValue.String) string.getValue()).getGlobalDefinition() + "\n");
+        }
+        ir.append("\n");
 
         // GET ALL THE TYPE DEFS
 
@@ -46,6 +55,7 @@ public class CompilerContext {
         for (var function : functions.entrySet()) {
             ir.append(((LLVMValue.Function) function.getValue()).getDeclare() + "\n");
         }
+        ir.append("\n");
 
         // Write all the function definitions to the IR.
         for (var function : functions.entrySet()) {
@@ -97,5 +107,3 @@ public class CompilerContext {
 
     //#endregion Helpers
 }
-
-
