@@ -5,6 +5,7 @@ import java.util.Optional;
 
 import plp.group.AST.AST;
 import plp.group.Compiler.visitors.FunctionCollectionVisitor;
+import plp.group.Compiler.visitors.StatementIRGenVisitor;
 import plp.group.Compiler.visitors.StringCollectionVisitor;
 
 /**
@@ -60,6 +61,7 @@ public class CompilerContext {
         for (var function : functions.entrySet()) {
             ir.append(((LLVMValue.Function) function.getValue()).getDefineHeader() + "\n");
             // TODO: generate LLVM IR for the function body
+            (new StatementIRGenVisitor(this)).visit(((LLVMValue.Function) function.getValue()).body().get());
             ir.append("}\n");
         }
         ir.append("\n");
