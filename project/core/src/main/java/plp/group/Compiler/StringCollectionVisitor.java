@@ -1,18 +1,34 @@
 package plp.group.Compiler;
 
 import plp.group.AST.ASTBaseVisitor;
+import java.util.HashSet;
+import java.util.Set;
 
-/**
- * 
- */
 public class StringCollectionVisitor extends ASTBaseVisitor<Void> {
+    /**
+     * The context in which the visitor is operating.
+     */
     private final CompilerContext context;
+    private final Set<String> seenStrings = new HashSet<>();
 
     public StringCollectionVisitor(CompilerContext context) {
         this.context = context;
     }
 
-    // TODO: override various things so we grab all string literals... put them into compiler context as LLVM values....
-    // TODO: test by checking against programs and counting number of literals found...
-    // Be careful that duplicate string literals aren't defined...
+    @Override
+    public Void visitExpressionLiteralString(plp.group.AST.AST.Expression.Literal.String node) {
+        String value = node.value();
+
+        if (!seenStrings.contains(value)) {
+            seenStrings.add(value);
+            String name = context.getNextString();
+            context.symbolTable.define(
+                name, 
+                new LLVMValue.String(name, value.length() + 1)
+            );
+        }
+        return null;
+    }
+    
 }
+
