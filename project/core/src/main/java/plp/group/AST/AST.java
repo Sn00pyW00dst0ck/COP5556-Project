@@ -440,6 +440,7 @@ public sealed interface AST {
             case AST.Statement.Variable stmt -> visitor.visitStatementVariable(stmt);
             case AST.Statement.Compound stmt -> visitor.visitStatementCompound(stmt);
             case AST.Statement.If stmt -> visitor.visitStatementIf(stmt);
+            case AST.Statement.Case stmt -> visitor.visitStatementCase(stmt);
             case AST.Statement.While stmt -> visitor.visitStatementWhile(stmt);
             case AST.Statement.Repeat stmt -> visitor.visitStatementRepeat(stmt);
             case AST.Statement.For stmt -> visitor.visitStatementFor(stmt);

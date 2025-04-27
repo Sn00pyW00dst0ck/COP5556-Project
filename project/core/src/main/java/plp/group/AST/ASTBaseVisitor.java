@@ -17,6 +17,7 @@ import plp.group.AST.AST.Expression.Literal.Real;
 import plp.group.AST.AST.Expression.Unary;
 import plp.group.AST.AST.Program;
 import plp.group.AST.AST.Statement.Assignment;
+import plp.group.AST.AST.Statement.Case;
 import plp.group.AST.AST.Statement.Compound;
 import plp.group.AST.AST.Statement.For;
 import plp.group.AST.AST.Statement.Goto;
@@ -404,6 +405,19 @@ public class ASTBaseVisitor<T> extends ASTVisitor<T> {
         this.visit(stmt.condition());
         this.visit(stmt.thenCase());
         this.visit(stmt.elseCase());
+        return null;
+    }
+
+    @Override
+    public T visitStatementCase(Case stmt) {
+        this.visit(stmt.expr());
+        for (var branch : stmt.branches()) {
+            for (var expr : branch.values()) {
+                this.visit(expr);
+            }
+            this.visit(branch.body());
+        }
+        stmt.elseBranch().ifPresent((branch) -> this.visit(branch));
         return null;
     }
 
