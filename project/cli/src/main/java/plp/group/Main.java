@@ -12,7 +12,6 @@ import org.antlr.v4.runtime.CommonTokenStream;
 import plp.group.AST.AST;
 import plp.group.AST.ASTBuilder;
 import plp.group.Compiler.CompilerContext;
-import plp.group.Compiler.visitors.FunctionCollectionVisitor;
 import plp.group.Interpreter.Interpreter;
 import plp.group.Optimizer.Optimizer;
 import plp.group.project.delphi;
