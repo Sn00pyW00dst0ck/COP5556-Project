@@ -4,5 +4,6 @@
         "core/src/main/java",
         "cli/src/main/java",
         "web/src/main/java"
-    ]
+    ],
+    "java.compile.nullAnalysis.mode": "automatic"
 }
