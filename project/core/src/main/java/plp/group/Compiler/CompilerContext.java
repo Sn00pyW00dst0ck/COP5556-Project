@@ -60,7 +60,7 @@ public class CompilerContext {
         // Write all the function definitions to the IR.
         for (var function : functions.entrySet()) {
             ir.append(((LLVMValue.Function) function.getValue()).getDefineHeader() + "\n");
-            // TODO: generate LLVM IR for the function body
+            // TODO: handle everything in the function body...
             (new StatementIRGenVisitor(this)).visit(((LLVMValue.Function) function.getValue()).body().get());
             ir.append("}\n");
         }
@@ -68,7 +68,8 @@ public class CompilerContext {
 
         // Write the main function
         ir.append("define i32 main() {\n");
-        // TODO: generate LLVM IR for the main function's
+        // TODO: ensure everything is handled with function body...
+        (new StatementIRGenVisitor(this)).visit(source.block().body());
         ir.append("\tret i32 0\n");
         ir.append("}\n");
 
