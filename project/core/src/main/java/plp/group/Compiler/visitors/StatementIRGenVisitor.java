@@ -117,11 +117,19 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
     @Override
     public LLVMValue visitExpressionVariable(AST.Expression.Variable expr) {
-        // COMPLICATED AS HELL!
-        // For something with no postFix, do a simple lookup in scope (aka a load I think)...
-        // For something with a postFix, need to generate more complicated IR...
-        System.out.println(expr);
-        return null;
+        return switch (expr.variable()) {
+            case AST.Variable.Simple simple -> {
+                LLVMValue variable = context.symbolTable.lookup(simple.name(), false).get();
+                LLVMValue tmp = new LLVMValue.Register(context.getNextTmp(), variable.getType());
+
+                context.symbolTable.define(tmp.getRef(), tmp);
+                context.ir.append(tmp.getRef() + " = load " + tmp.getType() + ", ptr " + variable.getRef() + "\n");
+                yield tmp;
+            }
+            // NEED TO HANDLE ALL OTHER CASES HERE!
+            // For something with a postFix, need to generate more complicated IR...
+            default -> throw new RuntimeException("Unexpected variable type in expression!");
+        };
     }
 
     //#endregion Expressions
