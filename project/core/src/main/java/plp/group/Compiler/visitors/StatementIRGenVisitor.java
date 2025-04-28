@@ -64,6 +64,12 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
             default -> "UNKNOWN"; // Placeholder for unknown types... they need to be handled too
         };
 
+        // The comparison operators all result in a boolean
+        type = switch (expr.operator()) {
+            case "=", "<>", "<", "<=", ">", ">=" -> "i1";
+            default -> type;
+        };
+
         // Generate an instruction based on LHS, RHS, and operand, then put result in a tmp...
         LLVMValue tmp = new LLVMValue.Register(context.getNextTmp(), type);
         context.symbolTable.define(tmp.getRef(), tmp);
@@ -140,8 +146,15 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                 context.ir.append(tmp.getRef() + " = load " + tmp.getType() + ", ptr " + variable.getRef() + "\n");
                 yield tmp;
             }
-            // NEED TO HANDLE ALL OTHER CASES HERE!
-            // For something with a postFix, need to generate more complicated IR...
+            case AST.Variable.Address address -> {
+                // TODO: generate IR for address. Since this is visitExpressionVariable this is a read.
+                yield null;
+            }
+            case AST.Variable.PostFixVariable variable -> {
+                // TODO: to generate IR code for each post fix of the variable...
+                // TODO: Since this is inside an expression it is a read / function method call/ array access...
+                yield null;
+            }
             default -> throw new RuntimeException("Unexpected variable type in expression!");
         };
     }
