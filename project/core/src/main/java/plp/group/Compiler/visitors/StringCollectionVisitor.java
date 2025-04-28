@@ -1,6 +1,9 @@
-package plp.group.Compiler;
+package plp.group.Compiler.visitors;
 
 import plp.group.AST.ASTBaseVisitor;
+import plp.group.Compiler.CompilerContext;
+import plp.group.Compiler.LLVMValue;
+
 import java.util.HashSet;
 import java.util.Set;
 
@@ -23,12 +26,10 @@ public class StringCollectionVisitor extends ASTBaseVisitor<Void> {
             seenStrings.add(value);
             String name = context.getNextString();
             context.symbolTable.define(
-                name, 
-                new LLVMValue.String(name, value.length() + 1)
+                "'" + value + "'",
+                new LLVMValue.String(name, value)
             );
         }
         return null;
     }
-    
 }
-

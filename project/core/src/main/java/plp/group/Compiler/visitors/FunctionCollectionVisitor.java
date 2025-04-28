@@ -1,9 +1,11 @@
-package plp.group.Compiler;
+package plp.group.Compiler.visitors;
 
 import java.util.ArrayList;
 
 import plp.group.AST.AST;
 import plp.group.AST.ASTBaseVisitor;
+import plp.group.Compiler.CompilerContext;
+import plp.group.Compiler.LLVMValue;
 
 /**
  * Walks the AST to get all function definitions so that we can forward declare them...
@@ -36,9 +38,10 @@ public class FunctionCollectionVisitor extends ASTBaseVisitor<Void> {
         this.context.symbolTable.define(
             dec.name(),
             new LLVMValue.Function(
-                dec.name(), 
-                llvmReturnType, 
-                llvmParameterTypes
+                dec.name(),
+                llvmReturnType,
+                llvmParameterTypes,
+                dec.body()
             )
         );
         return null;
