@@ -17,6 +17,20 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         this.context = context;
     }
 
+    //#region Variable Defs
+
+    @Override
+    public Object visitDeclarationVariable(AST.Declaration.Variable dec) {
+        dec.variables().forEach((variable) -> {
+            LLVMValue.Register tmp = new LLVMValue.Register("%" + variable.name(), context.getLLVMType(dec.type()));
+            context.symbolTable.define(variable.name(), tmp);
+            context.ir.append(tmp.getRef() + " = alloca " + tmp.getType() + "\n");
+        });
+        return null;
+    }
+
+    //#endregion Variable Defs
+
     //#region Statements
 
     @Override

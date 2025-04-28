@@ -69,7 +69,7 @@ public class CompilerContext {
         // Write the main function
         ir.append("define i32 main() {\n");
         // TODO: ensure everything is handled with function body...
-        (new StatementIRGenVisitor(this)).visit(source.block().body());
+        (new StatementIRGenVisitor(this)).visit(source.block());
         ir.append("\tret i32 0\n");
         ir.append("}\n");
 
