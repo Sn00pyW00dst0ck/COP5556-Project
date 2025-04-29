@@ -53,7 +53,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         LLVMValue lhsTemp = (LLVMValue) this.visit(expr.lhs());
         LLVMValue rhsTemp = (LLVMValue) this.visit(expr.rhs());
 
-        // TODO: figure out type calculation...
+        // Calculate the type of the result...
         String type = switch (lhsTemp.getType()) {
             case "double" -> "double";
             case "i32" -> {
@@ -61,9 +61,8 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
             }
             case "i8" -> "i8";
             case "i1" -> "i1";
-            default -> "UNKNOWN"; // Placeholder for unknown types... they need to be handled too
+            default -> lhsTemp.getType(); // Placeholder for unknown types is to assume both sides are the same...
         };
-
         // The comparison operators all result in a boolean
         type = switch (expr.operator()) {
             case "=", "<>", "<", "<=", ">", ">=" -> "i1";
@@ -77,7 +76,6 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         context.ir.append(tmp.getRef() + " = ");
         context.ir.append(
             switch (expr.operator()) {
-                // I'm assuming integers for now, TODO: figure out types i vs f instructions...
                 case "+" -> (tmp.getType() == "double" ? "f" : "") + "add " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "-" -> (tmp.getType() == "double" ? "f" : "") + "sub " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "*" -> (tmp.getType() == "double" ? "f" : "") + "mul " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
@@ -116,7 +114,6 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         context.ir.append(tmp.getRef() + " = ");
         context.ir.append(
             switch (expr.operator()) {
-                // I'm assuming integers for now, TODO: figure out types...
                 case "+" -> (tmp.getType() == "double" ? "f" : "") + "add " + tmp.getType() + " 0, " + exprTemp.getRef();
                 case "-" -> (tmp.getType() == "double" ? "f" : "") + "sub " + tmp.getType() + " 0, " + exprTemp.getRef();
 
@@ -151,9 +148,33 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                 yield null;
             }
             case AST.Variable.PostFixVariable variable -> {
+                LLVMValue result = (LLVMValue) this.visit(variable.base());
+
+                // TODO: handle all four cases, at end we return 'yield' the final calculated value...
+                for (var postFix : variable.postFixes()) {
+                    result = switch (postFix) {
+                        case AST.Variable.PostFix.FieldAccess fieldAccess -> {
+                            yield null;
+                        }
+                        case AST.Variable.PostFix.MethodCall methodCall -> {
+                            yield null;
+                        }
+                        case AST.Variable.PostFix.ArrayAccess arrayAccess -> {
+                            yield null;
+                        }
+                        case AST.Variable.PostFix.PointerDereference _ -> {
+                            // TODO: really double check this... untested and tough to test...
+                            String tmp = context.getNextTmp();
+                            context.ir.append(tmp + " = load " + ((LLVMValue.Pointer) result).getPointeeType() + ", " + result.getType() + " " + result.getRef() + "\n");
+                            yield new LLVMValue.Register(tmp, ((LLVMValue.Pointer) result).getPointeeType());
+                        }
+                        default -> throw new RuntimeException("Unknown postfix!");
+                    };
+                }
+
                 // TODO: to generate IR code for each post fix of the variable...
                 // TODO: Since this is inside an expression it is a read / function method call/ array access...
-                yield null;
+                yield result;
             }
             default -> throw new RuntimeException("Unexpected variable type in expression!");
         };

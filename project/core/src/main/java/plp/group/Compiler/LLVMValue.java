@@ -88,10 +88,15 @@ public interface LLVMValue {
      * TODO: getType and getRef here don't make as much sense, gotta figure something out
      */
     public record Pointer(
+        java.lang.String name,
         LLVMValue pointee
     ) implements LLVMValue {
         public java.lang.String getType() { return pointee.getType() + "*"; }
-        public java.lang.String getRef() { return pointee.getRef(); }
+        public java.lang.String getRef() { return name; }
+
+        public java.lang.String getPointeeType() {
+            return pointee.getType();
+        }        
     }
 
     /**
