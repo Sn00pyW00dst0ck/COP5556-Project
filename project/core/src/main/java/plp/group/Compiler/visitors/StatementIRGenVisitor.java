@@ -134,50 +134,16 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
     @Override
     public LLVMValue visitExpressionVariable(AST.Expression.Variable expr) {
-        return switch (expr.variable()) {
-            case AST.Variable.Simple simple -> {
-                LLVMValue variable = context.symbolTable.lookup(simple.name(), false).get();
-                LLVMValue tmp = new LLVMValue.Register(context.getNextTmp(), variable.getType());
+        EvaluatedVariable ev = evaluateVariable(expr.variable());
 
-                context.symbolTable.define(tmp.getRef(), tmp);
-                context.ir.append(tmp.getRef() + " = load " + tmp.getType() + ", ptr " + variable.getRef() + "\n");
-                yield tmp;
-            }
-            case AST.Variable.Address address -> {
-                // TODO: generate IR for address. Since this is visitExpressionVariable this is a read.
-                yield null;
-            }
-            case AST.Variable.PostFixVariable variable -> {
-                LLVMValue result = (LLVMValue) this.visit(variable.base());
-
-                // TODO: handle all four cases, at end we return 'yield' the final calculated value...
-                for (var postFix : variable.postFixes()) {
-                    result = switch (postFix) {
-                        case AST.Variable.PostFix.FieldAccess fieldAccess -> {
-                            yield null;
-                        }
-                        case AST.Variable.PostFix.MethodCall methodCall -> {
-                            yield null;
-                        }
-                        case AST.Variable.PostFix.ArrayAccess arrayAccess -> {
-                            yield null;
-                        }
-                        case AST.Variable.PostFix.PointerDereference _ -> {
-                            // TODO: really double check this... untested and tough to test...
-                            String tmp = context.getNextTmp();
-                            context.ir.append(tmp + " = load " + ((LLVMValue.Pointer) result).getPointeeType() + ", " + result.getType() + " " + result.getRef() + "\n");
-                            yield new LLVMValue.Register(tmp, ((LLVMValue.Pointer) result).getPointeeType());
-                        }
-                        default -> throw new RuntimeException("Unknown postfix!");
-                    };
-                }
-
-                // TODO: to generate IR code for each post fix of the variable...
-                // TODO: Since this is inside an expression it is a read / function method call/ array access...
-                yield result;
-            }
-            default -> throw new RuntimeException("Unexpected variable type in expression!");
-        };
+        if (ev.isPointer()) {
+            // Do a final load
+            String tmp = context.getNextTmp();
+            context.ir.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
+            return new LLVMValue.Register(tmp, ev.type());
+        } else {
+            return ev.value(); // already a loaded value
+        }
     }
 
     //#endregion Expressions
@@ -216,5 +182,66 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     }
 
     //#endregion Literals
+
+    //#region Variable Helper
+
+    /**
+     * A small helper to make handling variables a bit easier to manage...
+     */
+    private record EvaluatedVariable(
+        LLVMValue value,
+        String type,     // LLVM type
+        boolean isPointer // true if value should be loaded in expression
+    ) {}
+
+    /**
+     * Evaluate a variable so that we can read or write it...
+     * 
+     * @param variable
+     * @return
+     */
+    private EvaluatedVariable evaluateVariable(AST.Variable variable) {
+        return switch (variable) {
+            case AST.Variable.Simple simple -> {
+                LLVMValue variableValue = context.symbolTable.lookup(simple.name(), false).get();
+                yield new EvaluatedVariable(variableValue, variableValue.getType(), true);
+            }
+            case AST.Variable.Address address -> {
+                // Address-of operator, don't load the pointer? 
+                EvaluatedVariable base = evaluateVariable(address.variable());
+                yield new EvaluatedVariable(base.value(), base.type(), false); // It's already a pointer...
+            }
+            case AST.Variable.PostFixVariable postFixVar -> {
+                EvaluatedVariable current = evaluateVariable(postFixVar.base());
+
+                for (AST.Variable.PostFix postfix : postFixVar.postFixes()) {
+                    current = switch (postfix) {
+                        case AST.Variable.PostFix.FieldAccess fieldAccess -> {
+                            yield null;
+                        }
+                        case AST.Variable.PostFix.MethodCall methodCall -> {
+                            yield null;
+                        }
+                        case AST.Variable.PostFix.ArrayAccess arrayAccess -> {
+                            yield null;
+                        }
+                        case AST.Variable.PostFix.PointerDereference _ -> {
+                            String tmp = context.getNextTmp();
+                            context.ir.append(tmp + " = load " + current.type() + ", " + current.value().getType() + " " + current.value().getRef() + "\n");
+    
+                            LLVMValue loaded = new LLVMValue.Register(tmp, current.type());
+                            yield new EvaluatedVariable(loaded, current.type(), false);
+                        }
+                        default -> throw new RuntimeException("Unknown postfix!");
+                    };
+                }
+
+                yield current;
+            }
+            default -> throw new RuntimeException("Unexpected variable type!");
+        };
+    }
+
+    //#endregion
 
 }
