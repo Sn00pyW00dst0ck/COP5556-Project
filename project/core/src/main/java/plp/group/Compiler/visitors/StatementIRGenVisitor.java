@@ -1,5 +1,8 @@
 package plp.group.Compiler.visitors;
 
+import java.util.List;
+import java.util.stream.Collectors;
+
 import plp.group.AST.AST;
 import plp.group.AST.ASTBaseVisitor;
 import plp.group.Compiler.CompilerContext;
@@ -220,7 +223,32 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                             yield null;
                         }
                         case AST.Variable.PostFix.MethodCall methodCall -> {
-                            yield null;
+                            // Assume simple normal function calls for now...
+                            if (!(current.value() instanceof LLVMValue.Function function)) {
+                                throw new RuntimeException("Attempted to call a non-function: " + current.value());
+                            }
+
+                            // Evaluate the args...
+                            List<LLVMValue> argValues = new java.util.ArrayList<>();
+                            for (var arg : methodCall.args()) {
+                                LLVMValue val = (LLVMValue) this.visit(arg.expr());
+                                argValues.add(val);
+                            }
+
+                            // Build the LLVM IR argument string
+                            String argsStr = argValues.stream()
+                                .map(a -> a.getType() + " " + a.getRef())
+                                .collect(Collectors.joining(", "));
+
+                            // Generate the call instruction
+                            String tmp = context.getNextTmp();
+                            context.ir.append(tmp + " = call " + function.returnType() + " " + function.getRef() + "(" + argsStr + ")\n");
+
+                            yield new EvaluatedVariable(
+                                new LLVMValue.Register(tmp, function.returnType()),
+                                function.returnType(),
+                                false
+                            );
                         }
                         case AST.Variable.PostFix.ArrayAccess arrayAccess -> {
                             yield null;
