@@ -15,9 +15,11 @@ import plp.group.Compiler.LLVMValue;
  */
 public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     private final CompilerContext context;
+    private final StringBuilder irBuilder;
 
-    public StatementIRGenVisitor(CompilerContext context) {
+    public StatementIRGenVisitor(CompilerContext context, StringBuilder irBuilder) {
         this.context = context;
+        this.irBuilder = irBuilder;
     }
 
     //#region Variable Defs
@@ -27,7 +29,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         dec.variables().forEach((variable) -> {
             LLVMValue.Register tmp = new LLVMValue.Register("%" + variable.name(), context.getLLVMType(dec.type()));
             context.symbolTable.define(variable.name(), tmp);
-            context.ir.append(tmp.getRef() + " = alloca " + tmp.getType() + "\n");
+            irBuilder.append(tmp.getRef() + " = alloca " + tmp.getType() + "\n");
         });
         return null;
     }
@@ -43,7 +45,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         if (ev.isPointer()) {
             // Do a final load
             String tmp = context.getNextTmp();
-            context.ir.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
+            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
             return new LLVMValue.Register(tmp, ev.type());
         } else {
             return ev.value(); // already a loaded value
@@ -90,8 +92,8 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         LLVMValue tmp = new LLVMValue.Register(context.getNextTmp(), type);
         context.symbolTable.define(tmp.getRef(), tmp);
 
-        context.ir.append(tmp.getRef() + " = ");
-        context.ir.append(
+        irBuilder.append(tmp.getRef() + " = ");
+        irBuilder.append(
             switch (expr.operator()) {
                 case "+" -> (tmp.getType() == "double" ? "f" : "") + "add " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "-" -> (tmp.getType() == "double" ? "f" : "") + "sub " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
@@ -113,7 +115,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                 default -> throw new RuntimeException("Unexpected operator: " + expr.operator());
             }
         );
-        context.ir.append("\n");
+        irBuilder.append("\n");
 
         // Return the tmp so that other expressions can use it...
         return tmp;
@@ -128,8 +130,8 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         LLVMValue tmp = new LLVMValue.Register(context.getNextTmp(), exprTemp.getType());
         context.symbolTable.define(tmp.getRef(), tmp);
 
-        context.ir.append(tmp.getRef() + " = ");
-        context.ir.append(
+        irBuilder.append(tmp.getRef() + " = ");
+        irBuilder.append(
             switch (expr.operator()) {
                 case "+" -> (tmp.getType() == "double" ? "f" : "") + "add " + tmp.getType() + " 0, " + exprTemp.getRef();
                 case "-" -> (tmp.getType() == "double" ? "f" : "") + "sub " + tmp.getType() + " 0, " + exprTemp.getRef();
@@ -139,7 +141,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                 default -> throw new RuntimeException("Unexpected operator: " + expr.operator());
             }
         );
-        context.ir.append("\n");
+        irBuilder.append("\n");
 
         return tmp;
     }
@@ -156,7 +158,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         if (ev.isPointer()) {
             // Do a final load
             String tmp = context.getNextTmp();
-            context.ir.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + "* " + ev.value().getRef() + "\n");
+            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + "* " + ev.value().getRef() + "\n");
             return new LLVMValue.Register(tmp, ev.type());
         } else {
             return ev.value(); // already a loaded value
@@ -238,7 +240,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                         }
                         case AST.Variable.PostFix.MethodCall methodCall -> {
                             // Assume simple normal function calls for now...
-                            if (!(current.value() instanceof LLVMValue.Function function)) {
+                            if (!(current.value() instanceof LLVMValue.LLVMFunction function)) {
                                 throw new RuntimeException("Attempted to call a non-function: " + current.value());
                             }
 
@@ -251,7 +253,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
                             // Generate the call instruction and return evaluated result of call
                             yield new EvaluatedVariable(
-                                function.emitCall(argValues, context).orElse(null), // if we don't emit a value then set the LLVMValue to null...?
+                                function.emitCall(argValues, context, irBuilder).orElse(null), // if we don't emit a value then set the LLVMValue to null...?
                                 function.returnType(),
                                 false
                             );
@@ -261,7 +263,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                         }
                         case AST.Variable.PostFix.PointerDereference _ -> {
                             String tmp = context.getNextTmp();
-                            context.ir.append(tmp + " = load " + current.type() + ", " + current.value().getType() + " " + current.value().getRef() + "\n");
+                            irBuilder.append(tmp + " = load " + current.type() + ", " + current.value().getType() + " " + current.value().getRef() + "\n");
     
                             LLVMValue loaded = new LLVMValue.Register(tmp, current.type());
                             yield new EvaluatedVariable(loaded, current.type(), false);

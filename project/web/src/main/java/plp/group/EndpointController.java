@@ -5,9 +5,18 @@ import java.nio.file.Files;
 import java.nio.file.Paths;
 import java.util.Base64;
 
+import org.antlr.v4.runtime.CharStreams;
+import org.antlr.v4.runtime.CommonTokenStream;
 import org.springframework.web.bind.annotation.PostMapping;
 import org.springframework.web.bind.annotation.RequestBody;
 import org.springframework.web.bind.annotation.RestController;
+
+import plp.group.AST.AST;
+import plp.group.AST.ASTBuilder;
+import plp.group.Compiler.CompilerContext;
+import plp.group.Optimizer.Optimizer;
+import plp.group.project.delphi;
+import plp.group.project.delphi_lexer;
 
 @RestController
 public class EndpointController {
@@ -47,8 +56,23 @@ public class EndpointController {
 			final String MAKEFILE_LOCATION = "./project/web/src/main/resources";
 			final String TARGET = request.filename.replaceFirst("\\.ll$", ".wasm");
 
+			String llvmCode = "";
+			try {
+        	    // Get the parse tree for the file we enter in command line.
+        	    var lexer = new delphi_lexer(CharStreams.fromString(new String(Base64.getDecoder().decode(request.sourceCode))));
+        	    var tokens = new CommonTokenStream(lexer);
+        	    var parser = new delphi(tokens);
+        	    var tree = parser.program();
+
+        	    ASTBuilder builder = new ASTBuilder();
+        	    AST.Program AST = (AST.Program) builder.visit(tree);
+				llvmCode = (new CompilerContext()).compileToLLVMIR(AST);
+        	} catch (Exception e) {
+        	    e.printStackTrace();
+        	}
+
 			// Write the provided source code to a .ll file // TODO: SWAP THIS FOR RUNNING ANTLR AND THE COMPILER
-			Files.write(Paths.get(MAKEFILE_LOCATION + "/" + request.filename), Base64.getDecoder().decode(request.sourceCode));
+			Files.write(Paths.get(MAKEFILE_LOCATION + "/" + request.filename), llvmCode.getBytes());
 			
 			// Run the makefile on the .ll file
 			ProcessBuilder pb = new ProcessBuilder("make", TARGET);
