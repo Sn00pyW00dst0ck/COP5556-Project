@@ -82,11 +82,11 @@ public class CompilerContext {
      */
     private void registerBuiltInFunctions() {
         this.symbolTable.define("write", new LLVMValue.LLVMFunction.WriteFunction());
-        this.symbolTable.define("writeln", new LLVMValue.LLVMFunction.WriteFunction());
+        this.symbolTable.define("writeln", new LLVMValue.LLVMFunction.WritelnFunction());
         // TODO: others...
 
         // Dependencies of built in functions must be declared...
-        this.ir.appendDeclaration("declare i32 @printf(i32, ...)");
+        this.ir.appendDeclaration("declare i32 @printf(ptr noundef, ...)");
     }
 
     /**
@@ -104,7 +104,7 @@ public class CompilerContext {
                     case "Real" -> "double";
                     case "Boolean" -> "i1";
                     case "Character" -> "i8";
-                    case "String" -> "i8*"; // String = Array of Characters : may need to change this though...
+                    case "String" -> "ptr"; // String = Array of Characters : may need to change this though...
                     default -> {
                         // Lookup in scope? 
                         throw new RuntimeException("Unsupported Type: " + type.toString());
