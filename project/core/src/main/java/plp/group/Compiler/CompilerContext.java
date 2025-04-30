@@ -83,10 +83,26 @@ public class CompilerContext {
     private void registerBuiltInFunctions() {
         this.symbolTable.define("write", new LLVMValue.LLVMFunction.WriteFunction());
         this.symbolTable.define("writeln", new LLVMValue.LLVMFunction.WritelnFunction());
+        this.symbolTable.define("arctan", new LLVMValue.LLVMFunction.ArctanFunction());
+        this.symbolTable.define("cos", new LLVMValue.LLVMFunction.CosFunction());
+        this.symbolTable.define("exp", new LLVMValue.LLVMFunction.ExpFunction());
+        this.symbolTable.define("ln", new LLVMValue.LLVMFunction.LogFunction());
+        this.symbolTable.define("sin", new LLVMValue.LLVMFunction.SinFunction());
+        this.symbolTable.define("sqrt", new LLVMValue.LLVMFunction.SqrtFunction());
+        this.symbolTable.define("trunc", new LLVMValue.LLVMFunction.TruncFunction());
+        this.symbolTable.define("odd", new LLVMValue.LLVMFunction.OddFunction());
+        this.symbolTable.define("round", new LLVMValue.LLVMFunction.RoundFunction());
         // TODO: others...
 
         // Dependencies of built in functions must be declared...
         this.ir.appendDeclaration("declare i32 @printf(ptr noundef, ...)");
+        this.ir.appendDeclaration("declare double @atan(double)");
+        this.ir.appendDeclaration("declare double @cos(double)");
+        this.ir.appendDeclaration("declare double @exp(double)");
+        this.ir.appendDeclaration("declare double @log(double)");
+        this.ir.appendDeclaration("declare double @sin(double)");
+        this.ir.appendDeclaration("declare double @sqrt(double)");
+        this.ir.appendDeclaration("declare double @trunc(double)");
     }
 
     /**

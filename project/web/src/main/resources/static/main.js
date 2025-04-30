@@ -12,15 +12,18 @@ end.`;
 window.loadExample = () => EDITOR.setValue(DEFAULT_TEXT);
 
 window.compileAndRun = async () => {
-    await window.compile("main");
+    let filename = "main_" + (Math.random() + 1).toString(36).substring(7); // Append some randomness so we can avoid cache issues...
+    await window.compile(filename);
     window.clearConsole();
-    await window.runWasm("main");
+    await new Promise(r => setTimeout(r, 1000)); // Give server time to update....
+    await window.runWasm(filename);
 }
 
 window.compile = async (filename) => {
     const response = await fetch("/compile", {
         method: "POST",
         headers: { "Content-Type": "application/json" },
+        cache: "no-store",
         body: JSON.stringify({
             filename: `${filename}.ll`, // TODO: SWAP .ll for .pas when compiler to .ll works in java
             sourceCode: btoa(EDITOR.getValue()),
