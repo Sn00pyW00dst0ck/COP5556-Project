@@ -445,13 +445,6 @@ public interface LLVMValue {
             }
         };
 
-        /*
-        odd
-        pi
-        round
-        trunc
-        */
-
         /**
          * Built in function 'odd'.
          */
