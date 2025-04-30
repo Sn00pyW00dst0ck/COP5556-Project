@@ -4,7 +4,7 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import plp.group.AST.AST;
-import plp.group.AST.ASTBaseVisitor;
+import plp.group.AST.ASTBaseVisitor; 
 import plp.group.Compiler.CompilerContext;
 import plp.group.Compiler.LLVMValue;
 
@@ -39,28 +39,197 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     //#region Statements
 
     @Override
-    public Object visitStatementVariable(AST.Statement.Variable stmt) {
-        EvaluatedVariable ev = evaluateVariable(stmt.variable());
+    public Object visitStatementAssignment(AST.Statement.Assignment stmt) {
+    // Evaluate RHS first
+    Object value = this.visit(stmt.value());
+    LLVMValue rhs = (LLVMValue) value;
 
-        if (ev.isPointer()) {
-            // Do a final load
-            String tmp = context.getNextTmp();
-            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
-            return new LLVMValue.Register(tmp, ev.type());
-        } else {
-            return ev.value(); // already a loaded value
-        }
+    // Evaluate LHS as pointer (should be an lvalue)
+    EvaluatedVariable ev = evaluateVariable(stmt.variable().variable());
+
+    if (!ev.isPointer()) {
+        throw new RuntimeException("Cannot assign to a non-pointer variable.");
     }
 
+    // Store value into pointer
+    irBuilder.append("store " + rhs.getType() + " " + rhs.getRef() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
+    return null;
+}
+
+    // Visit the block of statements and generate IR for each one
     @Override
-    public Object visitStatementAssignment(AST.Statement.Assignment stmt) {
-        // visit the expression value, put IR for all expression value eval first...
-        // generate a 'store' instruction into the IR...
-        this.visit(stmt.value());
+    public Object visitStatementCompound(AST.Statement.Compound stmt) {
+        stmt.statements().forEach(this::visit);
+        return null;
+    }
+    
+    @Override
+    public Object visitStatementIf(AST.Statement.If stmt) {
+        String condTmp = (String) ((LLVMValue) this.visit(stmt.condition())).getRef();
+    
+        String thenLabel = context.getNextLabel();
+        String elseLabel = context.getNextLabel();
+        String endLabel = context.getNextLabel();
+    
+        // Branch based on condition
+        irBuilder.append("br i1 " + condTmp + ", label %" + thenLabel + ", label %" + elseLabel + "\n");
+    
+        // Then block
+        irBuilder.append(thenLabel + ":\n");
+        this.visit(stmt.thenCase());
+        irBuilder.append("br label %" + endLabel + "\n");
+    
+        // Else block
+        irBuilder.append(elseLabel + ":\n");
+        if (stmt.elseCase() != null) {
+            this.visit(stmt.elseCase());
+        }
+        irBuilder.append("br label %" + endLabel + "\n");
+    
+        // End label
+        irBuilder.append(endLabel + ":\n");
+        return null;
+    }
+    
+    @Override 
+    public Object visitStatementWhile(AST.Statement.While stmt) {
+        String condLabel = context.getNextLabel();
+        String bodyLabel = context.getNextLabel();
+        String endLabel = context.getNextLabel();
+    
+        // Branch to condition check
+        irBuilder.append("br label %" + condLabel + "\n");
+    
+        // Condition block
+        irBuilder.append(condLabel + ":\n");
+        LLVMValue condVal = (LLVMValue) this.visit(stmt.condition());
+        irBuilder.append("br i1 " + condVal.getRef() + ", label %" + bodyLabel + ", label %" + endLabel + "\n");
+    
+        // Push loop labels for break/continue handling
+        context.pushLoopLabels(endLabel, condLabel);
+    
+        // Loop body block
+        irBuilder.append(bodyLabel + ":\n");
+        this.visit(stmt.body());
+        irBuilder.append("br label %" + condLabel + "\n");
+    
+        // Pop loop labels after loop body
+        context.popLoopLabels();
+    
+        // End of loop
+        irBuilder.append(endLabel + ":\n");
         return null;
     }
 
-    // TODO: OTHER TYPES OF STSTEMENTS HERE!
+    @Override
+    public Object visitStatementGoto(AST.Statement.Goto stmt) {
+        irBuilder.append("br label %" + stmt.label() + "\n");
+        return null;
+    }
+
+    @Override
+    public Object visitStatementCase(AST.Statement.Case stmt) {
+        LLVMValue cond = (LLVMValue) this.visit(stmt.expr());
+        String endLabel = context.getNextLabel();
+
+        // Generate labels for each case branch
+        List<String> caseLabels = stmt.branches().stream()
+            .map(_ -> context.getNextLabel())
+            .collect(Collectors.toList());
+
+        // Generate a label for the else branch if it exists
+        for (int i = 0; i < stmt.branches().size(); i++) {
+            AST.Statement.Case.CaseElement caseElement = stmt.branches().get(i);
+            for (AST.Expression val : caseElement.values()) {
+                LLVMValue matchVal = (LLVMValue) this.visit(val);
+                String caseLabel = caseLabels.get(i);
+                String tmp = context.getNextTmp();
+                irBuilder.append(tmp + " = icmp eq i32 " + cond.getRef() + ", " + matchVal.getRef() + "\n");
+                irBuilder.append("br i1 " + tmp + ", label %" + caseLabel + ", label %" + endLabel + "\n");
+            }
+        }
+
+        for (int i = 0; i < stmt.branches().size(); i++) {
+            String label = caseLabels.get(i);
+            AST.Statement.Case.CaseElement caseElement = stmt.branches().get(i);
+            irBuilder.append(label + ":\n");
+            this.visit(caseElement.body());
+            irBuilder.append("br label %" + endLabel + "\n");
+        }
+
+        stmt.elseBranch().ifPresent(elseBranch -> {
+            this.visit(elseBranch);
+            irBuilder.append("br label %" + endLabel + "\n");
+        });
+
+        irBuilder.append(endLabel + ":\n");
+        return null;
+    }
+
+    @Override
+    public Object visitStatementRepeat(AST.Statement.Repeat stmt) {
+        String bodyLabel = context.getNextLabel();
+        String endLabel = context.getNextLabel();
+
+        // Push loop labels for break/continue handling
+        irBuilder.append(bodyLabel + ":\n");
+        this.visit(stmt.body());
+
+        // Pop loop labels after loop body
+        LLVMValue condVal = (LLVMValue) this.visit(stmt.condition());
+        irBuilder.append("br i1 " + condVal.getRef() + ", label %" + endLabel + ", label %" + bodyLabel + "\n");
+
+        // End of loop 
+        irBuilder.append(endLabel + ":\n");
+        return null;
+    }
+
+    @Override
+    public Object visitStatementFor(AST.Statement.For stmt) {
+        String loopVar = stmt.variable().toString();
+        String loopStart = ((LLVMValue) this.visit(stmt.initialValue())).getRef();
+        String loopEnd = ((LLVMValue) this.visit(stmt.finalValue())).getRef();
+
+        String varTmp = context.getNextTmp();
+        LLVMValue.Register loopReg = new LLVMValue.Register(varTmp, "i32");
+        context.symbolTable.define(loopVar, loopReg);
+        irBuilder.append(varTmp + " = alloca i32\n");
+        irBuilder.append("store i32 " + loopStart + ", i32* " + varTmp + "\n");
+
+        String loopCondLabel = context.getNextLabel();
+        String loopBodyLabel = context.getNextLabel();
+        String loopEndLabel = context.getNextLabel();
+
+        irBuilder.append("br label %" + loopCondLabel + "\n");
+
+        irBuilder.append(loopCondLabel + ":\n");
+        String currentVal = context.getNextTmp();
+        irBuilder.append(currentVal + " = load i32, i32* " + varTmp + "\n");
+
+        String cmpTmp = context.getNextTmp();
+        String cmpOp = stmt.type() == AST.Statement.For.LoopType.TO ? "icmp sle" : "icmp sge";
+        irBuilder.append(cmpTmp + " = " + cmpOp + " i32 " + currentVal + ", " + loopEnd + "\n");
+        irBuilder.append("br i1 " + cmpTmp + ", label %" + loopBodyLabel + ", label %" + loopEndLabel + "\n");
+
+        irBuilder.append(loopBodyLabel + ":\n");
+        this.visit(stmt.body());
+        String nextVal = context.getNextTmp();
+        String op = stmt.type() == AST.Statement.For.LoopType.TO ? "add" : "sub";
+        irBuilder.append(nextVal + " = " + op + " i32 " + currentVal + ", 1\n");
+        irBuilder.append("store i32 " + nextVal + ", i32* " + varTmp + "\n");
+        irBuilder.append("br label %" + loopCondLabel + "\n");
+
+        irBuilder.append(loopEndLabel + ":\n");
+        return null;
+    }
+
+    @Override
+    public Object visitStatementWith(AST.Statement.With stmt) {
+        for (AST.Variable var : stmt.variables()) {
+            this.evaluateVariable(var); // Potential for context changes
+        }
+        return this.visit(stmt.statement());
+    }
 
     //#endregion Statements
 
