@@ -1,5 +1,6 @@
 package plp.group.Compiler;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.Optional;
 
@@ -55,8 +56,9 @@ public interface LLVMValue {
         java.lang.String name,
         java.lang.String value
     ) implements LLVMValue {        
-        public java.lang.String getType() { return "[" + value.length() + 1 + " x i8]"; }
-        public java.lang.String getRef() { return "@" + name; }
+        public java.lang.String getType() { return "i8*"; }
+        // NOTE: name should already have "@"
+        public java.lang.String getRef() { return name; }
 
         public java.lang.String getGlobalDefinition() {
             StringBuilder sb = new StringBuilder();
@@ -106,7 +108,7 @@ public interface LLVMValue {
         java.lang.String name,
         java.lang.String returnType,
         List<java.lang.String> paramTypes,
-        Optional<AST.Block> body
+        Optional<AST.Block> body // no body = extern / built in
     ) implements LLVMValue {
         public java.lang.String getType() { return returnType + " (" + java.lang.String.join(", ", paramTypes) + ")*"; }
         public java.lang.String getRef() { return "@" + name; }
@@ -121,7 +123,32 @@ public interface LLVMValue {
     
         public java.lang.String getDefineHeader() {
             return "define " + getSignature() + " {";
-        }    
+        }
+
+        public Optional<LLVMValue.Register> emitCall(List<LLVMValue> args, CompilerContext context) {
+            // If not void, assign result to a temp
+            java.lang.String tmp = "";
+            if (!returnType.equals("void")) {
+                tmp = context.getNextTmp();
+                context.ir.append("  " + tmp + " = ");    
+            }
+
+            context.ir.append("call " + returnType + " " + getRef() + "(");
+            // Add each argument to the call string.
+            for (int i = 0; i < args.size(); i++) {
+                context.ir.append(args.get(i).getType() + " " + args.get(i).getRef());
+                if (i < args.size() - 1) context.ir.append(", ");
+            }
+            context.ir.append(")\n");
+            
+            // if not void, return register result otherwise return optional empty.
+            if (!returnType.equals("void")) {
+                return Optional.of(new LLVMValue.Register(tmp, returnType));
+            } else {
+                return Optional.empty();
+            }
+        }
+
     }
 
     /**

@@ -37,6 +37,20 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     //#region Statements
 
     @Override
+    public Object visitStatementVariable(AST.Statement.Variable stmt) {
+        EvaluatedVariable ev = evaluateVariable(stmt.variable());
+
+        if (ev.isPointer()) {
+            // Do a final load
+            String tmp = context.getNextTmp();
+            context.ir.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
+            return new LLVMValue.Register(tmp, ev.type());
+        } else {
+            return ev.value(); // already a loaded value
+        }
+    }
+
+    @Override
     public Object visitStatementAssignment(AST.Statement.Assignment stmt) {
         // visit the expression value, put IR for all expression value eval first...
         // generate a 'store' instruction into the IR...
@@ -142,7 +156,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         if (ev.isPointer()) {
             // Do a final load
             String tmp = context.getNextTmp();
-            context.ir.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
+            context.ir.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + "* " + ev.value().getRef() + "\n");
             return new LLVMValue.Register(tmp, ev.type());
         } else {
             return ev.value(); // already a loaded value
@@ -235,17 +249,9 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                                 argValues.add(val);
                             }
 
-                            // Build the LLVM IR argument string
-                            String argsStr = argValues.stream()
-                                .map(a -> a.getType() + " " + a.getRef())
-                                .collect(Collectors.joining(", "));
-
-                            // Generate the call instruction
-                            String tmp = context.getNextTmp();
-                            context.ir.append(tmp + " = call " + function.returnType() + " " + function.getRef() + "(" + argsStr + ")\n");
-
+                            // Generate the call instruction and return evaluated result of call
                             yield new EvaluatedVariable(
-                                new LLVMValue.Register(tmp, function.returnType()),
+                                function.emitCall(argValues, context).orElse(null), // if we don't emit a value then set the LLVMValue to null...?
                                 function.returnType(),
                                 false
                             );

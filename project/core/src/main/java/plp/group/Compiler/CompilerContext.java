@@ -1,5 +1,6 @@
 package plp.group.Compiler;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
 
@@ -20,7 +21,7 @@ public class CompilerContext {
     /**
      * The symbols in use...
      */
-    public final SymbolTable symbolTable = new SymbolTable(Optional.empty());
+    public SymbolTable symbolTable = new SymbolTable(Optional.empty());
 
     private int tempCounter = 0;
     private int labelCounter = 0;
@@ -49,6 +50,8 @@ public class CompilerContext {
 
         // GET ALL THE TYPE DEFS
 
+        this.registerBuiltInFunctions();
+
         // Collect all the functions, add all their declarations to the IR. 
         (new FunctionCollectionVisitor(this)).visit(source);
         var functions = this.symbolTable.getEntriesOfType(LLVMValue.Function.class, false);
@@ -59,15 +62,18 @@ public class CompilerContext {
 
         // Write all the function definitions to the IR.
         for (var function : functions.entrySet()) {
-            ir.append(((LLVMValue.Function) function.getValue()).getDefineHeader() + "\n");
             // TODO: handle everything in the function body...
-            (new StatementIRGenVisitor(this)).visit(((LLVMValue.Function) function.getValue()).body().get());
-            ir.append("}\n");
+            ((LLVMValue.Function) function.getValue()).body().ifPresent((body) -> {
+                ir.append(((LLVMValue.Function) function.getValue()).getDefineHeader() + "\n");
+                (new StatementIRGenVisitor(this)).visit(body);
+                ir.append("}\n");
+            });
         }
+        // TODO: Write all the built in function definitions to the IR.
         ir.append("\n");
 
         // Write the main function
-        ir.append("define i32 main() {\n");
+        ir.append("define i32 @main() {\n");
         // TODO: ensure everything is handled with function body...
         (new StatementIRGenVisitor(this)).visit(source.block());
         ir.append("\tret i32 0\n");
@@ -79,6 +85,36 @@ public class CompilerContext {
     }
 
     //#region Helpers
+
+    /**
+     * Registers all built in functions to the symbol table.
+     */
+    private void registerBuiltInFunctions() {
+        this.symbolTable.define("write", new LLVMValue.Function(
+            "write",
+            "void",
+            List.of("i8*"),
+            Optional.empty()
+        ));
+
+        this.symbolTable.define("writeln", new LLVMValue.Function(
+            "writeln",
+            "void",
+            List.of("i8*"),
+            Optional.empty()
+        ));
+
+        // TODO: others...
+    }
+
+    /**
+     * Add all the built in function definitions to the IR.
+     */
+    private void writeBuiltInFunctionDefinitions()  {
+
+    }
+
+
 
     /**
      * Get the LLVM type name for a given AST.Type
