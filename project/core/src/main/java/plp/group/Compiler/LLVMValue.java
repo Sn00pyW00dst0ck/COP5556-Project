@@ -220,7 +220,10 @@ public interface LLVMValue {
 
                 // Call printf with the args...
                 irBuilder.append("call i32 (ptr, ...) @printf(");
-                irBuilder.append(fmtString.getType() + " " + fmtString.getRef() + ", ");
+                irBuilder.append(fmtString.getType() + " " + fmtString.getRef());
+                if (args.size() > 0) {
+                    irBuilder.append(", ");
+                }
                 // Add each argument to the call string.
                 for (int i = 0; i < args.size(); i++) {
                     irBuilder.append(args.get(i).getType() + " " + args.get(i).getRef());
@@ -287,7 +290,10 @@ public interface LLVMValue {
 
                 // Call printf with the args...
                 irBuilder.append("call i32 (ptr, ...) @printf(");
-                irBuilder.append(fmtString.getType() + " " + fmtString.getRef() + ", ");
+                irBuilder.append(fmtString.getType() + " " + fmtString.getRef());
+                if (args.size() > 0) {
+                    irBuilder.append(", ");
+                }
                 // Add each argument to the call string.
                 for (int i = 0; i < args.size(); i++) {
                     irBuilder.append(args.get(i).getType() + " " + args.get(i).getRef());
