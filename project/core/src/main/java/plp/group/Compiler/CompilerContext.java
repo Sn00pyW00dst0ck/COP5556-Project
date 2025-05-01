@@ -29,7 +29,7 @@ public class CompilerContext {
     private int stringCounter = 0;
 
     public String getNextTmp() { return "%tmp" + (tempCounter++); }
-    public String getNextLabel() { return "label_" + (labelCounter++); }
+    public String getNextLabel() { return "label_internal_" + (labelCounter++); }
     public String getNextString() { return "@llvm.str." + (stringCounter++); }
 
     

@@ -39,6 +39,14 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     //#region Statements
 
     @Override
+    public Object visitStatementLabeled(AST.Statement.Labeled stmt) {
+        irBuilder.append("br label %label_" + stmt.label() + "\n");
+        irBuilder.append("label_" + stmt.label() + ":\n");
+        this.visit(stmt.statement());
+        return null;
+    }
+
+    @Override
     public Object visitStatementAssignment(AST.Statement.Assignment stmt) {
         // Evaluate RHS first
         Object value = this.visit(stmt.value());
@@ -137,7 +145,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
     @Override
     public Object visitStatementGoto(AST.Statement.Goto stmt) {
-        irBuilder.append("br label %" + stmt.label() + "\n");
+        irBuilder.append("br label %label_" + stmt.label() + "\n");
         return null;
     }
 
