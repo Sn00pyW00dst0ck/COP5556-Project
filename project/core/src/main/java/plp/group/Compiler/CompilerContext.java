@@ -3,6 +3,7 @@ package plp.group.Compiler;
 import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 
 import plp.group.AST.AST;
 import plp.group.Compiler.visitors.FunctionCollectionVisitor;
@@ -31,6 +32,36 @@ public class CompilerContext {
     public String getNextLabel() { return "" + (labelCounter++); }
     public String getNextString() { return "@llvm.str." + (stringCounter++); }
 
+    
+    //#region Loop Labels 
+    private final Stack<String> breakLabelStack = new Stack<>();
+    private final Stack<String> continueLabelStack = new Stack<>();
+
+    public void pushLoopLabels(String breakLabel, String continueLabel) {
+        breakLabelStack.push(breakLabel);
+        continueLabelStack.push(continueLabel);
+    }
+    
+    public void popLoopLabels() {
+        breakLabelStack.pop();
+        continueLabelStack.pop();
+    }
+    
+    public String getBreakLabel() {
+        if (breakLabelStack.isEmpty()) {
+            throw new IllegalStateException("No break label in scope.");
+        }
+        return breakLabelStack.peek();
+    }
+    
+    public String getContinueLabel() {
+        if (continueLabelStack.isEmpty()) {
+            throw new IllegalStateException("No continue label in scope.");
+        }
+        return continueLabelStack.peek();
+    }
+
+    //#endregion Loop Labels
 
     /**
      * 
