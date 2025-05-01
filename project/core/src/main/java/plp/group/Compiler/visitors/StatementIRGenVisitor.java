@@ -4,7 +4,8 @@ import java.util.List;
 import java.util.stream.Collectors;
 
 import plp.group.AST.AST;
-import plp.group.AST.ASTBaseVisitor; 
+import plp.group.AST.ASTBaseVisitor;
+import plp.group.AST.AST.Statement.For;
 import plp.group.Compiler.CompilerContext;
 import plp.group.Compiler.LLVMValue;
 
@@ -208,14 +209,10 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
     @Override
     public Object visitStatementFor(AST.Statement.For stmt) {
-        String loopVar = stmt.variable().toString();
         String loopStart = ((LLVMValue) this.visit(stmt.initialValue())).getRef();
         String loopEnd = ((LLVMValue) this.visit(stmt.finalValue())).getRef();
 
-        String varTmp = context.getNextTmp();
-        LLVMValue.Register loopReg = new LLVMValue.Register(varTmp, "i32");
-        context.symbolTable.define(loopVar, loopReg);
-        irBuilder.append(varTmp + " = alloca i32\n");
+        String varTmp = "%" + ((AST.Variable.Simple) stmt.variable()).name();
         irBuilder.append("store i32 " + loopStart + ", i32* " + varTmp + "\n");
 
         String loopCondLabel = context.getNextLabel();
@@ -235,10 +232,12 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
         irBuilder.append(loopBodyLabel + ":\n");
         this.visit(stmt.body());
+
         String nextVal = context.getNextTmp();
         String op = stmt.type() == AST.Statement.For.LoopType.TO ? "add" : "sub";
         irBuilder.append(nextVal + " = " + op + " i32 " + currentVal + ", 1\n");
         irBuilder.append("store i32 " + nextVal + ", i32* " + varTmp + "\n");
+
         irBuilder.append("br label %" + loopCondLabel + "\n");
 
         irBuilder.append(loopEndLabel + ":\n");

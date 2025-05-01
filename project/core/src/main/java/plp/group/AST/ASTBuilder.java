@@ -703,7 +703,7 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
         AST.Variable variable = new AST.Variable.Simple(ctx.identifier().getText());
         AST.Expression initialValue = this.visitExpression(ctx.forList().initialValue().expression());
         AST.Statement.For.LoopType type = (ctx.forList().TO() != null) ? AST.Statement.For.LoopType.TO : AST.Statement.For.LoopType.DOWNTO;
-        AST.Expression finalValue = this.visitExpression(ctx.forList().initialValue().expression());
+        AST.Expression finalValue = this.visitExpression(ctx.forList().finalValue().expression());
         AST.Statement body = this.visitStatement(ctx.statement());
         return new AST.Statement.For(variable, initialValue, type, finalValue, body);
     }
