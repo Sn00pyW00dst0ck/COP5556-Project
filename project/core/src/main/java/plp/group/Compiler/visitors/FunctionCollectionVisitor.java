@@ -37,7 +37,7 @@ public class FunctionCollectionVisitor extends ASTBaseVisitor<Void> {
         // Define in context
         this.context.symbolTable.define(
             dec.name(),
-            new LLVMValue.Function(
+            new LLVMValue.LLVMFunction.UserFunction(
                 dec.name(),
                 llvmReturnType,
                 llvmParameterTypes,

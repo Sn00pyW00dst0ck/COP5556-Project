@@ -1,7 +1,9 @@
 package plp.group.Compiler;
 
+import java.util.List;
 import java.util.Map;
 import java.util.Optional;
+import java.util.Stack;
 
 import plp.group.AST.AST;
 import plp.group.Compiler.visitors.FunctionCollectionVisitor;
@@ -15,12 +17,12 @@ public class CompilerContext {
     /**
      * The internal represetntation string builder where IR is written
      */
-    public final StringBuilder ir = new StringBuilder();
+    public final IRBuilder ir = new IRBuilder();
 
     /**
      * The symbols in use...
      */
-    public final SymbolTable symbolTable = new SymbolTable(Optional.empty());
+    public SymbolTable symbolTable = new SymbolTable(Optional.empty());
 
     private int tempCounter = 0;
     private int labelCounter = 0;
@@ -30,6 +32,36 @@ public class CompilerContext {
     public String getNextLabel() { return "" + (labelCounter++); }
     public String getNextString() { return "@llvm.str." + (stringCounter++); }
 
+    
+    //#region Loop Labels 
+    private final Stack<String> breakLabelStack = new Stack<>();
+    private final Stack<String> continueLabelStack = new Stack<>();
+
+    public void pushLoopLabels(String breakLabel, String continueLabel) {
+        breakLabelStack.push(breakLabel);
+        continueLabelStack.push(continueLabel);
+    }
+    
+    public void popLoopLabels() {
+        breakLabelStack.pop();
+        continueLabelStack.pop();
+    }
+    
+    public String getBreakLabel() {
+        if (breakLabelStack.isEmpty()) {
+            throw new IllegalStateException("No break label in scope.");
+        }
+        return breakLabelStack.peek();
+    }
+    
+    public String getContinueLabel() {
+        if (continueLabelStack.isEmpty()) {
+            throw new IllegalStateException("No continue label in scope.");
+        }
+        return continueLabelStack.peek();
+    }
+
+    //#endregion Loop Labels
 
     /**
      * 
@@ -39,45 +71,54 @@ public class CompilerContext {
     public String compileToLLVMIR(AST.Program source) {
         // Collect all the strings, add all their declarations to the IR.
         (new StringCollectionVisitor(this)).visit(source);
-        var strings = this.symbolTable.getEntriesOfType(LLVMValue.String.class, false);
+        Map<String, LLVMValue> strings = this.symbolTable.getEntriesOfType(LLVMValue.String.class, false);
         for (var string : strings.entrySet().stream().sorted((Map.Entry<String,LLVMValue> a, Map.Entry<String,LLVMValue> b) -> {
             return ((LLVMValue.String) a.getValue()).name().compareTo(((LLVMValue.String) b.getValue()).name());
         }).toList()) {
-            ir.append(((LLVMValue.String) string.getValue()).getGlobalDefinition() + "\n");
+            ir.appendStringConstant(((LLVMValue.String) string.getValue()).getGlobalDefinition());
         }
-        ir.append("\n");
 
-        // GET ALL THE TYPE DEFS
+        // TODO: GET ALL THE TYPE DEFS
 
-        // Collect all the functions, add all their declarations to the IR. 
+        this.registerBuiltInFunctions();
+
+        // Collect all the user defined functions, add all their declarations to the IR. 
         (new FunctionCollectionVisitor(this)).visit(source);
-        var functions = this.symbolTable.getEntriesOfType(LLVMValue.Function.class, false);
-        for (var function : functions.entrySet()) {
-            ir.append(((LLVMValue.Function) function.getValue()).getDeclare() + "\n");
+        Map<String, LLVMValue> functions = this.symbolTable.getEntriesOfType(LLVMValue.LLVMFunction.UserFunction.class, false);
+        for (var function : functions.values()) {
+            ir.appendDeclaration(((LLVMValue.LLVMFunction.UserFunction) function).getDeclare());
         }
-        ir.append("\n");
 
         // Write all the function definitions to the IR.
         for (var function : functions.entrySet()) {
-            ir.append(((LLVMValue.Function) function.getValue()).getDefineHeader() + "\n");
-            // TODO: generate LLVM IR for the function body
-            (new StatementIRGenVisitor(this)).visit(((LLVMValue.Function) function.getValue()).body().get());
-            ir.append("}\n");
+            // TODO: handle everything in the function body...
+            ((LLVMValue.LLVMFunction.UserFunction) function.getValue()).body().ifPresent((body) -> {
+                ir.functionDefs.append(((LLVMValue.LLVMFunction.UserFunction) function.getValue()).getDefineHeader() + "\n");
+                (new StatementIRGenVisitor(this, ir.functionDefs)).visit(body);
+                ir.functionDefs.append("|\n");
+            });
         }
-        ir.append("\n");
+        // TODO: Write all the built in function definitions to the IR.
 
         // Write the main function
-        ir.append("define i32 main() {\n");
-        // TODO: generate LLVM IR for the main function's
-        ir.append("\tret i32 0\n");
-        ir.append("}\n");
+        (new StatementIRGenVisitor(this, ir.mainFunction)).visit(source.block());
 
-        // Anything else
-
-        return ir.toString();
+        return ir.build();
     }
 
     //#region Helpers
+
+    /**
+     * Registers all built in functions to the symbol table.
+     */
+    private void registerBuiltInFunctions() {
+        this.symbolTable.define("write", new LLVMValue.LLVMFunction.WriteFunction());
+        this.symbolTable.define("writeln", new LLVMValue.LLVMFunction.WritelnFunction());
+        // TODO: others...
+
+        // Dependencies of built in functions must be declared...
+        this.ir.appendDeclaration("declare i32 @printf(ptr noundef, ...)");
+    }
 
     /**
      * Get the LLVM type name for a given AST.Type
@@ -94,7 +135,7 @@ public class CompilerContext {
                     case "Real" -> "double";
                     case "Boolean" -> "i1";
                     case "Character" -> "i8";
-                    case "String" -> "i8*"; // String = Array of Characters : may need to change this though...
+                    case "String" -> "ptr"; // String = Array of Characters : may need to change this though...
                     default -> {
                         // Lookup in scope? 
                         throw new RuntimeException("Unsupported Type: " + type.toString());

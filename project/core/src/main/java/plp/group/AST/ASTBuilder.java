@@ -770,7 +770,7 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
         AST.Variable.Simple base = new AST.Variable.Simple(ctx.identifier().IDENT().getText());
         AST.Variable result = base;
 
-        if (ctx.postFixPart() != null) {
+        if (ctx.postFixPart() != null && ctx.postFixPart().size() != 0) {
             ArrayList<AST.Variable.PostFixVariable.PostFix> postFixes = new ArrayList<AST.Variable.PostFixVariable.PostFix>();
             for (delphi.PostFixPartContext postFixPartCtx : ctx.postFixPart()) {
                 postFixes.add(switch (postFixPartCtx.getChild(0)) {
