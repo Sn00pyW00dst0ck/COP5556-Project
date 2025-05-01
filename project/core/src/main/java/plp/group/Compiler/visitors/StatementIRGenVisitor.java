@@ -40,21 +40,35 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
     @Override
     public Object visitStatementAssignment(AST.Statement.Assignment stmt) {
-    // Evaluate RHS first
-    Object value = this.visit(stmt.value());
-    LLVMValue rhs = (LLVMValue) value;
+        // Evaluate RHS first
+        Object value = this.visit(stmt.value());
+        LLVMValue rhs = (LLVMValue) value;
 
-    // Evaluate LHS as pointer (should be an lvalue)
-    EvaluatedVariable ev = evaluateVariable(stmt.variable().variable());
+        // Evaluate LHS as pointer (should be an lvalue)
+        EvaluatedVariable ev = evaluateVariable(stmt.variable().variable());
 
-    if (!ev.isPointer()) {
-        throw new RuntimeException("Cannot assign to a non-pointer variable.");
+        if (!ev.isPointer()) {
+            throw new RuntimeException("Cannot assign to a non-pointer variable.");
+        }
+
+        // Store value into pointer
+        irBuilder.append("store " + rhs.getType() + " " + rhs.getRef() + ", " + ev.value().getType() + "* " + ev.value().getRef() + "\n");
+        return null;
     }
 
-    // Store value into pointer
-    irBuilder.append("store " + rhs.getType() + " " + rhs.getRef() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
-    return null;
-}
+    @Override
+    public Object visitStatementVariable(AST.Statement.Variable stmt) {
+        EvaluatedVariable ev = evaluateVariable(stmt.variable());
+
+        if (ev.isPointer()) {
+            // Do a final load
+            String tmp = context.getNextTmp();
+            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
+            return new LLVMValue.Register(tmp, ev.type());
+        } else {
+            return ev.value(); // already a loaded value
+        }
+    }
 
     // Visit the block of statements and generate IR for each one
     @Override
@@ -257,28 +271,31 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
             default -> type;
         };
 
+        // Promote operands to result type...
+
+
         // Generate an instruction based on LHS, RHS, and operand, then put result in a tmp...
         LLVMValue tmp = new LLVMValue.Register(context.getNextTmp(), type);
         context.symbolTable.define(tmp.getRef(), tmp);
 
         irBuilder.append(tmp.getRef() + " = ");
         irBuilder.append(
-            switch (expr.operator()) {
+            switch (expr.operator().toUpperCase()) {
                 case "+" -> (tmp.getType() == "double" ? "f" : "") + "add " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "-" -> (tmp.getType() == "double" ? "f" : "") + "sub " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "*" -> (tmp.getType() == "double" ? "f" : "") + "mul " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "DIV", "/" -> (tmp.getType() == "double" ? "f" : "s") + "div " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "MOD" -> (tmp.getType() == "double" ? "f" : "s") + "rem " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
 
-                case "=" -> "icmp eq " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case "<>" -> "icmp ne " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case "<" -> "icmp slt " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case "<=" -> "icmp sle " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case ">" -> "icmp sgt " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case ">=" -> "icmp sge " + tmp.getRef() + ", " + rhsTemp.getRef();
-
-                case "AND" -> "and i1 " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case "OR" -> "or i1 " + tmp.getRef() + ", " + rhsTemp.getRef();
+                case "=" -> (tmp.getType().equals("double") ? "fcmp oeq " : "icmp eq ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case "<>" -> (tmp.getType().equals("double") ? "fcmp one " : "icmp ne ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case "<" -> (tmp.getType().equals("double") ? "fcmp olt " : "icmp slt ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case "<=" -> (tmp.getType().equals("double") ? "fcmp ole " : "icmp sle ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case ">" -> (tmp.getType().equals("double") ? "fcmp ogt " : "icmp sgt ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case ">=" -> (tmp.getType().equals("double") ? "fcmp oge " : "icmp sge ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                
+                case "AND" -> "and i1 " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case "OR" -> "or i1 " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
 
                 // TODO: OTHER CASES IF APPLICABLE
                 default -> throw new RuntimeException("Unexpected operator: " + expr.operator());

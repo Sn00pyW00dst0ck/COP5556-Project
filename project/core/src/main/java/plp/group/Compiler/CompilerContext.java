@@ -25,11 +25,11 @@ public class CompilerContext {
     public SymbolTable symbolTable = new SymbolTable(Optional.empty());
 
     private int tempCounter = 0;
-    private int labelCounter = 0;
+    private int labelCounter = 1; // Labels have to start at 1 I guess...
     private int stringCounter = 0;
 
     public String getNextTmp() { return "%tmp" + (tempCounter++); }
-    public String getNextLabel() { return "" + (labelCounter++); }
+    public String getNextLabel() { return "label_" + (labelCounter++); }
     public String getNextString() { return "@llvm.str." + (stringCounter++); }
 
     
