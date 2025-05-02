@@ -102,6 +102,7 @@ public class InterpreterUnitTest {
             Arguments.of("Case Statement", "case_statement.pas", "case_statement.out"),
             Arguments.of("Comparison Operators", "comparison_operators.pas", "comparison_operators.out"),
             Arguments.of("Enumerations", "enumerations.pas", "enumerations.out"),
+            Arguments.of("For Loop", "for_loop_test.pas", "for_loop_test.out"),
             Arguments.of("Function Definition", "function_definition.pas", "function_definition.out"),
             Arguments.of("Goto Statement Simple", "goto_statement_simple.pas", "goto_statement_simple.out"),
             Arguments.of("Goto Statement Complex", "goto_statement_complex.pas", "goto_statement_complex.out"),
@@ -114,7 +115,8 @@ public class InterpreterUnitTest {
             Arguments.of("Repetitive Statements", "repetetive_statements.pas", "repetetive_statements.out"),
             Arguments.of("Return", "return.pas", "return.out"),
             Arguments.of("Simple Class", "simple_class.pas", "simple_class.out"), 
-            Arguments.of("Simple Math", "simple_math.pas", "simple_math.out")
+            Arguments.of("Simple Math", "simple_math.pas", "simple_math.out"),
+            Arguments.of("While Loop", "while_loop_test.pas", "while_loop_test.out")
         );
     }
 }
