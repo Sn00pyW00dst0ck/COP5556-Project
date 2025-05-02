@@ -203,13 +203,19 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     @Override
     public Object visitStatementRepeat(AST.Statement.Repeat stmt) {
         String bodyLabel = context.getNextLabel();
+        String condLabel = context.getNextLabel();
         String endLabel = context.getNextLabel();
 
         // Push loop labels for break/continue handling
+        irBuilder.append("br label %" + bodyLabel + "\n");
         irBuilder.append(bodyLabel + ":\n");
+        context.pushLoopLabels(endLabel, condLabel);
         this.visit(stmt.body());
+        irBuilder.append("br label %" + condLabel + "\n");
+        irBuilder.append(condLabel + ":\n");
 
         // Pop loop labels after loop body
+        context.popLoopLabels();
         LLVMValue condVal = (LLVMValue) this.visit(stmt.condition());
         irBuilder.append("br i1 " + condVal.getRef() + ", label %" + endLabel + ", label %" + bodyLabel + "\n");
 
