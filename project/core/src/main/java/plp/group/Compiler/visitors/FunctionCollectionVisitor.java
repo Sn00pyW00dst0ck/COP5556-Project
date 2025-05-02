@@ -27,10 +27,12 @@ public class FunctionCollectionVisitor extends ASTBaseVisitor<Void> {
 
         // Grab parameter types TODO: add class 'this'
         ArrayList<String> llvmParameterTypes = new ArrayList<>();
+        ArrayList<String> llvmParameterNames = new ArrayList<>();
         for (var parameter : dec.method().parameters()) {
             // TODO: handle by value vs by reference / etc....
-            for (var _ : parameter.parameters()) {
+            for (var name : parameter.parameters()) {
                 llvmParameterTypes.add(this.context.getLLVMType(parameter.parameterType()));
+                llvmParameterNames.add(name);
             }
         }
 
@@ -40,6 +42,7 @@ public class FunctionCollectionVisitor extends ASTBaseVisitor<Void> {
             new LLVMValue.LLVMFunction.UserFunction(
                 dec.name(),
                 llvmReturnType,
+                llvmParameterNames,
                 llvmParameterTypes,
                 dec.body()
             )

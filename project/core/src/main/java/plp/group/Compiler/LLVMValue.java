@@ -31,12 +31,15 @@ public interface LLVMValue {
         public java.lang.String getRef() { return name; }
     }
 
+    /**
+     * Represents a global variable (@gloabl)
+     */
     public record Global(
         java.lang.String name,
         java.lang.String type
     ) implements LLVMValue {
         public java.lang.String getType() { return type; }
-        public java.lang.String getRef() { return "@" + name; }
+        public java.lang.String getRef() { return name; }
     }
 
     /**
@@ -119,6 +122,7 @@ public interface LLVMValue {
         public record UserFunction(
             java.lang.String name,
             java.lang.String returnType,
+            List<java.lang.String> paramNames,
             List<java.lang.String> paramTypes,
             Optional<AST.Block> body // no body = extern / built in
         ) implements LLVMFunction {
@@ -138,7 +142,14 @@ public interface LLVMValue {
             public java.lang.String getDeclare() { return "declare " + getSignature(); }
         
             @Override
-            public java.lang.String getDefineHeader() { return "define " + getSignature() + " {"; }
+            public java.lang.String getDefineHeader() { 
+                java.lang.String params = "";
+                for (int i = 0; i < paramNames.size(); i++) {
+                    params += paramTypes.get(i) + " %" + paramNames.get(i);
+                    if (i < paramNames.size() - 1) { params += ", "; }
+                }
+                return "define " + returnType + " @" + name +  "(" + params + ") {";
+            }
     
             @Override
             public Optional<LLVMValue.Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {

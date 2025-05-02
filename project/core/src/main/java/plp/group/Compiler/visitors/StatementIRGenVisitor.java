@@ -1,6 +1,7 @@
 package plp.group.Compiler.visitors;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import plp.group.AST.AST;
@@ -25,12 +26,19 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
     //#region Variable Defs
 
+
+    @Override
+    public Object visitDeclarationCallable(AST.Declaration.Callable dec) {
+        // We already visited the callables...
+        return null;
+    }
+
     @Override
     public Object visitDeclarationVariable(AST.Declaration.Variable dec) {
         dec.variables().forEach((variable) -> {
-            LLVMValue.Register tmp = new LLVMValue.Register("%" + variable.name(), context.getLLVMType(dec.type()));
+            LLVMValue.Pointer tmp = new LLVMValue.Pointer("%" + variable.name(), new LLVMValue.Register("%" + variable.name(), context.getLLVMType(dec.type())));
             context.symbolTable.define(variable.name(), tmp);
-            irBuilder.append(tmp.getRef() + " = alloca " + tmp.getType() + "\n");
+            irBuilder.append(tmp.getRef() + " = alloca " + tmp.getPointeeType() + "\n");
         });
         return null;
     }
@@ -61,7 +69,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         }
 
         // Store value into pointer
-        irBuilder.append("store " + rhs.getType() + " " + rhs.getRef() + ", " + ev.value().getType() + "* " + ev.value().getRef() + "\n");
+        irBuilder.append("store " + rhs.getType() + " " + rhs.getRef() + ", " + (ev.type().equals("ptr") ? ev.type() : ev.type() + "*")  + " " + ev.value().getRef() + "\n");
         return null;
     }
 
@@ -72,7 +80,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         if (ev.isPointer()) {
             // Do a final load
             String tmp = context.getNextTmp();
-            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
+            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.type() + " " + ev.value().getRef() + "\n");
             return new LLVMValue.Register(tmp, ev.type());
         } else {
             return ev.value(); // already a loaded value
@@ -351,7 +359,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         if (ev.isPointer()) {
             // Do a final load
             String tmp = context.getNextTmp();
-            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + "* " + ev.value().getRef() + "\n");
+            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.type() + "* " + ev.value().getRef() + "\n");
             return new LLVMValue.Register(tmp, ev.type());
         } else {
             return ev.value(); // already a loaded value
@@ -416,7 +424,10 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         return switch (variable) {
             case AST.Variable.Simple simple -> {
                 LLVMValue variableValue = context.symbolTable.lookup(simple.name(), false).get();
-                yield new EvaluatedVariable(variableValue, variableValue.getType(), true);
+                if (variableValue instanceof LLVMValue.Pointer p) {
+                    yield new EvaluatedVariable(variableValue, p.getPointeeType(), true);
+                }
+                yield new EvaluatedVariable(variableValue, variableValue.getType(), false);
             }
             case AST.Variable.Address address -> {
                 // Address-of operator, don't load the pointer? 
@@ -436,7 +447,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                             if (!(current.value() instanceof LLVMValue.LLVMFunction function)) {
                                 throw new RuntimeException("Attempted to call a non-function: " + current.value());
                             }
-
+                            
                             // Evaluate the args...
                             List<LLVMValue> argValues = new java.util.ArrayList<>();
                             for (var arg : methodCall.args()) {
