@@ -161,39 +161,42 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     @Override
     public Object visitStatementCase(AST.Statement.Case stmt) {
         LLVMValue cond = (LLVMValue) this.visit(stmt.expr());
-        String endLabel = context.getNextLabel();
 
-        // Generate labels for each case branch
+        // Generate labels for each branch
         List<String> caseLabels = stmt.branches().stream()
             .map(_ -> context.getNextLabel())
             .collect(Collectors.toList());
+        String elseLabel = (stmt.elseBranch().isPresent() ? context.getNextLabel() : "");
+        String exitLabel = context.getNextLabel();
 
-        // Generate a label for the else branch if it exists
+        // generate switch instruction
+        irBuilder.append("switch " + cond.getType() + " " + cond.getRef() + ", label %" + (stmt.elseBranch().isPresent() ? elseLabel : exitLabel) + "[\n");
         for (int i = 0; i < stmt.branches().size(); i++) {
+            String caseLabel = caseLabels.get(i);
             AST.Statement.Case.CaseElement caseElement = stmt.branches().get(i);
             for (AST.Expression val : caseElement.values()) {
-                LLVMValue matchVal = (LLVMValue) this.visit(val);
-                String caseLabel = caseLabels.get(i);
-                String tmp = context.getNextTmp();
-                irBuilder.append(tmp + " = icmp eq i32 " + cond.getRef() + ", " + matchVal.getRef() + "\n");
-                irBuilder.append("br i1 " + tmp + ", label %" + caseLabel + ", label %" + endLabel + "\n");
+                LLVMValue.Immediate matchVal = (LLVMValue.Immediate) this.visit(val);
+                irBuilder.append(matchVal.getType() + " " + matchVal.value() + ", label %" + caseLabel + "\n");
             }
         }
+        irBuilder.append("]\n");
 
+        // generate each case block
         for (int i = 0; i < stmt.branches().size(); i++) {
-            String label = caseLabels.get(i);
-            AST.Statement.Case.CaseElement caseElement = stmt.branches().get(i);
-            irBuilder.append(label + ":\n");
-            this.visit(caseElement.body());
-            irBuilder.append("br label %" + endLabel + "\n");
+            irBuilder.append(caseLabels.get(i) + ":\n");
+            this.visit(stmt.branches().get(i).body());
+            irBuilder.append("br label %" + exitLabel + "\n");
         }
 
-        stmt.elseBranch().ifPresent(elseBranch -> {
+        // generate else case block
+        stmt.elseBranch().ifPresent((elseBranch -> {
+            irBuilder.append(elseLabel + ":\n");
             this.visit(elseBranch);
-            irBuilder.append("br label %" + endLabel + "\n");
-        });
+            irBuilder.append("br label %" + exitLabel + "\n");
+        }));
 
-        irBuilder.append(endLabel + ":\n");
+        // generate exit label
+        irBuilder.append(exitLabel + ":\n");
         return null;
     }
 

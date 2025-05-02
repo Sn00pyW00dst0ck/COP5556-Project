@@ -66,6 +66,7 @@ public class EndpointController {
         	    ASTBuilder builder = new ASTBuilder();
         	    AST.Program AST = (AST.Program) builder.visit(tree);
 				llvmCode = (new CompilerContext()).compileToLLVMIR(AST);
+				System.out.println(llvmCode);
         	} catch (Exception e) {
         	    e.printStackTrace();
         	}
