@@ -342,7 +342,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
         irBuilder.append(tmp.getRef() + " = ");
         irBuilder.append(
-            switch (expr.operator()) {
+            switch (expr.operator().toUpperCase()) {
                 case "+" -> (tmp.getType() == "double" ? "f" : "") + "add " + tmp.getType() + " 0, " + exprTemp.getRef();
                 case "-" -> (tmp.getType() == "double" ? "f" : "") + "sub " + tmp.getType() + " 0, " + exprTemp.getRef();
 

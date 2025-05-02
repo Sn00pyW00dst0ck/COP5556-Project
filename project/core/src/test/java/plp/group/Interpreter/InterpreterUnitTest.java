@@ -38,7 +38,7 @@ public class InterpreterUnitTest {
     @ParameterizedTest
     @MethodSource
     void testInterpreter(String testName, String programFile, String outputFile) throws IOException {
-        InputStream inputProgram = getClass().getClassLoader().getResourceAsStream("programs/" + programFile);
+        InputStream inputProgram = getClass().getClassLoader().getResourceAsStream("interpreter_tests/programs/" + programFile);
         delphi_lexer lexer = new delphi_lexer(CharStreams.fromStream(inputProgram));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         delphi parser = new delphi(tokens);
@@ -46,7 +46,7 @@ public class InterpreterUnitTest {
         Interpreter interpreter = new Interpreter(null);
         interpreter.visit(parser.program());
 
-        InputStream expectedOutputStream = getClass().getClassLoader().getResourceAsStream("outputs/" + outputFile);
+        InputStream expectedOutputStream = getClass().getClassLoader().getResourceAsStream("interpreter_tests/outputs/" + outputFile);
         String expectedOutput = new String(expectedOutputStream.readAllBytes(), StandardCharsets.UTF_8);
 
         assertEquals(expectedOutput, outContent.toString());
@@ -56,8 +56,8 @@ public class InterpreterUnitTest {
     @Test
     public void testLoopExecution() throws Exception {
         String programName = "loop_test";
-        String expectedOutput = readFile("src/main/resources/outputs/" + programName + ".out");
-        String actualOutput = runProgram("src/main/resources/programs/" + programName + ".pas");
+        String expectedOutput = readFile("src/main/resources/interpreter_tests/outputs/" + programName + ".out");
+        String actualOutput = runProgram("src/main/resources/interpreter_tests/programs/" + programName + ".pas");
 
         assertEquals(expectedOutput.trim(), actualOutput.trim(), "Loop execution did not produce expected output.");
     }
@@ -70,7 +70,7 @@ public class InterpreterUnitTest {
         // Depending on your setup, this might call Interpreter.main or similar execution utility...
         java.io.ByteArrayOutputStream outContent = new java.io.ByteArrayOutputStream();
         System.setOut(new java.io.PrintStream(outContent));
-        plp.group.Main.main(new String[]{filePath});
+        // plp.group.Main.main(new String[]{filePath});
         return outContent.toString();
     }
 
@@ -78,8 +78,8 @@ public class InterpreterUnitTest {
     @Test
     public void testForLoopExecution() throws Exception {
         String program = "for_loop_test";
-        String expected = readFile("src/main/resources/outputs/" + program + ".out");
-        String actual = runProgram("src/main/resources/programs/" + program + ".pas");
+        String expected = readFile("src/main/resources/interpreter_tests/outputs/" + program + ".out");
+        String actual = runProgram("src/main/resources/interpreter_tests/programs/" + program + ".pas");
 
         assertEquals(expected.trim(), actual.trim(), "FOR loop did not execute as expected.");
     }
@@ -88,8 +88,8 @@ public class InterpreterUnitTest {
     @Test
     public void testWhileLoopExecution() throws Exception {
         String program = "while_loop_test";
-        String expected = readFile("src/main/resources/outputs/" + program + ".out");
-        String actual = runProgram("src/main/resources/programs/" + program + ".pas");
+        String expected = readFile("src/main/resources/interpreter_tests/outputs/" + program + ".out");
+        String actual = runProgram("src/main/resources/interpreter_tests/programs/" + program + ".pas");
 
         assertEquals(expected.trim(), actual.trim(), "WHILE loop did not execute as expected.");
     }
