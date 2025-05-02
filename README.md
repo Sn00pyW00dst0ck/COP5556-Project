@@ -263,9 +263,7 @@ The following items have been implemented within this version of the project:
 
 ## Bonus Implementations
 
-The compilation of `.ll` to `.wasm` relies on the [TWR WASM LIBRARY](https://twiddlingbits.dev/docsite/). The web server will invoke a `Makefile` to compile the `.ll` to `.wasm` and then serve this module to the frontend. The frontend website will load this module and then run the program in the browser. See below for images of the outputs.
-
-
+The compilation of `.ll` to `.wasm` relies on the [TWR WASM LIBRARY](https://twiddlingbits.dev/docsite/). The web server will invoke a `Makefile` to compile the `.ll` to `.wasm` and then serve this module to the frontend. The frontend website will load this module and then run the program in the browser. See the demo video for samples of running the bonus.
 
 ## References
 
