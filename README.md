@@ -6,6 +6,8 @@ This is a pseudo-delphi interpreter written utilizing ANTLR4 and Java.
 
 By [Gabriel Aldous](https://github.com/Sn00pyW00dst0ck) (70444594) & [Rishika Sharma](https://github.com/rishika64) (32772571)
 
+## Video Walkthrough 
+
 [![Demo Video](https://img.youtube.com/vi/1luBAvlZxVQ/0.jpg)](https://youtu.be/1luBAvlZxVQ)
 
 ## Project Setup 
