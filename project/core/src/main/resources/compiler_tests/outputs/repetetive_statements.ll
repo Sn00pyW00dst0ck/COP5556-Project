@@ -109,3 +109,4 @@ label_internal_12:
 call i32 (ptr, ...) @printf(ptr @llvm.str.7)
 ret i32 0
 }
+

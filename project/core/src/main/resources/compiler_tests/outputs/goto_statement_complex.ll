@@ -42,3 +42,4 @@ label_400:
 call i32 (ptr, ...) @printf(ptr @llvm.str.5, ptr @llvm.str.4)
 ret i32 0
 }
+

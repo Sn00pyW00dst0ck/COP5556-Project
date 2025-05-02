@@ -91,3 +91,4 @@ call void @display()
 call void @parameter_display(i32 15, i32 45)
 ret i32 0
 }
+

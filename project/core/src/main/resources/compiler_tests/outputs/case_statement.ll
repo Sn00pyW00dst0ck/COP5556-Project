@@ -55,3 +55,4 @@ br label %label_internal_7
 label_internal_7:
 ret i32 0
 }
+

@@ -42,3 +42,4 @@ call i32 (ptr, ...) @printf(ptr @llvm.str.0, i32 %tmp8)
 call i32 (ptr, ...) @printf(ptr @llvm.str.0, i32 %tmp9)
 ret i32 0
 }
+

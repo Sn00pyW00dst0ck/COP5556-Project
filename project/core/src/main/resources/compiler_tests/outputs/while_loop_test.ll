@@ -37,3 +37,4 @@ br label %label_internal_1
 label_internal_3:
 ret i32 0
 }
+

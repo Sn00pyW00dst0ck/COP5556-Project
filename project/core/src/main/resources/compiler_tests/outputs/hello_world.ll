@@ -23,3 +23,4 @@ define i32 @main() {
 call i32 (ptr, ...) @printf(ptr @llvm.str.1, ptr @llvm.str.0)
 ret i32 0
 }
+

@@ -59,3 +59,4 @@ store double %tmp14, double* %result
 call i32 (ptr, ...) @printf(ptr @llvm.str.5, double %tmp15)
 ret i32 0
 }
+
