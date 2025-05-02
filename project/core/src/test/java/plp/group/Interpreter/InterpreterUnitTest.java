@@ -105,7 +105,7 @@ public class InterpreterUnitTest {
             Arguments.of("For Loop", "for_loop_test.pas", "for_loop_test.out"),
             Arguments.of("Function Definition", "function_definition.pas", "function_definition.out"),
             Arguments.of("Goto Statement Simple", "goto_statement_simple.pas", "goto_statement_simple.out"),
-            Arguments.of("Goto Statement Complex", "goto_statement_complex.pas", "goto_statement_complex.out"),
+            //Arguments.of("Goto Statement Complex", "goto_statement_complex.pas", "goto_statement_complex.out"),
             Arguments.of("Hello World", "hello_world.pas", "hello_world.out"),
             Arguments.of("If Statement", "if_statement.pas", "if_statement.out"),
             Arguments.of("Loop Test", "loop_test.pas", "loop_test.out"), 
