@@ -140,6 +140,10 @@ Path: `project/web`
   - `EndpointController.java` — REST controller for code evaluation
   - The web server uses the Makefile found in resources folder to compile received code into `.ll` files and then to `.wasm` files, placing the result in the `static/wasm/` folder for the frontend to query.
 
+<img src="project/web/demo.png" alt="Webpage Demo" width="700" height="500">
+
+<img src="project/web/loop.png" alt="Example Demo" width="700" height="500">
+
 ---
 
 ### Interpreter Logic
