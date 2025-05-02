@@ -27,7 +27,7 @@ The following libraries are utilized:
 2. [JLine](https://jline.org/) - to simplify reading input from the user within the CLI program, and to provide advanced features like command history via arrow keys.
 3. [Big-Math](https://eobermuhlner.github.io/big-math/) - to support trigonometric, and other advanced mathematical operations on **BigDecimal** data type, which Java does not natively support. 
 
-### Building the Project
+## Building the Project
 
 When within the top level directory, VSCode should identify the Maven Java project. The `Explorer` tab should appear in the vertical toolbar to the left of VSCode. You can expand the `Maven` tab to view all of the available Maven lifecycle commands. Run the `package` lifecycle command to generate the ANTLR4 created classes, which are necessary for execution. This command will also run the unit tests for the project.
 
@@ -48,12 +48,16 @@ java -jar target/cop5556-project.jar <options>
 
 ## Running Test Cases
 
+All test files under `core/src/test/java/`:
+- Unit tests: `ASTBuilderTest`, `InterpreterTest`, `OptimizerTest`
+- Integration tests: `CoreTest`
+- Sample Pascal test cases in `resources/programs/` with expected outputs in `resources/outputs/`
+
 This project includes unit tests to verify the functionality of the interpreter. For running Tests with Maven:
-```
+```bash
+cd project/core
 mvn test
 ```
-
-Test cases are located in `src/test/java/plp/group/`.
 
 ## Project Overview
 
@@ -69,12 +73,59 @@ COP5556-Project/
 │   │   ├── main/
 │   │   │   ├── antlr4/           # ANTLR grammar files
 │   │   │   ├── java/plp/group/   # Java source code
+|   |   |   |   ├── AST/          # AST builder
+|   |   |   |   ├── Compiler/     # Compiler logic 
 │   │   │   │   ├── Interpreter/  # Interpreter logic
 │   │   │   │   ├── Optimizer/    # Optimizer logic
 │   │   │   │   ├── App.java      # Command-line interface
 │   │   │   ├── resources/        # Sample test Pascal programs
+│   ├── web
+|   │   ├── src/   
+|   |   |   |   ├── static/       # web files (HTML, CSS, JS)
 │   │   ├── test/                 # Unit tests
 ```
+
+## Core Components
+
+### Grammar (ANTLR4)
+Located in: `core/src/main/antlr4/plp/group/project/`
+
+- `delphi.g4` — Parser rules for the Pascal subset
+- `delphi_lexer.g4` — Lexical tokens (keywords, identifiers, literals)
+
+### AST & Visitors
+- `ASTBuilder.java` — Walks parse tree to build a custom AST
+- `ASTVisitor.java` — Visitor pattern used for traversal
+- `ASTBaseVisitor.java` — Base class for interpreter/compiler visitors
+
+### Interpreter Logic
+
+Key files:
+- `Interpreter.java` — Main execution engine
+- `RuntimeValue.java` — Type system and runtime object representation
+- `Scope.java` / `Environment.java` — Variable scoping and resolution
+- `LabelWalker.java` — Resolves `goto` labels for control flow
+- `ControlFlowExceptions/` — Manages exceptions like `break`, `goto`, `return`
+
+### Compiler & IR
+- `IRBuilder.java` — Constructs low-level IR (Intermediate Representation)
+- `StatementIRGenVisitor.java` — Translates AST to IR
+- `FunctionCollectionVisitor.java`, `StringCollectionVisitor.java`
+
+### Optimizer
+- `Optimizer.java` — Performs basic IR optimizations
+
+### Web UI
+
+Path: `project/web`
+
+- Built with Spring Boot
+- Frontend in `static/`:
+  - `index.html`, `editor.js`, `style.css`, `main.js`
+- Backend:
+  - `EndpointController.java` — REST controller for code evaluation
+
+---
 
 ### Interpreter Logic
 
@@ -105,6 +156,78 @@ The **Optimizer** class is new to this project and did not exist in the previous
 The re-written program string can then be re-parsed by **ANTLR4** and then ran utilizing the **Interpreter**. Since the **Interpreter** and **Optimizer** are completely independent, the CLI interface utilized to run the program can show parse trees when optimized or unoptimized, and allow interpretation when optimized or not optimized via command line argument flags.
 
 The **Optimizer** is tested to ensure that it does not invalidate any valid program parse trees, and to ensure that calcualtions performed are correct.
+
+### Compiler Logic
+
+The **Compiler** component in this project primarily deals with the construction of an **Intermediate Representation (IR)** of the source program, which serves as a lower-level abstraction layer between the high-level Abstract Syntax Tree (AST) and eventual execution or optimization. This modular compiler design makes it easier to extend or modify backend targets in the future, including emitting LLVM IR, bytecode, or even binary executables. In the current implementation, it forms the backbone of the **IRBuilder** and the code generation path used for optimization and analysis.
+
+#### Compiler Architecture
+
+At a high level, the compiler operates in **three main phases**:
+
+1. **AST Traversal** using the `StatementIRGenVisitor`
+2. **Symbol Table Management** via `CompilerContext`
+3. **IR Construction** with `LLVMValue`, `IRBuilder`, and typed registers
+
+#### 1. AST Traversal: `StatementIRGenVisitor`
+
+The core compilation is handled by the `StatementIRGenVisitor`, a visitor class that walks through the high-level AST nodes (such as variable declarations, assignments, conditionals, and loops) and translates them into low-level IR instructions.
+
+**Key Responsibilities:**
+- Emits `alloca` instructions for variable declarations.
+- Generates SSA-style instructions (`%register = op arg1 arg2`) for expressions.
+- Encodes control flow (conditional branches, jumps).
+- Manages function entry and return code generation.
+- Supports nested scopes, procedure bodies, and parameter passing.
+
+**Example:**
+```java
+LLVMValue.Register tmp = new LLVMValue.Register("%" + variable.name(), context.getLLVMType(dec.type()));
+irBuilder.append(tmp.getRef() + " = alloca " + tmp.getType() + "\n");
+```
+
+This constructs a typed memory allocation instruction and adds it to the IR stream.
+
+#### 2. Symbol Table & Type Management: `CompilerContext` and `SymbolTable`
+
+The `CompilerContext` is the orchestrator of the IR generation phase. It maintains:
+- The current symbol table (`SymbolTable`) used to resolve identifiers
+- A type system mapping identifiers to LLVMValue types
+- A label and register allocator for unique naming
+
+**SymbolTable** supports:
+- Nested scopes (with lexical parent link)
+- Variable declaration and shadowing
+- Type resolution and conflict detection
+
+This makes it possible for the compiler to properly generate typed operations and reference variables across scopes, including functions and class methods.
+
+#### 3. IR Construction: `IRBuilder` + `LLVMValue`
+
+The `IRBuilder` is the low-level utility that accumulates IR strings (effectively a textual IR buffer) while visiting the AST.
+
+#### `LLVMValue`
+A set of classes under `LLVMValue` abstracts:
+- Registers (e.g., `%r1`)
+- Constants (e.g., `i32 5`)
+- Types (`i32`, `float`, `void`)
+- Memory references (e.g., `load`, `store`)
+
+This abstraction separates type-handling and register allocation logic from syntax, allowing reuse and ensuring all IR follows LLVM-style conventions.
+
+#### Design
+
+- **Single Static Assignment (SSA)**: The IR uses unique register names for each value binding (e.g., `%r1 = add i32 %a, %b`), making the generated IR clean, traceable, and easily optimizable.
+- **IR Decoupling**: The visitor only emits IR strings; no backend emission (e.g., LLVM, binary) is hardcoded, allowing easy refactoring for future backends.
+- **Separation of Concerns**: IR logic is separate from interpretation, letting us use the same AST for interpretation and compilation pipelines.
+
+#### Compiler Design Benefits
+
+- **Extensible**: Easy to add new operations or control flow structures
+- **Clear Typing**: Every instruction carries type information
+- **Modular**: Components like `StatementIRGenVisitor` and `IRBuilder` are self-contained
+- **Debuggable**: IR can be inspected line by line for correctness
+- **Bridge to Optimization**: Serves as the canonical source for `Optimizer.java` to manipulate constant expressions
 
 ## What Is Implemented
 
@@ -155,8 +278,6 @@ The following items have been implemented within this version of the project:
 9. Ability to perform calculations utilizing Enumerations, including looping over them and using them in case statement conditions.
 10. Unit tests for nearly all of the above mentioned features.
 
-## Bonus Implementations
-
 ### Constant Propagation
 This optional optimization evaluates constant expressions at compile time. For example:
 
@@ -195,6 +316,12 @@ a := 1;
 MyLabel:
 a := a + 10;
 ```
+
+## Bonus Implementations
+
+### Browser Implementation 
+
+### Video Walkthrough
 
 ## Known Bugs & Limitations
 
