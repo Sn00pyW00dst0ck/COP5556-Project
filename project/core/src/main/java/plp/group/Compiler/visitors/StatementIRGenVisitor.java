@@ -112,9 +112,9 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     
         // Else block
         irBuilder.append(elseLabel + ":\n");
-        if (stmt.elseCase() != null) {
-            this.visit(stmt.elseCase());
-        }
+        stmt.elseCase().ifPresent((elseCase) -> { 
+            this.visit(elseCase);
+        });
         irBuilder.append("br label %" + endLabel + "\n");
     
         // End label

@@ -649,9 +649,9 @@ public class ASTBuilder extends delphiBaseVisitor<Object> {
     public AST.Statement.If visitIfStatement(delphi.IfStatementContext ctx) {
         AST.Expression condition = this.visitExpression(ctx.expression());
         AST.Statement thenBlock = this.visitStatement(ctx.statement(0));
-        AST.Statement elseBlock = null;
+        Optional<AST.Statement> elseBlock = Optional.empty();
         if (ctx.statement(1) != null) {
-            elseBlock = this.visitStatement(ctx.statement(1));
+            elseBlock = Optional.of(this.visitStatement(ctx.statement(1)));
         }
         return new AST.Statement.If(condition, thenBlock, elseBlock);
     }
