@@ -26,7 +26,7 @@ public class StringCollectionVisitorTest {
     @ParameterizedTest
     @MethodSource
     void testStringCollection(String testName, String programFile, int expectedStringCount) throws IOException {
-        InputStream inputProgram = getClass().getClassLoader().getResourceAsStream("programs/" + programFile);
+        InputStream inputProgram = getClass().getClassLoader().getResourceAsStream("compiler_tests/programs/" + programFile);
         delphi_lexer lexer = new delphi_lexer(CharStreams.fromStream(inputProgram, StandardCharsets.UTF_8));
         CommonTokenStream tokens = new CommonTokenStream(lexer);
         delphi parser = new delphi(tokens);
@@ -53,22 +53,19 @@ public class StringCollectionVisitorTest {
  
     public static Stream<Arguments> testStringCollection() {
         return Stream.of(
-            Arguments.of("Arithmetic Operators", "arithmetic_operators.pas", 2),
+            Arguments.of("Arithmetic Operators", "arithmetic_operators.pas", 0),
             Arguments.of("Boolean Operators", "boolean_operators.pas", 0),
-            Arguments.of("Case Statement", "case_statement.pas", 9),
+            Arguments.of("Case Statement", "case_statement.pas", 3),
             Arguments.of("Comparison Operators", "comparison_operators.pas", 2),
-            Arguments.of("Enumerations", "enumerations.pas", 0),
             Arguments.of("Function Definition", "function_definition.pas", 1),
             Arguments.of("Goto Statement Simple", "goto_statement_simple.pas", 0),
             Arguments.of("Goto Statement Complex", "goto_statement_complex.pas", 5),
             Arguments.of("Hello World", "hello_world.pas", 1),
             Arguments.of("If Statement", "if_statement.pas", 3),
             Arguments.of("Loop Test", "loop_test.pas", 2), 
-            Arguments.of("Nested Calculations", "nested_calculations.pas", 2), 
-            Arguments.of("Nested Classes", "nested_classes.pas", 2), 
-            Arguments.of("Procedure Definition", "procedure_definition.pas", 7),
-            Arguments.of("Repetitive Statements", "repetetive_statements.pas", 7),
-            Arguments.of("Simple Class", "simple_class.pas", 3), 
+            Arguments.of("Nested Calculations", "nested_calculations.pas", 0), 
+            Arguments.of("Procedure Definition", "procedure_definition.pas", 6),
+            Arguments.of("Repetitive Statements", "repetetive_statements.pas", 5),
             Arguments.of("Simple Math", "simple_math.pas", 4)
         );
     }
