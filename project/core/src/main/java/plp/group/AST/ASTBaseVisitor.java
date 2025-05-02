@@ -404,7 +404,7 @@ public class ASTBaseVisitor<T> extends ASTVisitor<T> {
     public T visitStatementIf(If stmt) {
         this.visit(stmt.condition());
         this.visit(stmt.thenCase());
-        this.visit(stmt.elseCase());
+        stmt.elseCase().ifPresent((elseCase) -> this.visit(elseCase) );
         return null;
     }
 

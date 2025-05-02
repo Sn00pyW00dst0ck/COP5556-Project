@@ -289,7 +289,7 @@ public sealed interface AST {
         public record If(
             AST.Expression condition,
             AST.Statement thenCase,
-            AST.Statement elseCase
+            Optional<AST.Statement> elseCase
         ) implements Statement {};
 
         public record Case(

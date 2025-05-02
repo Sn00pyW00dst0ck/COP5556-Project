@@ -10,7 +10,7 @@ const initEditor = async (containerId) => {
 
         require(['vs/editor/editor.main'], function () {
             const editor = monaco.editor.create(document.getElementById(containerId), {
-                value: 'console.log("Hello from module-like setup!")',
+                value: '',
                 language: '',
                 theme: 'vs-dark'
             });

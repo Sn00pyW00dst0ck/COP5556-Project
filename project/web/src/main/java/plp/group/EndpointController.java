@@ -14,7 +14,6 @@ import org.springframework.web.bind.annotation.RestController;
 import plp.group.AST.AST;
 import plp.group.AST.ASTBuilder;
 import plp.group.Compiler.CompilerContext;
-import plp.group.Optimizer.Optimizer;
 import plp.group.project.delphi;
 import plp.group.project.delphi_lexer;
 

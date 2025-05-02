@@ -1,10 +1,12 @@
 package plp.group.Compiler.visitors;
 
 import java.util.List;
+import java.util.function.Function;
 import java.util.stream.Collectors;
 
 import plp.group.AST.AST;
-import plp.group.AST.ASTBaseVisitor; 
+import plp.group.AST.ASTBaseVisitor;
+import plp.group.AST.AST.Statement.For;
 import plp.group.Compiler.CompilerContext;
 import plp.group.Compiler.LLVMValue;
 
@@ -24,12 +26,19 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
     //#region Variable Defs
 
+
+    @Override
+    public Object visitDeclarationCallable(AST.Declaration.Callable dec) {
+        // We already visited the callables...
+        return null;
+    }
+
     @Override
     public Object visitDeclarationVariable(AST.Declaration.Variable dec) {
         dec.variables().forEach((variable) -> {
-            LLVMValue.Register tmp = new LLVMValue.Register("%" + variable.name(), context.getLLVMType(dec.type()));
+            LLVMValue.Pointer tmp = new LLVMValue.Pointer("%" + variable.name(), new LLVMValue.Register("%" + variable.name(), context.getLLVMType(dec.type())));
             context.symbolTable.define(variable.name(), tmp);
-            irBuilder.append(tmp.getRef() + " = alloca " + tmp.getType() + "\n");
+            irBuilder.append(tmp.getRef() + " = alloca " + tmp.getPointeeType() + "\n");
         });
         return null;
     }
@@ -39,22 +48,44 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     //#region Statements
 
     @Override
-    public Object visitStatementAssignment(AST.Statement.Assignment stmt) {
-    // Evaluate RHS first
-    Object value = this.visit(stmt.value());
-    LLVMValue rhs = (LLVMValue) value;
-
-    // Evaluate LHS as pointer (should be an lvalue)
-    EvaluatedVariable ev = evaluateVariable(stmt.variable().variable());
-
-    if (!ev.isPointer()) {
-        throw new RuntimeException("Cannot assign to a non-pointer variable.");
+    public Object visitStatementLabeled(AST.Statement.Labeled stmt) {
+        irBuilder.append("br label %label_" + stmt.label() + "\n");
+        irBuilder.append("label_" + stmt.label() + ":\n");
+        this.visit(stmt.statement());
+        return null;
     }
 
-    // Store value into pointer
-    irBuilder.append("store " + rhs.getType() + " " + rhs.getRef() + ", " + ev.value().getType() + " " + ev.value().getRef() + "\n");
-    return null;
-}
+    @Override
+    public Object visitStatementAssignment(AST.Statement.Assignment stmt) {
+        // Evaluate RHS first
+        Object value = this.visit(stmt.value());
+        LLVMValue rhs = (LLVMValue) value;
+
+        // Evaluate LHS as pointer (should be an lvalue)
+        EvaluatedVariable ev = evaluateVariable(stmt.variable().variable());
+
+        if (!ev.isPointer()) {
+            throw new RuntimeException("Cannot assign to a non-pointer variable.");
+        }
+
+        // Store value into pointer
+        irBuilder.append("store " + rhs.getType() + " " + rhs.getRef() + ", " + (ev.type().equals("ptr") ? ev.type() : ev.type() + "*")  + " " + ev.value().getRef() + "\n");
+        return null;
+    }
+
+    @Override
+    public Object visitStatementVariable(AST.Statement.Variable stmt) {
+        EvaluatedVariable ev = evaluateVariable(stmt.variable());
+
+        if (ev.isPointer()) {
+            // Do a final load
+            String tmp = context.getNextTmp();
+            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.type() + " " + ev.value().getRef() + "\n");
+            return new LLVMValue.Register(tmp, ev.type());
+        } else {
+            return ev.value(); // already a loaded value
+        }
+    }
 
     // Visit the block of statements and generate IR for each one
     @Override
@@ -81,9 +112,9 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
     
         // Else block
         irBuilder.append(elseLabel + ":\n");
-        if (stmt.elseCase() != null) {
-            this.visit(stmt.elseCase());
-        }
+        stmt.elseCase().ifPresent((elseCase) -> { 
+            this.visit(elseCase);
+        });
         irBuilder.append("br label %" + endLabel + "\n");
     
         // End label
@@ -123,59 +154,68 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
     @Override
     public Object visitStatementGoto(AST.Statement.Goto stmt) {
-        irBuilder.append("br label %" + stmt.label() + "\n");
+        irBuilder.append("br label %label_" + stmt.label() + "\n");
         return null;
     }
 
     @Override
     public Object visitStatementCase(AST.Statement.Case stmt) {
         LLVMValue cond = (LLVMValue) this.visit(stmt.expr());
-        String endLabel = context.getNextLabel();
 
-        // Generate labels for each case branch
+        // Generate labels for each branch
         List<String> caseLabels = stmt.branches().stream()
             .map(_ -> context.getNextLabel())
             .collect(Collectors.toList());
+        String elseLabel = (stmt.elseBranch().isPresent() ? context.getNextLabel() : "");
+        String exitLabel = context.getNextLabel();
 
-        // Generate a label for the else branch if it exists
+        // generate switch instruction
+        irBuilder.append("switch " + cond.getType() + " " + cond.getRef() + ", label %" + (stmt.elseBranch().isPresent() ? elseLabel : exitLabel) + "[\n");
         for (int i = 0; i < stmt.branches().size(); i++) {
+            String caseLabel = caseLabels.get(i);
             AST.Statement.Case.CaseElement caseElement = stmt.branches().get(i);
             for (AST.Expression val : caseElement.values()) {
-                LLVMValue matchVal = (LLVMValue) this.visit(val);
-                String caseLabel = caseLabels.get(i);
-                String tmp = context.getNextTmp();
-                irBuilder.append(tmp + " = icmp eq i32 " + cond.getRef() + ", " + matchVal.getRef() + "\n");
-                irBuilder.append("br i1 " + tmp + ", label %" + caseLabel + ", label %" + endLabel + "\n");
+                LLVMValue.Immediate matchVal = (LLVMValue.Immediate) this.visit(val);
+                irBuilder.append(matchVal.getType() + " " + matchVal.value() + ", label %" + caseLabel + "\n");
             }
         }
+        irBuilder.append("]\n");
 
+        // generate each case block
         for (int i = 0; i < stmt.branches().size(); i++) {
-            String label = caseLabels.get(i);
-            AST.Statement.Case.CaseElement caseElement = stmt.branches().get(i);
-            irBuilder.append(label + ":\n");
-            this.visit(caseElement.body());
-            irBuilder.append("br label %" + endLabel + "\n");
+            irBuilder.append(caseLabels.get(i) + ":\n");
+            this.visit(stmt.branches().get(i).body());
+            irBuilder.append("br label %" + exitLabel + "\n");
         }
 
-        stmt.elseBranch().ifPresent(elseBranch -> {
+        // generate else case block
+        stmt.elseBranch().ifPresent((elseBranch -> {
+            irBuilder.append(elseLabel + ":\n");
             this.visit(elseBranch);
-            irBuilder.append("br label %" + endLabel + "\n");
-        });
+            irBuilder.append("br label %" + exitLabel + "\n");
+        }));
 
-        irBuilder.append(endLabel + ":\n");
+        // generate exit label
+        irBuilder.append(exitLabel + ":\n");
         return null;
     }
 
     @Override
     public Object visitStatementRepeat(AST.Statement.Repeat stmt) {
         String bodyLabel = context.getNextLabel();
+        String condLabel = context.getNextLabel();
         String endLabel = context.getNextLabel();
 
         // Push loop labels for break/continue handling
+        irBuilder.append("br label %" + bodyLabel + "\n");
         irBuilder.append(bodyLabel + ":\n");
+        context.pushLoopLabels(endLabel, condLabel);
         this.visit(stmt.body());
+        irBuilder.append("br label %" + condLabel + "\n");
+        irBuilder.append(condLabel + ":\n");
 
         // Pop loop labels after loop body
+        context.popLoopLabels();
         LLVMValue condVal = (LLVMValue) this.visit(stmt.condition());
         irBuilder.append("br i1 " + condVal.getRef() + ", label %" + endLabel + ", label %" + bodyLabel + "\n");
 
@@ -186,14 +226,10 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
     @Override
     public Object visitStatementFor(AST.Statement.For stmt) {
-        String loopVar = stmt.variable().toString();
         String loopStart = ((LLVMValue) this.visit(stmt.initialValue())).getRef();
         String loopEnd = ((LLVMValue) this.visit(stmt.finalValue())).getRef();
 
-        String varTmp = context.getNextTmp();
-        LLVMValue.Register loopReg = new LLVMValue.Register(varTmp, "i32");
-        context.symbolTable.define(loopVar, loopReg);
-        irBuilder.append(varTmp + " = alloca i32\n");
+        String varTmp = "%" + ((AST.Variable.Simple) stmt.variable()).name();
         irBuilder.append("store i32 " + loopStart + ", i32* " + varTmp + "\n");
 
         String loopCondLabel = context.getNextLabel();
@@ -213,10 +249,12 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
         irBuilder.append(loopBodyLabel + ":\n");
         this.visit(stmt.body());
+
         String nextVal = context.getNextTmp();
         String op = stmt.type() == AST.Statement.For.LoopType.TO ? "add" : "sub";
         irBuilder.append(nextVal + " = " + op + " i32 " + currentVal + ", 1\n");
         irBuilder.append("store i32 " + nextVal + ", i32* " + varTmp + "\n");
+
         irBuilder.append("br label %" + loopCondLabel + "\n");
 
         irBuilder.append(loopEndLabel + ":\n");
@@ -257,28 +295,31 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
             default -> type;
         };
 
+        // Promote operands to result type...
+
+
         // Generate an instruction based on LHS, RHS, and operand, then put result in a tmp...
         LLVMValue tmp = new LLVMValue.Register(context.getNextTmp(), type);
         context.symbolTable.define(tmp.getRef(), tmp);
 
         irBuilder.append(tmp.getRef() + " = ");
         irBuilder.append(
-            switch (expr.operator()) {
+            switch (expr.operator().toUpperCase()) {
                 case "+" -> (tmp.getType() == "double" ? "f" : "") + "add " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "-" -> (tmp.getType() == "double" ? "f" : "") + "sub " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "*" -> (tmp.getType() == "double" ? "f" : "") + "mul " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "DIV", "/" -> (tmp.getType() == "double" ? "f" : "s") + "div " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
                 case "MOD" -> (tmp.getType() == "double" ? "f" : "s") + "rem " + tmp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
 
-                case "=" -> "icmp eq " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case "<>" -> "icmp ne " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case "<" -> "icmp slt " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case "<=" -> "icmp sle " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case ">" -> "icmp sgt " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case ">=" -> "icmp sge " + tmp.getRef() + ", " + rhsTemp.getRef();
-
-                case "AND" -> "and i1 " + tmp.getRef() + ", " + rhsTemp.getRef();
-                case "OR" -> "or i1 " + tmp.getRef() + ", " + rhsTemp.getRef();
+                case "=" -> (tmp.getType().equals("double") ? "fcmp oeq " : "icmp eq ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case "<>" -> (tmp.getType().equals("double") ? "fcmp one " : "icmp ne ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case "<" -> (tmp.getType().equals("double") ? "fcmp olt " : "icmp slt ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case "<=" -> (tmp.getType().equals("double") ? "fcmp ole " : "icmp sle ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case ">" -> (tmp.getType().equals("double") ? "fcmp ogt " : "icmp sgt ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case ">=" -> (tmp.getType().equals("double") ? "fcmp oge " : "icmp sge ") + lhsTemp.getType() + " " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                
+                case "AND" -> "and i1 " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
+                case "OR" -> "or i1 " + lhsTemp.getRef() + ", " + rhsTemp.getRef();
 
                 // TODO: OTHER CASES IF APPLICABLE
                 default -> throw new RuntimeException("Unexpected operator: " + expr.operator());
@@ -301,7 +342,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
 
         irBuilder.append(tmp.getRef() + " = ");
         irBuilder.append(
-            switch (expr.operator()) {
+            switch (expr.operator().toUpperCase()) {
                 case "+" -> (tmp.getType() == "double" ? "f" : "") + "add " + tmp.getType() + " 0, " + exprTemp.getRef();
                 case "-" -> (tmp.getType() == "double" ? "f" : "") + "sub " + tmp.getType() + " 0, " + exprTemp.getRef();
 
@@ -327,7 +368,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         if (ev.isPointer()) {
             // Do a final load
             String tmp = context.getNextTmp();
-            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.value().getType() + "* " + ev.value().getRef() + "\n");
+            irBuilder.append(tmp + " = load " + ev.type() + ", " + ev.type() + "* " + ev.value().getRef() + "\n");
             return new LLVMValue.Register(tmp, ev.type());
         } else {
             return ev.value(); // already a loaded value
@@ -392,7 +433,10 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
         return switch (variable) {
             case AST.Variable.Simple simple -> {
                 LLVMValue variableValue = context.symbolTable.lookup(simple.name(), false).get();
-                yield new EvaluatedVariable(variableValue, variableValue.getType(), true);
+                if (variableValue instanceof LLVMValue.Pointer p) {
+                    yield new EvaluatedVariable(variableValue, p.getPointeeType(), true);
+                }
+                yield new EvaluatedVariable(variableValue, variableValue.getType(), false);
             }
             case AST.Variable.Address address -> {
                 // Address-of operator, don't load the pointer? 
@@ -412,7 +456,7 @@ public class StatementIRGenVisitor extends ASTBaseVisitor<Object> {
                             if (!(current.value() instanceof LLVMValue.LLVMFunction function)) {
                                 throw new RuntimeException("Attempted to call a non-function: " + current.value());
                             }
-
+                            
                             // Evaluate the args...
                             List<LLVMValue> argValues = new java.util.ArrayList<>();
                             for (var arg : methodCall.args()) {

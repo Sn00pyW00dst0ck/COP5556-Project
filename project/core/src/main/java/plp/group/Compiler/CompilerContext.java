@@ -6,6 +6,7 @@ import java.util.Optional;
 import java.util.Stack;
 
 import plp.group.AST.AST;
+import plp.group.AST.AST.Type.Method.ParameterGroup.GroupType;
 import plp.group.Compiler.visitors.FunctionCollectionVisitor;
 import plp.group.Compiler.visitors.StatementIRGenVisitor;
 import plp.group.Compiler.visitors.StringCollectionVisitor;
@@ -25,11 +26,11 @@ public class CompilerContext {
     public SymbolTable symbolTable = new SymbolTable(Optional.empty());
 
     private int tempCounter = 0;
-    private int labelCounter = 0;
+    private int labelCounter = 1; // Labels have to start at 1 I guess...
     private int stringCounter = 0;
 
     public String getNextTmp() { return "%tmp" + (tempCounter++); }
-    public String getNextLabel() { return "" + (labelCounter++); }
+    public String getNextLabel() { return "label_internal_" + (labelCounter++); }
     public String getNextString() { return "@llvm.str." + (stringCounter++); }
 
     
@@ -69,6 +70,9 @@ public class CompilerContext {
      * @return
      */
     public String compileToLLVMIR(AST.Program source) {
+        this.registerBuiltInFunctions();
+        this.symbolTable = this.symbolTable.pushScope();
+
         // Collect all the strings, add all their declarations to the IR.
         (new StringCollectionVisitor(this)).visit(source);
         Map<String, LLVMValue> strings = this.symbolTable.getEntriesOfType(LLVMValue.String.class, false);
@@ -80,28 +84,48 @@ public class CompilerContext {
 
         // TODO: GET ALL THE TYPE DEFS
 
-        this.registerBuiltInFunctions();
-
         // Collect all the user defined functions, add all their declarations to the IR. 
         (new FunctionCollectionVisitor(this)).visit(source);
         Map<String, LLVMValue> functions = this.symbolTable.getEntriesOfType(LLVMValue.LLVMFunction.UserFunction.class, false);
-        for (var function : functions.values()) {
-            ir.appendDeclaration(((LLVMValue.LLVMFunction.UserFunction) function).getDeclare());
+        for (var f : functions.values()) {
+            var function = (LLVMValue.LLVMFunction.UserFunction) f;
+            if (function.body().isEmpty()) {
+                ir.appendDeclaration(function.getDeclare());
+            }
         }
 
         // Write all the function definitions to the IR.
-        for (var function : functions.entrySet()) {
-            // TODO: handle everything in the function body...
-            ((LLVMValue.LLVMFunction.UserFunction) function.getValue()).body().ifPresent((body) -> {
-                ir.functionDefs.append(((LLVMValue.LLVMFunction.UserFunction) function.getValue()).getDefineHeader() + "\n");
+        for (var f : functions.entrySet()) {
+            var function = (LLVMValue.LLVMFunction.UserFunction) f.getValue();
+            function.body().ifPresent((body) -> {
+                ir.functionDefs.append(function.getDefineHeader() + "\n");
+                this.symbolTable = this.symbolTable.pushScope();
+                for (int i = 0; i < function.paramNames().size(); i++) {
+                    this.symbolTable.define(function.paramNames().get(i), new LLVMValue.Register("%" + function.paramNames().get(i), function.paramTypes().get(i)));
+                }
+
+                if (!function.returnType().equals("void")) {
+                    this.ir.functionDefs.append("%result = alloca " + function.returnType() + "\n");
+                    this.symbolTable.define("result", new LLVMValue.Pointer("%result", new LLVMValue.Register("%result", function.returnType())));
+                }
+
                 (new StatementIRGenVisitor(this, ir.functionDefs)).visit(body);
-                ir.functionDefs.append("|\n");
+                if (function.returnType().equals("void")) {
+                    ir.functionDefs.append("ret void\n");
+                } else {
+                    String tmp = this.getNextTmp();
+                    ir.functionDefs.append(tmp + " = load " + function.returnType() + ", ptr %result\n");
+                    ir.functionDefs.append("ret " + function.returnType() + " " + tmp + "\n");
+                }
+                this.symbolTable = this.symbolTable.popScope().get();
+                ir.functionDefs.append("}\n");
             });
         }
-        // TODO: Write all the built in function definitions to the IR.
 
         // Write the main function
+        this.symbolTable = this.symbolTable.pushScope();
         (new StatementIRGenVisitor(this, ir.mainFunction)).visit(source.block());
+        this.symbolTable = this.symbolTable.popScope().get();
 
         return ir.build();
     }
@@ -112,12 +136,28 @@ public class CompilerContext {
      * Registers all built in functions to the symbol table.
      */
     private void registerBuiltInFunctions() {
+        // Define all symbols in the symbol table.
         this.symbolTable.define("write", new LLVMValue.LLVMFunction.WriteFunction());
         this.symbolTable.define("writeln", new LLVMValue.LLVMFunction.WritelnFunction());
-        // TODO: others...
+        this.symbolTable.define("arctan", new LLVMValue.LLVMFunction.ArctanFunction());
+        this.symbolTable.define("cos", new LLVMValue.LLVMFunction.CosFunction());
+        this.symbolTable.define("exp", new LLVMValue.LLVMFunction.ExpFunction());
+        this.symbolTable.define("ln", new LLVMValue.LLVMFunction.LogFunction());
+        this.symbolTable.define("sin", new LLVMValue.LLVMFunction.SinFunction());
+        this.symbolTable.define("sqrt", new LLVMValue.LLVMFunction.SqrtFunction());
+        this.symbolTable.define("trunc", new LLVMValue.LLVMFunction.TruncFunction());
+        this.symbolTable.define("odd", new LLVMValue.LLVMFunction.OddFunction());
+        this.symbolTable.define("round", new LLVMValue.LLVMFunction.RoundFunction());
 
         // Dependencies of built in functions must be declared...
         this.ir.appendDeclaration("declare i32 @printf(ptr noundef, ...)");
+        this.ir.appendDeclaration("declare double @atan(double)");
+        this.ir.appendDeclaration("declare double @cos(double)");
+        this.ir.appendDeclaration("declare double @exp(double)");
+        this.ir.appendDeclaration("declare double @log(double)");
+        this.ir.appendDeclaration("declare double @sin(double)");
+        this.ir.appendDeclaration("declare double @sqrt(double)");
+        this.ir.appendDeclaration("declare double @trunc(double)");
     }
 
     /**

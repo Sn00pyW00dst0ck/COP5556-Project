@@ -31,12 +31,15 @@ public interface LLVMValue {
         public java.lang.String getRef() { return name; }
     }
 
+    /**
+     * Represents a global variable (@gloabl)
+     */
     public record Global(
         java.lang.String name,
         java.lang.String type
     ) implements LLVMValue {
         public java.lang.String getType() { return type; }
-        public java.lang.String getRef() { return "@" + name; }
+        public java.lang.String getRef() { return name; }
     }
 
     /**
@@ -114,11 +117,12 @@ public interface LLVMValue {
         public Optional<LLVMValue.Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder);
     
         /**
-         * Represents a user defined function in LLVM
+         * Represents a user defined function in LLVM.
          */
         public record UserFunction(
             java.lang.String name,
             java.lang.String returnType,
+            List<java.lang.String> paramNames,
             List<java.lang.String> paramTypes,
             Optional<AST.Block> body // no body = extern / built in
         ) implements LLVMFunction {
@@ -138,7 +142,14 @@ public interface LLVMValue {
             public java.lang.String getDeclare() { return "declare " + getSignature(); }
         
             @Override
-            public java.lang.String getDefineHeader() { return "define " + getSignature() + " {"; }
+            public java.lang.String getDefineHeader() { 
+                java.lang.String params = "";
+                for (int i = 0; i < paramNames.size(); i++) {
+                    params += paramTypes.get(i) + " %" + paramNames.get(i);
+                    if (i < paramNames.size() - 1) { params += ", "; }
+                }
+                return "define " + returnType + " @" + name +  "(" + params + ") {";
+            }
     
             @Override
             public Optional<LLVMValue.Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
@@ -167,7 +178,7 @@ public interface LLVMValue {
         }
 
         /**
-         * Built in function 'write'
+         * Built in function 'write'.
          */
         public record WriteFunction() implements LLVMFunction {
 
@@ -236,7 +247,7 @@ public interface LLVMValue {
         };
 
         /**
-         * Built in function 'writeln'
+         * Built in function 'writeln'.
          */
         public record WritelnFunction() implements LLVMFunction {
 
@@ -302,6 +313,323 @@ public interface LLVMValue {
                 irBuilder.append(")\n");
 
                 return Optional.empty();
+            }
+        };
+
+        /**
+         * Built in function 'arctan'.
+         */
+        public record ArctanFunction() implements LLVMFunction {
+            @Override
+            public java.lang.String getType() { return "double (double)"; }
+
+            @Override
+            public java.lang.String returnType() { return "double"; }
+
+            @Override
+            public java.lang.String getRef() { return "@atan"; }
+
+            @Override
+            public java.lang.String getSignature() { return "double @atan(double)"; }
+
+            @Override
+            public java.lang.String getDeclare() { return "declare " + getSignature(); }
+
+            @Override
+            public java.lang.String getDefineHeader() { return "define " + getSignature() + " {"; }
+
+            @Override
+            public Optional<Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
+                java.lang.String tmp = context.getNextTmp();
+                irBuilder.append(tmp + " = call double @atan(");
+                for (int i = 0; i < args.size(); i++) {
+                    irBuilder.append(args.get(i).getType() + " " + args.get(i).getRef());
+                    if (i < args.size() - 1) irBuilder.append(", ");
+                }
+                irBuilder.append(")\n");
+                return Optional.of(new LLVMValue.Register(tmp, "double"));
+            }
+        };
+
+        /**
+         * Built in function 'cos'.
+         */
+        public record CosFunction() implements LLVMFunction {
+            @Override
+            public java.lang.String getType() { return "double (double)"; }
+
+            @Override
+            public java.lang.String returnType() { return "double"; }
+
+            @Override
+            public java.lang.String getRef() { return "@cos"; }
+
+            @Override
+            public java.lang.String getSignature() { return "double @cos(double)"; }
+
+            @Override
+            public java.lang.String getDeclare() { return "declare " + getSignature(); }
+
+            @Override
+            public java.lang.String getDefineHeader() { return "define " + getSignature() + " {"; }
+
+            @Override
+            public Optional<Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
+                java.lang.String tmp = context.getNextTmp();
+                irBuilder.append(tmp + " = call double @cos(");
+                for (int i = 0; i < args.size(); i++) {
+                    irBuilder.append(args.get(i).getType() + " " + args.get(i).getRef());
+                    if (i < args.size() - 1) irBuilder.append(", ");
+                }
+                irBuilder.append(")\n");
+                return Optional.of(new LLVMValue.Register(tmp, "double"));
+            }
+        };
+
+        /**
+         * Built in function 'exp'.
+         */
+        public record ExpFunction() implements LLVMFunction {
+            @Override
+            public java.lang.String getType() { return "double (double)"; }
+
+            @Override
+            public java.lang.String returnType() { return "double"; }
+
+            @Override
+            public java.lang.String getRef() { return "@exp"; }
+
+            @Override
+            public java.lang.String getSignature() { return "double @exp(double)"; }
+
+            @Override
+            public java.lang.String getDeclare() { return "declare " + getSignature(); }
+
+            @Override
+            public java.lang.String getDefineHeader() { return "define " + getSignature() + " {"; }
+
+            @Override
+            public Optional<Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
+                java.lang.String tmp = context.getNextTmp();
+                irBuilder.append(tmp + " = call double @exp(");
+                for (int i = 0; i < args.size(); i++) {
+                    irBuilder.append(args.get(i).getType() + " " + args.get(i).getRef());
+                    if (i < args.size() - 1) irBuilder.append(", ");
+                }
+                irBuilder.append(")\n");
+                return Optional.of(new LLVMValue.Register(tmp, "double"));
+            }
+        };
+
+        /**
+         * Built in function 'ln'.
+         */
+        public record LogFunction() implements LLVMFunction {
+            @Override
+            public java.lang.String getType() { return "double (double)"; }
+
+            @Override
+            public java.lang.String returnType() { return "double"; }
+
+            @Override
+            public java.lang.String getRef() { return "@log"; }
+
+            @Override
+            public java.lang.String getSignature() { return "double @log(double)"; }
+
+            @Override
+            public java.lang.String getDeclare() { return "declare " + getSignature(); }
+
+            @Override
+            public java.lang.String getDefineHeader() { return "define " + getSignature() + " {"; }
+
+            @Override
+            public Optional<Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
+                java.lang.String tmp = context.getNextTmp();
+                irBuilder.append(tmp + " = call double @log(");
+                for (int i = 0; i < args.size(); i++) {
+                    irBuilder.append(args.get(i).getType() + " " + args.get(i).getRef());
+                    if (i < args.size() - 1) irBuilder.append(", ");
+                }
+                irBuilder.append(")\n");
+                return Optional.of(new LLVMValue.Register(tmp, "double"));
+            }
+        };
+
+        /**
+         * Built in function 'odd'.
+         */
+        public record OddFunction() implements LLVMFunction {
+            @Override
+            public java.lang.String getType() { return "i1 (i32)"; }
+
+            @Override
+            public java.lang.String returnType() { return "i1"; }
+
+            @Override
+            public java.lang.String getRef() { return ""; }
+
+            @Override
+            public java.lang.String getSignature() { return ""; }
+
+            @Override
+            public java.lang.String getDeclare() { return ""; }
+
+            @Override
+            public java.lang.String getDefineHeader() { return ""; }
+
+            @Override
+            public Optional<Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
+                // Below is a way to check odd:
+                // %tmp = and i32 %x, 1
+                // %res = icmp ne i32 %tmp, 0
+
+                java.lang.String andTmp = context.getNextTmp();
+                java.lang.String resultTmp = context.getNextTmp();
+                irBuilder.append(andTmp + " = and " + args.get(0).getType() + " " + args.get(0).getRef() + ", 1\n");
+                irBuilder.append(resultTmp + " = icmp ne i32 " + andTmp + ", 0\n");
+                return Optional.of(new LLVMValue.Register(resultTmp, "i1"));
+            }
+        };
+
+        /**
+         * Built in function 'sin'.
+         */
+        public record SinFunction() implements LLVMFunction {
+            @Override
+            public java.lang.String getType() { return "double (double)"; }
+
+            @Override
+            public java.lang.String returnType() { return "double"; }
+
+            @Override
+            public java.lang.String getRef() { return "@sin"; }
+
+            @Override
+            public java.lang.String getSignature() { return "double @sin(double)"; }
+
+            @Override
+            public java.lang.String getDeclare() { return "declare " + getSignature(); }
+
+            @Override
+            public java.lang.String getDefineHeader() { return "define " + getSignature() + " {"; }
+
+            @Override
+            public Optional<Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
+                java.lang.String tmp = context.getNextTmp();
+                irBuilder.append(tmp + " = call double @sin(");
+                for (int i = 0; i < args.size(); i++) {
+                    irBuilder.append(args.get(i).getType() + " " + args.get(i).getRef());
+                    if (i < args.size() - 1) irBuilder.append(", ");
+                }
+                irBuilder.append(")\n");
+                return Optional.of(new LLVMValue.Register(tmp, "double"));
+            }
+        };
+
+        /**
+         * Built in function 'sqrt'.
+         */
+        public record SqrtFunction() implements LLVMFunction {
+            @Override
+            public java.lang.String getType() { return "double (double)"; }
+
+            @Override
+            public java.lang.String returnType() { return "double"; }
+
+            @Override
+            public java.lang.String getRef() { return "@sqrt"; }
+
+            @Override
+            public java.lang.String getSignature() { return "double @sqrt(double)"; }
+
+            @Override
+            public java.lang.String getDeclare() { return "declare " + getSignature(); }
+
+            @Override
+            public java.lang.String getDefineHeader() { return "define " + getSignature() + " {"; }
+
+            @Override
+            public Optional<Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
+                java.lang.String tmp = context.getNextTmp();
+                irBuilder.append(tmp + " = call double @sqrt(");
+                for (int i = 0; i < args.size(); i++) {
+                    irBuilder.append(args.get(i).getType() + " " + args.get(i).getRef());
+                    if (i < args.size() - 1) irBuilder.append(", ");
+                }
+                irBuilder.append(")\n");
+                return Optional.of(new LLVMValue.Register(tmp, "double"));
+            }
+        };
+
+        /**
+         * Built in function 'trunc'.
+         */
+        public record TruncFunction() implements LLVMFunction {
+            @Override
+            public java.lang.String getType() { return "double (double)"; }
+
+            @Override
+            public java.lang.String returnType() { return "double"; }
+
+            @Override
+            public java.lang.String getRef() { return "@trunc"; }
+
+            @Override
+            public java.lang.String getSignature() { return "double @trunc(double)"; }
+
+            @Override
+            public java.lang.String getDeclare() { return "declare " + getSignature(); }
+
+            @Override
+            public java.lang.String getDefineHeader() { return "define " + getSignature() + " {"; }
+
+            @Override
+            public Optional<Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
+                java.lang.String tmp = context.getNextTmp();
+                irBuilder.append(tmp + " = call double @trunc(");
+                for (int i = 0; i < args.size(); i++) {
+                    irBuilder.append(args.get(i).getType() + " " + args.get(i).getRef());
+                    if (i < args.size() - 1) irBuilder.append(", ");
+                }
+                irBuilder.append(")\n");
+                return Optional.of(new LLVMValue.Register(tmp, "double"));
+            }
+        };
+
+        /**
+         * Built in function 'round'.
+         */
+        public record RoundFunction() implements LLVMFunction {
+            @Override
+            public java.lang.String getType() { return "i32 (double)"; }
+
+            @Override
+            public java.lang.String returnType() { return "i32"; }
+
+            @Override
+            public java.lang.String getRef() { return ""; }
+
+            @Override
+            public java.lang.String getSignature() { return ""; }
+
+            @Override
+            public java.lang.String getDeclare() { return ""; }
+
+            @Override
+            public java.lang.String getDefineHeader() { return ""; }
+
+            @Override
+            public Optional<Register> emitCall(List<LLVMValue> args, CompilerContext context, StringBuilder irBuilder) {
+                // Below is a way to round:
+                // %add = fadd double %x, 0.5
+                // %result = fptosi double %add to i32
+
+                java.lang.String addTmp = context.getNextTmp();
+                java.lang.String resultTmp = context.getNextTmp();
+                irBuilder.append(addTmp + " = fadd " + args.get(0).getType() + " " + args.get(0).getRef() + ", 0.5\n");
+                irBuilder.append(resultTmp + " = fptosi double " + addTmp + " to i32\n");
+                return Optional.of(new LLVMValue.Register(resultTmp, "double"));
             }
         };
 
