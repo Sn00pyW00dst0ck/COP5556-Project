@@ -6,6 +6,8 @@ This is a pseudo-delphi interpreter written utilizing ANTLR4 and Java.
 
 By [Gabriel Aldous](https://github.com/Sn00pyW00dst0ck) (70444594) & [Rishika Sharma](https://github.com/rishika64) (32772571)
 
+[![Demo Video](https://img.youtube.com/vi/1luBAvlZxVQ/0.jpg)](https://youtu.be/1luBAvlZxVQ)
+
 ## Project Setup 
 
 > [!IMPORTANT]  
@@ -26,6 +28,7 @@ The following libraries are utilized:
 1. [ANTLR4](https://www.antlr.org/) - to perform program file lexing and parsing.
 2. [JLine](https://jline.org/) - to simplify reading input from the user within the CLI program, and to provide advanced features like command history via arrow keys.
 3. [Big-Math](https://eobermuhlner.github.io/big-math/) - to support trigonometric, and other advanced mathematical operations on **BigDecimal** data type, which Java does not natively support. 
+4. 
 
 ## Building the Project
 
@@ -35,6 +38,12 @@ Alternatively, build the project from the command line by running the following 
 ```
 > cd project
 > mvn clean package
+```
+
+After building the java project, initialize the backend web server dependencies by running these commands:
+```
+> cd project/web/src/main/resources
+> npm i
 ```
 
 VSCode has been setup such that when viewing any of the `.java` files within the `src` directory the run button will be available in the top left corner. This can be used to run the application either in normal or debug mode. 
@@ -49,9 +58,9 @@ java -jar target/cop5556-project.jar <options>
 ## Running Test Cases
 
 All test files under `core/src/test/java/`:
-- Unit tests: `ASTBuilderTest`, `InterpreterTest`, `OptimizerTest`
+- Unit tests: `ASTBuilderTest`, `InterpreterTest`, `OptimizerTest`, `CompilerTest`
 - Integration tests: `CoreTest`
-- Sample Pascal test cases in `resources/programs/` with expected outputs in `resources/outputs/`
+- Sample Pascal test cases for the interpreter and compiler, as well as expected outputs are within the core project's resouces folder.
 
 This project includes unit tests to verify the functionality of the interpreter. For running Tests with Maven:
 ```bash
@@ -65,24 +74,26 @@ Below is the layout of the project.
 
 ```
 COP5556-Project/
-├── .github/                     # CI/CD workflows and templates
-├── .vscode/                     # VS Code workspace settings
+├── .github/                          # CI/CD workflows and templates
+├── .vscode/                          # VS Code workspace settings
 ├── project/
-│   ├── pom.xml                  # Maven build file
-│   ├── src/
+│   ├── pom.xml                       # Maven build file
+│   ├── cli/
+│   │   ├── src/main/java/plp/group/Main.java # CLI entry point
+│   ├── core/
 │   │   ├── main/
-│   │   │   ├── antlr4/           # ANTLR grammar files
-│   │   │   ├── java/plp/group/   # Java source code
-|   |   |   |   ├── AST/          # AST builder
-|   |   |   |   ├── Compiler/     # Compiler logic 
-│   │   │   │   ├── Interpreter/  # Interpreter logic
-│   │   │   │   ├── Optimizer/    # Optimizer logic
-│   │   │   │   ├── App.java      # Command-line interface
-│   │   │   ├── resources/        # Sample test Pascal programs
-│   ├── web
-|   │   ├── src/   
-|   |   |   |   ├── static/       # web files (HTML, CSS, JS)
-│   │   ├── test/                 # Unit tests
+│   │   │   ├── antlr4/               # ANTLR grammar files
+│   │   │   ├── java/
+│   │   │   │   ├── AST/              # AST implementation (used by compiler only).
+│   │   │   │   ├── Compiler/         # Compiler implementation
+│   │   │   │   ├── Interpreter/      # Interpreter implementation
+│   │   │   │   ├── Optimizer/        # Optimizer implementation
+│   │   │   ├── resources/            # Test case files
+│   │   ├── test/                     # Test cases for core
+│   ├── web/                          # Java Springboot web server
+│   │   ├── src/main/java/
+│   │   ├── src/main/resources/       # Compilation resources for WASM
+│   │   ├── src/main/resources/static # Served Website Files
 ```
 
 ## Core Components
@@ -109,21 +120,23 @@ Key files:
 
 ### Compiler & IR
 - `IRBuilder.java` — Constructs low-level IR (Intermediate Representation)
-- `StatementIRGenVisitor.java` — Translates AST to IR
-- `FunctionCollectionVisitor.java`, `StringCollectionVisitor.java`
+- `StatementIRGenVisitor.java` — Translates AST to IR for most instructions
+- `FunctionCollectionVisitor.java`, `StringCollectionVisitor.java` - collects all string literals / function and procedure definitions for separate processing
+- `CompilerContext.java` - Tracks status for compilation and provides the `copmileToLLVM` compilation entry method.
 
 ### Optimizer
-- `Optimizer.java` — Performs basic IR optimizations
+- `Optimizer.java` — Performs basic IR optimizations over the ANTLR4 parse tree
 
 ### Web UI
 
 Path: `project/web`
 
-- Built with Spring Boot
+- Java web servver built with Spring Boot
 - Frontend in `static/`:
   - `index.html`, `editor.js`, `style.css`, `main.js`
 - Backend:
   - `EndpointController.java` — REST controller for code evaluation
+  - The web server uses the Makefile found in resources folder to compile received code into `.ll` files and then to `.wasm` files, placing the result in the `static/wasm/` folder for the frontend to query.
 
 ---
 
@@ -163,13 +176,13 @@ The **Compiler** component in this project primarily deals with the construction
 
 #### Compiler Architecture
 
-At a high level, the compiler operates in **three main phases**:
+At a high level, the compiler operates using the following main items:
 
-1. **AST Traversal** using the `StatementIRGenVisitor`
-2. **Symbol Table Management** via `CompilerContext`
-3. **IR Construction** with `LLVMValue`, `IRBuilder`, and typed registers
+1. **AST Traversal** using the `StatementIRGenVisitor`, `StringCollectionVisitor`, and `FunctionCollectionVisitor`.
+2. **Symbol Table Management** via `CompilerContext` and `SymbolTable`.
+3. **IR Construction** with `LLVMValue`, and `IRBuilder`.
 
-#### 1. AST Traversal: `StatementIRGenVisitor`
+#### 1. AST Traversal
 
 The core compilation is handled by the `StatementIRGenVisitor`, a visitor class that walks through the high-level AST nodes (such as variable declarations, assignments, conditionals, and loops) and translates them into low-level IR instructions.
 
@@ -180,15 +193,9 @@ The core compilation is handled by the `StatementIRGenVisitor`, a visitor class 
 - Manages function entry and return code generation.
 - Supports nested scopes, procedure bodies, and parameter passing.
 
-**Example:**
-```java
-LLVMValue.Register tmp = new LLVMValue.Register("%" + variable.name(), context.getLLVMType(dec.type()));
-irBuilder.append(tmp.getRef() + " = alloca " + tmp.getType() + "\n");
-```
-
 This constructs a typed memory allocation instruction and adds it to the IR stream.
 
-#### 2. Symbol Table & Type Management: `CompilerContext` and `SymbolTable`
+#### 2. Symbol Table & Type Management
 
 The `CompilerContext` is the orchestrator of the IR generation phase. It maintains:
 - The current symbol table (`SymbolTable`) used to resolve identifiers
@@ -196,146 +203,63 @@ The `CompilerContext` is the orchestrator of the IR generation phase. It maintai
 - A label and register allocator for unique naming
 
 **SymbolTable** supports:
-- Nested scopes (with lexical parent link)
+- Nested scopes
 - Variable declaration and shadowing
 - Type resolution and conflict detection
 
 This makes it possible for the compiler to properly generate typed operations and reference variables across scopes, including functions and class methods.
 
-#### 3. IR Construction: `IRBuilder` + `LLVMValue`
+#### 3. IR Construction
 
-The `IRBuilder` is the low-level utility that accumulates IR strings (effectively a textual IR buffer) while visiting the AST.
+The `IRBuilder` is the low-level utility that accumulates IR strings (effectively a textual IR buffer) while visiting the AST. It essentially acts as a wrapper around multiple forms of java `StringBuilder` so that we can add to different segments of the LLVM IR (ex add a new global string vs a new instruction in a function).
 
 #### `LLVMValue`
 A set of classes under `LLVMValue` abstracts:
 - Registers (e.g., `%r1`)
 - Constants (e.g., `i32 5`)
-- Types (`i32`, `float`, `void`)
-- Memory references (e.g., `load`, `store`)
+- Functions (user defined and built in ones like `writeln`)
 
 This abstraction separates type-handling and register allocation logic from syntax, allowing reuse and ensuring all IR follows LLVM-style conventions.
-
-#### Design
-
-- **Single Static Assignment (SSA)**: The IR uses unique register names for each value binding (e.g., `%r1 = add i32 %a, %b`), making the generated IR clean, traceable, and easily optimizable.
-- **IR Decoupling**: The visitor only emits IR strings; no backend emission (e.g., LLVM, binary) is hardcoded, allowing easy refactoring for future backends.
-- **Separation of Concerns**: IR logic is separate from interpretation, letting us use the same AST for interpretation and compilation pipelines.
-
-#### Compiler Design Benefits
-
-- **Extensible**: Easy to add new operations or control flow structures
-- **Clear Typing**: Every instruction carries type information
-- **Modular**: Components like `StatementIRGenVisitor` and `IRBuilder` are self-contained
-- **Debuggable**: IR can be inspected line by line for correctness
-- **Bridge to Optimization**: Serves as the canonical source for `Optimizer.java` to manipulate constant expressions
 
 ## What Is Implemented
 
 The following items have been implemented within this version of the project: 
 
-1. Updated `delphi.g4` and `delphi_lexer.g4` grammar files to properly parse class definitions and usages. 
-2. Implemented a more robust command line interface for utilizing the **Interpreter** and **Optimizer**. 
-3. Implemented an **Optimizer** capable of performing a simplified variation of constant propogation.
+1. `delphi.g4` and `delphi_lexer.g4` grammar files properly parse class definitions and usages.
+2. A robust command line interface for utilizing the **Interpreter**, **Optimizer**, and **Compiler**.
+3. A java web server and HTML/CSS/JS website capable of acting as a frontend web editor which can run the programs within the browser using `.WASM`.
+4. Implemented an **Optimizer** capable of performing a simplified variation of constant propogation.
     - Operations with constant literal values are evaluated as much as possible.
     - Calculations involving more complex items such as variables, procedure and function calls, and other complex structures are NOT evaluated. 
-4. Implemented the following built in procedures and functions of the Pascal programming language. They may be redefined by the programmer, as is consistent with the Pascal programming language:
-    - *write*
-    - *writeln*
-    - *read* - NOTE: currently only works for reading integers
-    - *readln* - NOTE: currently only works for reading integers
-    - *Exit* - equivalent of return statement as defined by Pascal
-    - *Continue*
-    - *Break*
-    - *arctan*
-    - *chr*
-    - *cos*
-    - *exp*
-    - *ln*
-    - *odd*
-    - *pi*
-    - *round*
-    - *sin*
-    - *sqrt*
-    - *trunc*
-5. Implemented the ability to interpret expressions. 
-6. Implemented the ability to interpret the following types of statements:
-    - while loops
-    - for loops
-    - repeat until loops
-    - case statement
-    - procedure call statement
-    - goto statement - NOTE: see limitations for details!
-    - return, break, and continue statements - through built in procedures as is consistent with Pascal
-7. Implemented the ability for users to define custom procedures and functions. 
-    - Parameters may be passed by value or by reference. 
-    - Parameters passed by reference are correctly modified outside of the function call.
-    - Currently, parameters defined to be `PROCEDURE` or `FUNCTION` type are unsupported. 
-8. Implemented *basic* class and object operations. 
-    - Constructor call on object creation.
-    - Field access
-    - Class methods - as a procedure or function, with ability to pass by value or reference
-    - Nested accesses
-9. Ability to perform calculations utilizing Enumerations, including looping over them and using them in case statement conditions.
-10. Unit tests for nearly all of the above mentioned features.
-
-### Constant Propagation
-This optional optimization evaluates constant expressions at compile time. For example:
-
-```
-v := 2 * (10 + 11);   // becomes: v := 42
-v := v + 2 * 3;       // becomes: v := v + 6
-```
-This is achieved by rewriting AST nodes during parse tree traversal.
-
-### Formal Parameter Passing
-
-Procedures and functions can declare formal parameters, including:
-- **By value** (default): parameters are passed as copies
-- **By reference** (`var` keyword): parameters are passed as references, allowing in-place modification
-
-Parameter names are scoped correctly and follow static scoping rules. Internally, reference parameters are wrapped as RuntimeValue.Reference objects that track their originating variables.
-Example:
-
-```
-procedure Increment(var x: integer);
-begin
-    x := x + 1;
-end;
-```
-
-### Goto Statement Support
-- Goto statements use the `GotoException` mechanism to simulate jumps.
-- `LabelWalker` scans and maps labels to statement lists in advance.
-- Control flow exceptions safely unwind stack and resume at correct labeled statement.
-Example:
-
-```
-a := 0;
-goto MyLabel;
-a := 1;
-MyLabel:
-a := a + 10;
-```
+5. An interpreter with support for:
+    - Built in functions/procedures: *write* ,*writeln* ,*read* - NOTE: currently only works for reading integers - *readln* - NOTE: currently only works for reading integers - *Exit* - equivalent of return statement as defined by Pascal - *Continue* ,*Break* ,*arctan* ,*chr* ,*cos* ,*exp* ,*ln* ,*odd* ,*pi* ,*round* ,*sin* ,*sqrt* ,*trunc*
+    - Interpret expressions. 
+    - Interpret statements: while loops, for loops, repeat until loops, case statement, procedure call statement, goto statement - NOTE: only works on simple cases! - return, break, and continue statements - last three through built in procedures as is consistent with Pascal
+    - Implemented the ability for users to define custom procedures and functions. 
+        - Parameters may be passed by value or by reference. 
+        - Parameters passed by reference are correctly modified outside of the function call.
+        - Currently, parameters defined to be `PROCEDURE` or `FUNCTION` type are unsupported. 
+    - Implemented *basic* class and object operations. 
+        - Constructor call on object creation.
+        - Field access
+        - Class methods - as a procedure or function, with ability to pass by value or reference
+        - Nested accesses
+    - Ability to perform calculations utilizing Enumerations, including looping over them and using them in case statement conditions.
+    - Note: if something is not listed as supported here, safely assume that it is not supported or has minimal implementation in the Interpreter.
+6. A compiler with support for:
+    - Compiling expressions (so long as the expression would not need a type cast).
+    - Compiling statements (all statements except the `with` statement).
+        - Note: for loops are limited to looping over integers.
+    - Compiling user defined functions and procedures (no support for pass by reference).
+    - Built in functions/procedures: *write*, *writeln*, *arctan*, *cos*, *exp*, *ln* ,*odd*, *round*, *sin*, *sqrt*, *trunc*
+    - Note: if something is not listed as supported here, safely assume that it is not supported or has minimal implementation in the Compiler.
+7. Unit tests for nearly all of the above mentioned features.
 
 ## Bonus Implementations
 
-### Browser Implementation 
+The compilation of `.ll` to `.wasm` relies on the [TWR WASM LIBRARY](https://twiddlingbits.dev/docsite/). The web server will invoke a `Makefile` to compile the `.ll` to `.wasm` and then serve this module to the frontend. The frontend website will load this module and then run the program in the browser. See below for images of the outputs.
 
-### Video Walkthrough
 
-## Known Bugs & Limitations
-
-> [!CAUTION]
-> The following items have been identified as known bugs and limitations within this version of the project:
-
-1. Subranges, Arrays, Pointers, and other non-trivial data types (unless listed above) are not implemented.
-2. Classes do not support encapsulation. All field lookups are made within public scope, even if protected or private scope lookups should be utilized.
-3. Class destructors are not supported. They may be defined, but will not be invoked automatically. They must be invoked manually by the programmer. 
-4. Type checking when performing operations with objects is limited. An instance of a class may be assigned to a variable of any class type.  
-5. Type checking when performing operations with enumeration types is limited, and may result in undefined behavior.
-6. *read* and *readln* methods currently only work when reading in Integer data types.
-7. *write* and *writeln* currently supports printing primitive types and enumerations, printing an object leads to undefined behavior.
-8. goto statement behavior is very bugged. It passes the goto_statement_simple.pas test file, but fails the goto_statement_complex.pas and it also has issues in many other cases that are untested. Usage highly discouraged.
 
 ## References
 
@@ -354,3 +278,8 @@ The following online resources were utilized during the construction of this app
 11. https://www.freepascal.org/docs-html/rtl/system/writeln.html
 12. https://www.dcs.ed.ac.uk/home/SUNWspro/3.0/pascal/lang_ref/ref_builtin.doc.html
 13. https://www.freepascal.org/docs-html/rtl/system/index-5.html
+14. https://twiddlingbits.dev/docsite/
+15. https://mapping-high-level-constructs-to-llvm-ir.readthedocs.io/en/latest/a-quick-primer/index.html
+16. https://godbolt.org/
+17. https://llvm.org/docs/CommandGuide/llc.html
+18. https://llvm.org/docs/LangRef.html
